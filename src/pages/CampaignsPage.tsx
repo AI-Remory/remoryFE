@@ -1,8 +1,7 @@
-import CampaignViewer from '../components/CampaignViewer'
-import { campaigns } from '../data/campaigns'
+import MemoryEditorialScroll from '../components/MemoryEditorialScroll'
 
 function CampaignsPage() {
-  return <CampaignViewer campaigns={campaigns} />
+  return <MemoryEditorialScroll />
 }
 
 export default CampaignsPage

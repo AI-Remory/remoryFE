@@ -3,11 +3,13 @@ import ProfilePage from './pages/ProfilePage'
 import './App.css'
 
 function App() {
-  if (window.location.pathname.startsWith('/profile')) {
-    return <ProfilePage />
+  const { pathname } = window.location
+
+  if (pathname.startsWith('/campaigns')) {
+    return <CampaignsPage />
   }
 
-  return <CampaignsPage />
+  return <ProfilePage />
 }
 
 export default App

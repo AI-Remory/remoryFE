@@ -16,6 +16,7 @@ function getPhotoDate(photo: ProfilePhoto) {
 
 function SeasonPhotoArchive() {
   const [activeSeason, setActiveSeason] = useState<Season>(getCurrentSeason)
+  const [titleScrollProgress, setTitleScrollProgress] = useState(0)
   const sectionRefs = useRef<Partial<Record<Season, HTMLElement>>>({})
 
   const photosBySeason = useMemo(() => {
@@ -55,39 +56,74 @@ function SeasonPhotoArchive() {
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
-        const mostVisibleEntry = entries
-          .filter((entry) => entry.isIntersecting)
-          .sort((first, second) => second.intersectionRatio - first.intersectionRatio)[0]
+        const visibleEntries = entries.filter((entry) => entry.isIntersecting)
+        if (visibleEntries.length === 0) return
 
-        const nextSeason = mostVisibleEntry?.target.getAttribute(
-          'data-season',
-        ) as Season | null
+        const mostVisible = visibleEntries.reduce((prev, current) => {
+          return prev.intersectionRatio > current.intersectionRatio ? prev : current
+        })
 
+        const nextSeason = mostVisible.target.getAttribute('data-season') as Season
         if (nextSeason) {
-          setActiveSeason(nextSeason)
+          setActiveSeason((prev) => {
+            if (prev !== nextSeason) {
+              return nextSeason
+            }
+            return prev
+          })
         }
       },
       {
         root: null,
-        rootMargin: '-28% 0px -36% 0px',
-        threshold: [0.2, 0.35, 0.5, 0.65],
+        rootMargin: '-25% 0px -25% 0px',
+        threshold: [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0],
       },
     )
 
     seasons.forEach((season) => {
-      const section = sectionRefs.current[season]
-
-      if (section) {
-        observer.observe(section)
-      }
+      const el = sectionRefs.current[season]
+      if (el) observer.observe(el)
     })
 
     return () => observer.disconnect()
+  }, []) // Empty dependency array for stable observer
+
+  useEffect(() => {
+    let animationFrame = 0
+
+    const updateTitleProgress = () => {
+      animationFrame = 0
+
+      const maxScroll = Math.max(
+        1,
+        document.documentElement.scrollHeight - window.innerHeight,
+      )
+      const progress = Math.min(1, Math.max(0, window.scrollY / maxScroll))
+
+      setTitleScrollProgress(progress * (seasons.length - 1))
+    }
+
+    const handleScroll = () => {
+      if (animationFrame) return
+      animationFrame = window.requestAnimationFrame(updateTitleProgress)
+    }
+
+    window.addEventListener('scroll', handleScroll, { passive: true })
+    window.addEventListener('resize', handleScroll)
+    updateTitleProgress()
+
+    return () => {
+      window.removeEventListener('scroll', handleScroll)
+      window.removeEventListener('resize', handleScroll)
+      if (animationFrame) {
+        window.cancelAnimationFrame(animationFrame)
+      }
+    }
   }, [])
 
   return (
     <main className="profile-page">
-      <AnimatedSeasonTitle season={activeSeason} />
+      <AnimatedSeasonTitle scrollProgress={titleScrollProgress} />
 
       <header className="profile-hero">
         <a className="profile-hero__brand" href="/" aria-label="Go to Remory home">
@@ -103,6 +139,12 @@ function SeasonPhotoArchive() {
       </header>
 
       <aside className="season-scroll-progress" aria-label="Season scroll progress">
+        <div
+          className="season-scroll-progress__indicator"
+          style={{
+            '--active-index': seasons.indexOf(activeSeason),
+          } as React.CSSProperties}
+        />
         {seasons.map((season) => (
           <span
             key={season}

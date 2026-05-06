@@ -36,7 +36,7 @@ function SeasonalPhotoGrid({ photos, season }: SeasonalPhotoGridProps) {
         <button
           key={photo.id}
           type="button"
-          className={`season-photo-card season-photo-card--${(index % 6) + 1}`}
+          className={`season-photo-card season-photo-card--${(index % 8) + 1}`}
           aria-label={`Open ${photo.title} memory`}
         >
           <span className="season-photo-card__image">

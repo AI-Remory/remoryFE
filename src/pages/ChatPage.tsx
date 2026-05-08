@@ -233,7 +233,7 @@ function ChatPage() {
             <ChatIcon name="chat" />
             <span>대화</span>
           </button>
-          <button className="chat-page__nav-button" type="button" onClick={() => console.log('go storybook')}>
+          <button className="chat-page__nav-button" type="button" onClick={() => { window.location.href = '/storybook' }}>
             <ChatIcon name="book" />
             <span>스토리북</span>
           </button>

@@ -308,7 +308,7 @@ function MyPage() {
             <AppIcon name="chat" />
             <span>대화</span>
           </button>
-          <button className="my-page__nav-button" type="button" onClick={() => console.log('go storybook')}>
+          <button className="my-page__nav-button" type="button" onClick={() => { window.location.href = '/storybook' }}>
             <AppIcon name="book" />
             <span>스토리북</span>
           </button>

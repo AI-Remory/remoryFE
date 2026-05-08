@@ -444,17 +444,27 @@
   color: #74665a;
   cursor: pointer;
   font-size: 13px;
-  font-weight: 650;
+  font-weight: 700;
+}
+
+.storybook-page__nav-button span {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: -0.3px;
+  line-height: 1;
 }
 
 .storybook-page__nav-button svg {
-  width: 30px;
-  height: 30px;
+  width: 29px;
+  height: 29px;
 }
 
 .storybook-page__nav-button.is-active {
   color: var(--storybook-orange);
-  font-weight: 850;
+}
+
+.storybook-page__nav-button.is-active span {
+  color: var(--storybook-orange);
 }
 
 .storybook-page button:focus-visible {

@@ -577,7 +577,7 @@
   grid-template-columns: repeat(4, 1fr);
   width: 100%;
   max-width: 480px;
-  height: 79px;
+  height: 84px;
   border-top: 1px solid #ead8c9;
   background: rgba(255, 250, 244, 0.94);
   box-shadow: 0 -8px 20px rgba(84, 52, 32, 0.045);
@@ -590,11 +590,13 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 4px;
+  gap: 5px;
   border: none;
   background: transparent;
   color: #8d8078;
   cursor: pointer;
+  font-size: 13px;
+  font-weight: 700;
 }
 
 .my-page__nav-button svg {
@@ -603,7 +605,7 @@
 }
 
 .my-page__nav-button span {
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 700;
   letter-spacing: -0.3px;
   line-height: 1;

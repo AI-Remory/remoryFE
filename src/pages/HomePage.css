@@ -85,7 +85,7 @@
 }
 
 .home-page__hero {
-  height: 280px;
+  height: 350px;
   overflow: hidden;
   border: 1px solid #efd6c4;
   border-radius: 24px;
@@ -104,23 +104,23 @@
   flex-direction: column;
   align-items: flex-start;
   justify-content: center;
-  width: min(72%, 320px);
-  padding: 28px 26px;
+  width: min(78%, 352px);
+  padding: 32px 28px;
 }
 
 .home-page__hero-title {
   color: #2f2926;
   font-family: Georgia, 'Times New Roman', 'Noto Serif KR', serif;
-  font-size: clamp(30px, 8vw, 43px);
+  font-size: 38px;
   font-weight: 800;
   letter-spacing: -1px;
-  line-height: 1.32;
+  line-height: 1.28;
 }
 
 .home-page__hero-text {
-  margin-top: 14px;
+  margin-top: 16px;
   color: #3d3633;
-  font-size: clamp(15px, 3.8vw, 18px);
+  font-size: 18px;
   font-weight: 500;
   letter-spacing: -0.4px;
   line-height: 1.6;
@@ -130,9 +130,9 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: 58px;
+  min-height: 56px;
   gap: 11px;
-  margin-top: 22px;
+  margin-top: 18px;
   padding: 0 24px;
   border: none;
   border-radius: 18px;
@@ -492,6 +492,13 @@
   cursor: pointer;
   font-size: 13px;
   font-weight: 700;
+}
+
+.home-page__nav-button span {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: -0.3px;
+  line-height: 1;
 }
 
 .home-page__nav-button svg {

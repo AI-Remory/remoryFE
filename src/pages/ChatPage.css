@@ -403,8 +403,15 @@
   background: transparent;
   color: var(--chat-nav-muted);
   cursor: pointer;
-  font-size: 14px;
-  font-weight: 600;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.chat-page__nav-button span {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: -0.3px;
+  line-height: 1;
 }
 
 .chat-page__nav-button svg {
@@ -414,7 +421,10 @@
 
 .chat-page__nav-button.is-active {
   color: var(--chat-orange);
-  font-weight: 800;
+}
+
+.chat-page__nav-button.is-active span {
+  color: var(--chat-orange);
 }
 
 .chat-page button:focus-visible,

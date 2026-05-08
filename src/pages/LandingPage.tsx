@@ -11,6 +11,7 @@ function LandingPage() {
 
   const handleEmailLogin = () => {
     console.log('email login')
+    window.location.href = '/auth'
   }
 
   const handleExplore = () => {
@@ -43,72 +44,13 @@ function LandingPage() {
           </button>
         </header>
 
-        <section className="remory-onboarding-hero" aria-label="기억 스토리북 일러스트">
-          <span className="remory-onboarding-petal remory-onboarding-petal--one" aria-hidden="true" />
-          <span className="remory-onboarding-petal remory-onboarding-petal--two" aria-hidden="true" />
-          <span className="remory-onboarding-petal remory-onboarding-petal--three" aria-hidden="true" />
-          <span className="remory-onboarding-petal remory-onboarding-petal--four" aria-hidden="true" />
-          <span className="remory-onboarding-leaf remory-onboarding-leaf--one" aria-hidden="true" />
-          <span className="remory-onboarding-leaf remory-onboarding-leaf--two" aria-hidden="true" />
-
-          <div className="remory-onboarding-paper remory-onboarding-paper--left" aria-hidden="true" />
-          <div className="remory-onboarding-paper remory-onboarding-paper--right" aria-hidden="true" />
-          <div className="remory-onboarding-small-photo" aria-hidden="true">
-            <span />
-          </div>
-
-          <div className="remory-onboarding-portrait-card" aria-hidden="true">
-            <span className="remory-onboarding-tape" />
-            <div className="remory-onboarding-portrait">
-              <span className="remory-onboarding-hair" />
-              <span className="remory-onboarding-face" />
-              <span className="remory-onboarding-neck" />
-              <span className="remory-onboarding-shoulders" />
-              <span className="remory-onboarding-smile" />
-            </div>
-          </div>
-
-          <div className="remory-onboarding-memo">
-            <span>엄마의 따뜻한</span>
-            <strong>말 한마디</strong>
-          </div>
-
-          <div className="remory-onboarding-voice">
-            <span className="remory-onboarding-wave" aria-hidden="true">
-              <i />
-              <i />
-              <i />
-              <i />
-              <i />
-              <i />
-              <i />
-              <i />
-            </span>
-            <span>0:28</span>
-          </div>
-
-          <div className="remory-onboarding-book">
-            <div className="remory-onboarding-book-page remory-onboarding-book-page--left">
-              <div className="remory-onboarding-landscape" aria-hidden="true">
-                <span className="remory-onboarding-sun" />
-                <span className="remory-onboarding-hill remory-onboarding-hill--one" />
-                <span className="remory-onboarding-hill remory-onboarding-hill--two" />
-                <span className="remory-onboarding-tree remory-onboarding-tree--one" />
-                <span className="remory-onboarding-tree remory-onboarding-tree--two" />
-                <span className="remory-onboarding-people" />
-              </div>
-            </div>
-            <div className="remory-onboarding-book-page remory-onboarding-book-page--right">
-              <p>
-                그날의 목소리
-                <br />
-                당신의 미소는
-                <br />
-                기억입니다.
-              </p>
-            </div>
-          </div>
-        </section>
+        <div className="remory-hero-image-wrap">
+          <img
+            className="remory-hero-image"
+            src="/images/remory-hero.png"
+            alt="소중한 사람의 목소리와 기억을 담은 스토리북"
+          />
+        </div>
 
         <section className="remory-onboarding-copy">
           <h1 className="remory-onboarding-title">

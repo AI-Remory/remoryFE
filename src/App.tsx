@@ -1,5 +1,8 @@
+import AuthPage from './pages/AuthPage'
 import CampaignsPage from './pages/CampaignsPage'
+import HomePage from './pages/HomePage'
 import LandingPage from './pages/LandingPage'
+import MyPage from './pages/MyPage'
 import ProfilePage from './pages/ProfilePage'
 import './App.css'
 
@@ -12,6 +15,18 @@ function App() {
 
   if (pathname.startsWith('/profile')) {
     return <ProfilePage />
+  }
+
+  if (pathname.startsWith('/auth')) {
+    return <AuthPage />
+  }
+
+  if (pathname.startsWith('/home')) {
+    return <HomePage />
+  }
+
+  if (pathname.startsWith('/my')) {
+    return <MyPage />
   }
 
   return <LandingPage />

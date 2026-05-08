@@ -180,7 +180,7 @@ function MyPage() {
           <div className="my-page__profile-top">
             <div className="my-page__avatar-wrap">
               <div className="my-page__avatar">
-                <img src="/images/my-page/user-profile.png" alt="현규님 프로필 사진" />
+                <img src="/images/my-page/persona-mom.png" alt="현규님 프로필 사진" />
               </div>
               <button className="my-page__camera-button" type="button" aria-label="프로필 사진 변경">
                 <AppIcon name="camera" />

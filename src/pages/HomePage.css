@@ -22,10 +22,10 @@
 
 .home-page__container {
   width: 100%;
-  max-width: 480px;
+  max-width: 960px;
   min-height: 100dvh;
   margin: 0 auto;
-  padding: 28px 20px 104px;
+  padding: 34px 22px 124px;
 }
 
 .home-page h1,
@@ -44,12 +44,12 @@
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  padding: 5px 2px 22px;
+  padding: 0 16px 32px;
 }
 
 .home-page__header h1 {
   color: #2f2b29;
-  font-size: clamp(28px, 7.4vw, 36px);
+  font-size: clamp(31px, 4.2vw, 38px);
   font-weight: 850;
   letter-spacing: -1.1px;
   line-height: 1.1;
@@ -85,7 +85,7 @@
 }
 
 .home-page__hero {
-  min-height: clamp(240px, 37dvh, 280px);
+  height: clamp(270px, 42vw, 408px);
   overflow: hidden;
   border: 1px solid #efd6c4;
   border-radius: 24px;
@@ -100,27 +100,27 @@
 
 .home-page__hero-content {
   display: flex;
-  min-height: inherit;
+  height: 100%;
   flex-direction: column;
   align-items: flex-start;
   justify-content: center;
-  width: min(72%, 320px);
-  padding: 28px 26px;
+  width: min(46%, 410px);
+  padding: 44px 52px;
 }
 
 .home-page__hero-title {
   color: #2f2926;
   font-family: Georgia, 'Times New Roman', 'Noto Serif KR', serif;
-  font-size: clamp(30px, 8vw, 43px);
+  font-size: clamp(35px, 5.1vw, 55px);
   font-weight: 800;
   letter-spacing: -1px;
   line-height: 1.32;
 }
 
 .home-page__hero-text {
-  margin-top: 14px;
+  margin-top: 20px;
   color: #3d3633;
-  font-size: clamp(15px, 3.8vw, 18px);
+  font-size: clamp(18px, 2.6vw, 25px);
   font-weight: 500;
   letter-spacing: -0.4px;
   line-height: 1.6;
@@ -130,30 +130,30 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: 58px;
-  gap: 11px;
-  margin-top: 22px;
-  padding: 0 24px;
+  min-height: 78px;
+  gap: 14px;
+  margin-top: 28px;
+  padding: 0 42px;
   border: none;
   border-radius: 18px;
   background: linear-gradient(180deg, #f36f33 0%, #e65a29 100%);
   box-shadow: 0 8px 18px rgba(216, 97, 45, 0.22);
   color: #fff;
   cursor: pointer;
-  font-size: 19px;
+  font-size: 27px;
   font-weight: 800;
   letter-spacing: -0.4px;
 }
 
 .home-page__hero-button svg {
-  width: 27px;
-  height: 27px;
+  width: 34px;
+  height: 34px;
 }
 
 .home-page__persona-section,
 .home-page__memory-section {
-  margin-top: 16px;
-  padding: 18px 15px 16px;
+  margin-top: 26px;
+  padding: 28px 26px 30px;
   border: 1px solid var(--home-border);
   border-radius: 20px;
   background: rgba(255, 249, 241, 0.76);
@@ -170,7 +170,7 @@
 .home-page__section-heading h2,
 .home-page__memory-section h2 {
   color: #2f2926;
-  font-size: 22px;
+  font-size: 28px;
   font-weight: 850;
   letter-spacing: -0.7px;
   line-height: 1.1;
@@ -185,7 +185,7 @@
   background: transparent;
   color: #6d5d54;
   cursor: pointer;
-  font-size: 14px;
+  font-size: 18px;
   font-weight: 650;
 }
 
@@ -196,9 +196,9 @@
 
 .home-page__persona-list {
   display: grid;
-  grid-template-columns: repeat(4, minmax(78px, 1fr));
-  gap: 14px;
-  margin-top: 20px;
+  grid-template-columns: repeat(4, minmax(112px, 1fr));
+  gap: 34px;
+  margin-top: 30px;
   overflow-x: auto;
   padding-bottom: 2px;
   scrollbar-width: none;
@@ -212,8 +212,8 @@
   position: relative;
   display: grid;
   justify-items: center;
-  min-width: 78px;
-  gap: 8px;
+  min-width: 112px;
+  gap: 12px;
   padding: 0;
   border: none;
   background: transparent;
@@ -224,8 +224,8 @@
 .home-page__persona-avatar,
 .home-page__add-avatar {
   display: block;
-  width: 72px;
-  height: 72px;
+  width: 104px;
+  height: 104px;
   overflow: hidden;
   border: 2px solid transparent;
   border-radius: 50%;
@@ -246,11 +246,11 @@
 
 .home-page__persona-check {
   position: absolute;
-  top: 0;
-  right: calc(50% - 42px);
+  top: -1px;
+  right: calc(50% - 58px);
   display: inline-grid;
-  width: 27px;
-  height: 27px;
+  width: 38px;
+  height: 38px;
   place-items: center;
   border: 2px solid #fff9f1;
   border-radius: 50%;
@@ -259,18 +259,18 @@
 }
 
 .home-page__persona-check svg {
-  width: 16px;
-  height: 16px;
+  width: 22px;
+  height: 22px;
 }
 
 .home-page__persona-item strong {
   color: #2f2926;
-  font-size: 17px;
+  font-size: 24px;
   font-weight: 750;
 }
 
 .home-page__persona-item.is-active strong {
-  padding: 4px 13px;
+  padding: 6px 18px;
   border-radius: 999px;
   background: #fff0e5;
   color: var(--home-peach-dark);
@@ -279,49 +279,49 @@
 .home-page__add-avatar {
   display: inline-grid;
   place-items: center;
-  border-radius: 22px;
+  border-radius: 24px;
   background: rgba(255, 246, 240, 0.82);
   color: #706761;
 }
 
 .home-page__add-avatar svg {
-  width: 33px;
-  height: 33px;
+  width: 48px;
+  height: 48px;
 }
 
 .home-page__persona-preview {
-  margin-top: 22px;
-  padding: 20px;
+  margin-top: 30px;
+  padding: 28px;
   border: 1px solid #ead8c9;
-  border-radius: 18px;
+  border-radius: 22px;
   background: rgba(255, 252, 247, 0.72);
 }
 
 .home-page__persona-preview h3 {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   color: var(--home-peach-dark);
-  font-size: 22px;
+  font-size: 30px;
   font-weight: 850;
   letter-spacing: -0.5px;
 }
 
 .home-page__persona-preview h3 svg {
-  width: 22px;
-  height: 22px;
+  width: 26px;
+  height: 26px;
 }
 
 .home-page__preview-body {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr) 220px;
   align-items: end;
-  gap: 18px;
-  margin-top: 14px;
+  gap: 38px;
+  margin-top: 20px;
 }
 
 .home-page__chat-preview {
-  padding: 13px 12px;
+  padding: 16px 14px;
   border: 1px solid #efd6c8;
   border-radius: 15px;
   background: rgba(255, 248, 241, 0.72);
@@ -329,20 +329,20 @@
 
 .home-page__chat-line {
   display: grid;
-  grid-template-columns: 52px minmax(0, 1fr);
-  gap: 12px;
+  grid-template-columns: 70px minmax(0, 1fr);
+  gap: 18px;
   color: #332b28;
-  font-size: 14px;
-  line-height: 1.35;
+  font-size: 20px;
+  line-height: 1.45;
 }
 
 .home-page__chat-line + .home-page__chat-line {
-  margin-top: 8px;
+  margin-top: 10px;
 }
 
 .home-page__chat-line span {
   display: inline-grid;
-  min-height: 28px;
+  min-height: 36px;
   place-items: center;
   border-radius: 999px;
   background: #ffe7d2;
@@ -351,15 +351,15 @@
 }
 
 .home-page__preview-body button {
-  min-width: 116px;
-  min-height: 56px;
-  padding: 0 18px;
+  min-width: 220px;
+  min-height: 72px;
+  padding: 0 26px;
   border: none;
   border-radius: 15px;
   background: linear-gradient(180deg, #f36f33 0%, #e65a29 100%);
   color: #fff;
   cursor: pointer;
-  font-size: 17px;
+  font-size: 25px;
   font-weight: 800;
 }
 
@@ -367,37 +367,37 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-top: 16px;
+  margin-top: 24px;
   color: #6f625b;
-  font-size: 14px;
+  font-size: 19px;
   font-weight: 500;
 }
 
 .home-page__hint svg {
-  width: 20px;
-  height: 20px;
+  width: 24px;
+  height: 24px;
   flex: 0 0 auto;
 }
 
 .home-page__memory-section {
-  margin-top: 14px;
+  margin-top: 20px;
 }
 
 .home-page__memory-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 13px;
-  margin-top: 18px;
+  gap: 28px;
+  margin-top: 24px;
 }
 
 .home-page__memory-card {
   position: relative;
   display: grid;
-  grid-template-columns: 68px minmax(0, 1fr) 18px;
+  grid-template-columns: 112px minmax(0, 1fr) 26px;
   align-items: center;
-  gap: 12px;
-  min-height: 116px;
-  padding: 17px 13px;
+  gap: 22px;
+  min-height: 170px;
+  padding: 26px 24px;
   overflow: hidden;
   border: 1px solid #ead8c9;
   border-radius: 16px;
@@ -416,8 +416,8 @@
 
 .home-page__memory-icon {
   display: inline-grid;
-  width: 66px;
-  height: 66px;
+  width: 112px;
+  height: 112px;
   place-items: center;
   border-radius: 50%;
   color: #fff;
@@ -432,8 +432,8 @@
 }
 
 .home-page__memory-icon svg {
-  width: 37px;
-  height: 37px;
+  width: 64px;
+  height: 64px;
 }
 
 .home-page__memory-text strong,
@@ -443,23 +443,23 @@
 
 .home-page__memory-text strong {
   color: #2f2926;
-  font-size: 17px;
+  font-size: 27px;
   font-weight: 850;
   letter-spacing: -0.4px;
   line-height: 1.35;
 }
 
 .home-page__memory-text small {
-  margin-top: 7px;
+  margin-top: 12px;
   color: var(--home-muted);
-  font-size: 12px;
+  font-size: 18px;
   font-weight: 500;
   line-height: 1.45;
 }
 
 .home-page__memory-card > svg {
-  width: 18px;
-  height: 18px;
+  width: 28px;
+  height: 28px;
   color: #8a7c73;
 }
 
@@ -471,8 +471,8 @@
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   width: 100%;
-  max-width: 480px;
-  height: 84px;
+  max-width: 960px;
+  height: 102px;
   border-top: 1px solid #ead8c9;
   background: rgba(255, 250, 244, 0.94);
   box-shadow: 0 -8px 20px rgba(84, 52, 32, 0.045);
@@ -485,18 +485,18 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 5px;
+  gap: 7px;
   border: none;
   background: transparent;
   color: #6f6259;
   cursor: pointer;
-  font-size: 13px;
+  font-size: 16px;
   font-weight: 700;
 }
 
 .home-page__nav-button svg {
-  width: 29px;
-  height: 29px;
+  width: 37px;
+  height: 37px;
 }
 
 .home-page__nav-button.is-active,
@@ -513,13 +513,18 @@
   filter: contrast(1.02);
 }
 
-@media (max-width: 420px) {
+@media (max-width: 620px) {
   .home-page__container {
+    max-width: 480px;
     padding: 24px 14px 102px;
   }
 
+  .home-page__header {
+    padding: 5px 2px 22px;
+  }
+
   .home-page__hero {
-    min-height: 230px;
+    height: 230px;
     background-image:
       linear-gradient(90deg, rgba(255, 238, 220, 0.96) 0%, rgba(255, 238, 220, 0.82) 48%, rgba(255, 238, 220, 0.28) 100%),
       url('/images/home/home-hero-memory.png');
@@ -544,20 +549,167 @@
     font-size: 16px;
   }
 
+  .home-page__hero-button svg {
+    width: 27px;
+    height: 27px;
+  }
+
+  .home-page__persona-section,
+  .home-page__memory-section {
+    margin-top: 16px;
+    padding: 18px 15px 16px;
+  }
+
+  .home-page__section-heading h2,
+  .home-page__memory-section h2 {
+    font-size: 22px;
+  }
+
+  .home-page__section-heading button {
+    font-size: 14px;
+  }
+
   .home-page__persona-list {
     grid-template-columns: repeat(4, 78px);
+    gap: 14px;
+    margin-top: 20px;
+  }
+
+  .home-page__persona-item {
+    min-width: 78px;
+    gap: 8px;
+  }
+
+  .home-page__persona-avatar,
+  .home-page__add-avatar {
+    width: 72px;
+    height: 72px;
+  }
+
+  .home-page__persona-check {
+    right: calc(50% - 42px);
+    width: 27px;
+    height: 27px;
+  }
+
+  .home-page__persona-check svg {
+    width: 16px;
+    height: 16px;
+  }
+
+  .home-page__persona-item strong {
+    font-size: 17px;
+  }
+
+  .home-page__persona-item.is-active strong {
+    padding: 4px 13px;
+  }
+
+  .home-page__add-avatar {
+    border-radius: 22px;
+  }
+
+  .home-page__add-avatar svg {
+    width: 33px;
+    height: 33px;
+  }
+
+  .home-page__persona-preview {
+    margin-top: 22px;
+    padding: 20px;
+    border-radius: 18px;
+  }
+
+  .home-page__persona-preview h3 {
+    font-size: 22px;
+  }
+
+  .home-page__persona-preview h3 svg {
+    width: 22px;
+    height: 22px;
   }
 
   .home-page__preview-body,
   .home-page__memory-grid {
     grid-template-columns: 1fr;
+    gap: 18px;
+  }
+
+  .home-page__chat-line {
+    grid-template-columns: 52px minmax(0, 1fr);
+    gap: 12px;
+    font-size: 14px;
+  }
+
+  .home-page__chat-line span {
+    min-height: 28px;
   }
 
   .home-page__preview-body button {
     justify-self: stretch;
+    min-width: 116px;
+    min-height: 56px;
+    font-size: 17px;
+  }
+
+  .home-page__hint {
+    margin-top: 16px;
+    font-size: 14px;
+  }
+
+  .home-page__hint svg {
+    width: 20px;
+    height: 20px;
+  }
+
+  .home-page__memory-grid {
+    gap: 13px;
+    margin-top: 18px;
   }
 
   .home-page__memory-card {
+    grid-template-columns: 68px minmax(0, 1fr) 18px;
+    gap: 12px;
     min-height: 104px;
+    padding: 17px 13px;
+  }
+
+  .home-page__memory-icon {
+    width: 66px;
+    height: 66px;
+  }
+
+  .home-page__memory-icon svg {
+    width: 37px;
+    height: 37px;
+  }
+
+  .home-page__memory-text strong {
+    font-size: 17px;
+  }
+
+  .home-page__memory-text small {
+    margin-top: 7px;
+    font-size: 12px;
+  }
+
+  .home-page__memory-card > svg {
+    width: 18px;
+    height: 18px;
+  }
+
+  .home-page__bottom-nav {
+    max-width: 480px;
+    height: 84px;
+  }
+
+  .home-page__nav-button {
+    gap: 5px;
+    font-size: 13px;
+  }
+
+  .home-page__nav-button svg {
+    width: 29px;
+    height: 29px;
   }
 }

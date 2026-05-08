@@ -25,9 +25,9 @@
 
 .my-page__container {
   width: 100%;
-  max-width: 520px;
+  max-width: 960px;
   min-height: 100dvh;
-  padding: 30px 14px 108px;
+  padding: 30px 22px 108px;
 }
 
 .my-page h1,
@@ -45,7 +45,7 @@
   align-items: flex-start;
   justify-content: space-between;
   gap: 18px;
-  padding: 4px 2px 21px;
+  padding: 4px 4px 21px;
 }
 
 .my-page__header h1 {
@@ -576,7 +576,7 @@
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   width: 100%;
-  max-width: 520px;
+  max-width: 960px;
   height: 79px;
   border-top: 1px solid #ead8c9;
   background: rgba(255, 250, 244, 0.94);

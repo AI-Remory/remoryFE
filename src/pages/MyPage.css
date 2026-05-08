@@ -108,6 +108,7 @@
 
 .my-page__profile-top {
   display: flex;
+  flex-wrap: wrap;
   gap: 23px;
 }
 
@@ -160,7 +161,7 @@
 }
 
 .my-page__profile-copy {
-  flex: 1;
+  flex: 1 1 160px;
   min-width: 0;
 }
 
@@ -243,6 +244,7 @@
   font-weight: 600;
   letter-spacing: -0.3px;
   line-height: 1.15;
+  white-space: nowrap;
 }
 
 .my-page__stats strong {
@@ -252,6 +254,7 @@
   font-weight: 800;
   letter-spacing: -0.8px;
   line-height: 1;
+  white-space: nowrap;
 }
 
 .my-page__persona-section {
@@ -300,17 +303,17 @@
 
 .my-page__persona-list {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 9px;
+  grid-template-columns: 1fr;
+  gap: 8px;
 }
 
 .my-page__persona-card {
   display: flex;
   align-items: center;
   min-width: 0;
-  min-height: 75px;
-  gap: 9px;
-  padding: 11px 10px;
+  min-height: 62px;
+  gap: 10px;
+  padding: 10px 12px;
   border: 1px solid #ead8c9;
   border-radius: 16px;
   background: rgba(255, 252, 247, 0.78);
@@ -320,8 +323,8 @@
 }
 
 .my-page__persona-avatar {
-  width: 49px;
-  height: 49px;
+  width: 44px;
+  height: 44px;
   overflow: hidden;
   flex: 0 0 auto;
   border-radius: 50%;
@@ -349,7 +352,8 @@
   font-size: 12px;
   font-weight: 500;
   letter-spacing: -0.4px;
-  line-height: 1.24;
+  line-height: 1.35;
+  word-break: keep-all;
 }
 
 .my-page__persona-card > svg {
@@ -675,17 +679,19 @@
   }
 
   .my-page__persona-list {
-    gap: 7px;
+    grid-template-columns: 1fr;
+    gap: 8px;
   }
 
   .my-page__persona-card {
-    gap: 7px;
-    padding: 10px 8px;
+    min-height: 62px;
+    gap: 10px;
+    padding: 10px 12px;
   }
 
   .my-page__persona-avatar {
-    width: 42px;
-    height: 42px;
+    width: 44px;
+    height: 44px;
   }
 
   .my-page__persona-card strong {
@@ -694,6 +700,8 @@
 
   .my-page__persona-card small {
     font-size: 11px;
+    line-height: 1.35;
+    word-break: keep-all;
   }
 
   .my-page__menu-grid {

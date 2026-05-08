@@ -1,5 +1,6 @@
 import AuthPage from './pages/AuthPage'
 import CampaignsPage from './pages/CampaignsPage'
+import ChatPage from './pages/ChatPage'
 import HomePage from './pages/HomePage'
 import LandingPage from './pages/LandingPage'
 import MyPage from './pages/MyPage'
@@ -23,6 +24,10 @@ function App() {
 
   if (pathname.startsWith('/home')) {
     return <HomePage />
+  }
+
+  if (pathname.startsWith('/chat')) {
+    return <ChatPage />
   }
 
   if (pathname.startsWith('/my')) {

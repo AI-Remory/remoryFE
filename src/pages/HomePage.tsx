@@ -58,7 +58,7 @@ function HomePage() {
             <HomeIcon />
             <span>홈</span>
           </button>
-          <button className="home-page__nav-button" type="button" onClick={() => console.log('go chat')}>
+          <button className="home-page__nav-button" type="button" onClick={() => { window.location.href = '/chat' }}>
             <ChatIcon />
             <span>대화</span>
           </button>

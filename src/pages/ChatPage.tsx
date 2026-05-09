@@ -1,4 +1,6 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { chatApi } from '../services/chatApi'
+import type { ApiId, ChatMessage as ApiChatMessage } from '../types/api'
 import './ChatPage.css'
 
 type Sender = 'user' | 'mom'
@@ -34,6 +36,39 @@ const initialMessages: ChatMessage[] = [
   },
   { id: '8', sender: 'mom', text: '그럼, 우리 둘만의 비밀 하트였지~ 다음에 또 같이 가자. 이번엔 우도도 가보고!', time: '오후 3:24' },
 ]
+
+function formatMessageTime(createdAt?: string) {
+  if (!createdAt) {
+    return '방금'
+  }
+
+  const date = new Date(createdAt)
+
+  if (Number.isNaN(date.getTime())) {
+    return '방금'
+  }
+
+  return date.toLocaleTimeString('ko-KR', {
+    hour: 'numeric',
+    minute: '2-digit',
+  })
+}
+
+function isUserMessage(message: ApiChatMessage) {
+  const sender = message.sender?.toLowerCase()
+  const role = message.role?.toLowerCase()
+
+  return sender === 'user' || role === 'user'
+}
+
+function mapApiMessage(message: ApiChatMessage): ChatMessage {
+  return {
+    id: String(message.id),
+    sender: isUserMessage(message) ? 'user' : 'mom',
+    text: message.content,
+    time: formatMessageTime(message.created_at),
+  }
+}
 
 function ChatIcon({ name }: { name: IconName }) {
   switch (name) {
@@ -107,14 +142,50 @@ function ChatIcon({ name }: { name: IconName }) {
 function ChatPage() {
   const [messages, setMessages] = useState<ChatMessage[]>(initialMessages)
   const [input, setInput] = useState('')
+  const [chatId, setChatId] = useState<ApiId | null>(null)
+  const [isSending, setIsSending] = useState(false)
 
-  const handleSend = () => {
-    const text = input.trim()
+  useEffect(() => {
+    let ignore = false
+    const personaId = window.localStorage.getItem('remory_persona_id')
 
-    if (!text) {
-      return
+    if (!personaId) {
+      return () => {
+        ignore = true
+      }
     }
 
+    const activePersonaId = personaId
+
+    async function loadChat() {
+      try {
+        const chats = await chatApi.listChats(activePersonaId)
+        const chat = chats[0] ?? await chatApi.createChat(activePersonaId, '엄마와 대화')
+
+        if (ignore) {
+          return
+        }
+
+        setChatId(chat.id)
+
+        const apiMessages = await chatApi.listMessages(chat.id)
+
+        if (!ignore && apiMessages.length > 0) {
+          setMessages(apiMessages.map(mapApiMessage))
+        }
+      } catch {
+        // Keep the existing mock conversation when chat APIs are unavailable.
+      }
+    }
+
+    loadChat()
+
+    return () => {
+      ignore = true
+    }
+  }, [])
+
+  const appendMockResponse = (text: string) => {
     const userMessage: ChatMessage = {
       id: `user-${Date.now()}`,
       sender: 'user',
@@ -123,7 +194,6 @@ function ChatPage() {
     }
 
     setMessages((current) => [...current, userMessage])
-    setInput('')
 
     window.setTimeout(() => {
       setMessages((current) => [
@@ -136,6 +206,37 @@ function ChatPage() {
         },
       ])
     }, 600)
+  }
+
+  const handleSend = async () => {
+    const text = input.trim()
+
+    if (!text || isSending) {
+      return
+    }
+
+    setInput('')
+
+    if (!chatId) {
+      appendMockResponse(text)
+      return
+    }
+
+    setIsSending(true)
+
+    try {
+      const response = await chatApi.sendMessage(chatId, text)
+
+      setMessages((current) => [
+        ...current,
+        mapApiMessage(response.user_message),
+        mapApiMessage(response.persona_message),
+      ])
+    } catch {
+      appendMockResponse(text)
+    } finally {
+      setIsSending(false)
+    }
   }
 
   return (
@@ -218,7 +319,7 @@ function ChatPage() {
                 }
               }}
             />
-            <button className="chat-page__send-button" type="button" aria-label="메시지 보내기" onClick={handleSend}>
+            <button className="chat-page__send-button" type="button" aria-label="메시지 보내기" onClick={handleSend} disabled={isSending}>
               <ChatIcon name="send" />
             </button>
           </div>

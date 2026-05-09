@@ -1,3 +1,6 @@
+import { useEffect, useState } from 'react'
+import { storybookApi } from '../services/storybookApi'
+import type { StoryBook, StoryChapter } from '../types/api'
 import './StorybookPage.css'
 
 type IconName =
@@ -52,6 +55,39 @@ const chapters: Chapter[] = [
   { id: 'family-table', label: '두 번째 기억', title: '가족의 식탁', duration: '1:12', icon: 'meal' },
   { id: 'voice', label: '세 번째 기억', title: '다정한 목소리', duration: '0:36', icon: 'mic' },
 ]
+
+function formatDate(createdAt?: string) {
+  if (!createdAt) {
+    return '2024.05.20'
+  }
+
+  const date = new Date(createdAt)
+
+  if (Number.isNaN(date.getTime())) {
+    return '2024.05.20'
+  }
+
+  return date.toLocaleDateString('ko-KR', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).replace(/\s/g, '')
+}
+
+function getChapterIcon(index: number): Chapter['icon'] {
+  const icons: Chapter['icon'][] = ['leaf', 'meal', 'mic']
+  return icons[index % icons.length]
+}
+
+function mapStoryChapters(apiChapters: StoryChapter[]): Chapter[] {
+  return apiChapters.map((chapter, index) => ({
+    id: String(chapter.id),
+    label: chapter.label ?? `${index + 1}번째 기억`,
+    title: chapter.title,
+    duration: chapter.duration ? String(chapter.duration) : '0:00',
+    icon: getChapterIcon(index),
+  }))
+}
 
 function StorybookIcon({ name }: { name: IconName }) {
   switch (name) {
@@ -141,6 +177,50 @@ function StorybookIcon({ name }: { name: IconName }) {
 }
 
 function StorybookPage() {
+  const [currentStorybook, setCurrentStorybook] = useState<StoryBook | null>(null)
+  const [chapterItems, setChapterItems] = useState<Chapter[]>(chapters)
+
+  useEffect(() => {
+    let ignore = false
+
+    async function loadStorybook() {
+      try {
+        const storybooks = await storybookApi.listStorybooks()
+        const firstStorybook = storybooks[0]
+
+        if (!firstStorybook) {
+          return
+        }
+
+        const detail = await storybookApi.getStorybook(firstStorybook.id)
+        const detailChapters = detail.chapters?.length ? detail.chapters : await storybookApi.listChapters(firstStorybook.id)
+
+        if (!ignore) {
+          setCurrentStorybook(detail)
+
+          if (detailChapters.length > 0) {
+            setChapterItems(mapStoryChapters(detailChapters))
+          }
+        }
+      } catch {
+        // Keep the existing mock storybook when storybook APIs are unavailable.
+      }
+    }
+
+    loadStorybook()
+
+    return () => {
+      ignore = true
+    }
+  }, [])
+
+  const coverTitle = currentStorybook?.title ?? '엄마의 따뜻한 말 한마디'
+  const coverTitleLines = coverTitle.split(' ')
+  const coverFirstLine = coverTitleLines.slice(0, -1).join(' ') || '엄마의 따뜻한'
+  const coverSecondLine = coverTitleLines.at(-1) ?? '말 한마디'
+  const coverSubtitle = currentStorybook?.subtitle ?? '기억을 다시 만나보세요'
+  const coverDate = formatDate(currentStorybook?.created_at)
+
   return (
     <main className="storybook-page">
       <section className="storybook-page__container" aria-label="나의 스토리북">
@@ -158,18 +238,18 @@ function StorybookPage() {
         </header>
 
         <section className="storybook-page__cover">
-          <img src="/images/storybook/storybook-cover-mom.png" alt="" aria-hidden="true" />
+          <img src={currentStorybook?.cover_image_url ?? '/images/storybook/storybook-cover-mom.png'} alt="" aria-hidden="true" />
           <div className="storybook-page__cover-content">
             <StorybookIcon name="heart" />
             <h2 className="storybook-page__cover-title">
-              엄마의 따뜻한
+              {coverFirstLine}
               <br />
-              말 한마디
+              {coverSecondLine}
             </h2>
-            <p className="storybook-page__cover-subtitle">기억을 다시 만나보세요</p>
+            <p className="storybook-page__cover-subtitle">{coverSubtitle}</p>
             <p className="storybook-page__cover-date">
               <StorybookIcon name="book" />
-              생성일 2024.05.20
+              생성일 {coverDate}
             </p>
           </div>
         </section>
@@ -181,7 +261,7 @@ function StorybookPage() {
           <span className="storybook-page__ready-text">
             <strong>AI 대화 준비 완료</strong>
             <span>
-              음성 <b>0:28</b> · 사진 <b>15장</b> · 기억 <b>3챕터</b>
+              음성 <b>0:28</b> · 사진 <b>15장</b> · 기억 <b>{chapterItems.length}챕터</b>
             </span>
             <small>엄마의 목소리와 사진을 바탕으로 AI가 대화를 준비했어요.</small>
           </span>
@@ -212,7 +292,7 @@ function StorybookPage() {
             </button>
           </div>
           <div className="storybook-page__chapter-card">
-            {chapters.map((chapter) => (
+            {chapterItems.map((chapter) => (
               <button className="storybook-page__chapter-row" type="button" key={chapter.id} onClick={() => console.log('open chapter', chapter.id)}>
                 <span className="storybook-page__chapter-icon">
                   <StorybookIcon name={chapter.icon} />

@@ -1,3 +1,8 @@
+import { useEffect, useState } from 'react'
+import { authApi } from '../services/authApi'
+import { storybookApi } from '../services/storybookApi'
+import { targetApi } from '../services/targetApi'
+import type { Target } from '../types/api'
 import './MyPage.css'
 
 type IconName =
@@ -22,24 +27,35 @@ type MenuItem = {
   icon: IconName
 }
 
-const personas = [
+type MyPersona = {
+  id: string
+  name: string
+  description: string
+  image: string
+  personaId: string
+}
+
+const mockPersonas: MyPersona[] = [
   {
     id: 'mom',
     name: '엄마',
     description: '따뜻한 조언을 해주시는 분',
     image: '/images/my-page/persona-mom.png',
+    personaId: 'mom',
   },
   {
     id: 'grandma',
     name: '할머니',
     description: '지혜롭고 따뜻하신 분',
     image: '/images/my-page/persona-grandma.png',
+    personaId: 'grandma',
   },
   {
     id: 'me',
     name: '나',
     description: '기록하고 있는 나',
     image: '/images/my-page/persona-me.png',
+    personaId: 'me',
   },
 ]
 
@@ -56,6 +72,20 @@ const wideMenuItems: MenuItem[] = [
   { id: 'privacy-security', title: '개인정보 및 보안', description: '개인정보 관리와 보안 설정을 확인해요', icon: 'shield' },
   { id: 'support', title: '고객센터', description: '문의하기, 자주 묻는 질문을 확인해요', icon: 'headset' },
 ]
+
+function mapTargetsToPersonas(targets: Target[]): MyPersona[] {
+  return targets.slice(0, 3).map((target, index) => {
+    const personaId = target.persona_id ?? target.persona?.id ?? target.id
+
+    return {
+      id: String(target.id),
+      personaId: String(personaId),
+      name: target.nickname ?? target.name ?? target.persona?.nickname ?? target.persona?.name ?? `페르소나 ${index + 1}`,
+      description: target.description ?? target.relationship ?? target.persona?.description ?? '소중한 기억을 담고 있는 분',
+      image: target.image_url ?? target.persona?.image_url ?? mockPersonas[index]?.image ?? '/images/my-page/persona-mom.png',
+    }
+  })
+}
 
 function AppIcon({ name }: { name: IconName }) {
   switch (name) {
@@ -162,6 +192,55 @@ function ChevronIcon() {
 }
 
 function MyPage() {
+  const [displayName, setDisplayName] = useState('현규')
+  const [personaItems, setPersonaItems] = useState<MyPersona[]>(mockPersonas)
+  const [storybookCount, setStorybookCount] = useState(12)
+
+  useEffect(() => {
+    let ignore = false
+
+    async function loadMyData() {
+      try {
+        const user = await authApi.me()
+
+        if (!ignore && user.nickname) {
+          setDisplayName(user.nickname)
+        }
+      } catch {
+        // Keep mock profile data when auth lookup fails.
+      }
+
+      try {
+        const response = await targetApi.listTargets()
+        const targets = response.items
+
+        if (!ignore && targets.length > 0) {
+          const nextPersonas = mapTargetsToPersonas(targets)
+          setPersonaItems(nextPersonas)
+          window.localStorage.setItem('remory_persona_id', nextPersonas[0].personaId)
+        }
+      } catch {
+        // Keep mock persona cards when targets cannot be loaded.
+      }
+
+      try {
+        const storybooks = await storybookApi.listStorybooks()
+
+        if (!ignore && storybooks.length > 0) {
+          setStorybookCount(storybooks.length)
+        }
+      } catch {
+        // Keep mock storybook count when storybooks cannot be loaded.
+      }
+    }
+
+    loadMyData()
+
+    return () => {
+      ignore = true
+    }
+  }, [])
+
   return (
     <main className="my-page">
       <section className="my-page__container" aria-label="Remory my page">
@@ -187,7 +266,7 @@ function MyPage() {
               </button>
             </div>
             <div className="my-page__profile-copy">
-              <h2>현규님</h2>
+              <h2>{displayName}님</h2>
               <p>
                 소중한 사람들과의 추억을
                 <br />
@@ -203,12 +282,12 @@ function MyPage() {
             <div>
               <AppIcon name="people" />
               <span>페르소나</span>
-              <strong>3명</strong>
+              <strong>{personaItems.length}명</strong>
             </div>
             <div>
               <AppIcon name="book" />
               <span>스토리북</span>
-              <strong>12권</strong>
+              <strong>{storybookCount}권</strong>
             </div>
             <div>
               <AppIcon name="mic" />
@@ -226,12 +305,12 @@ function MyPage() {
             </button>
           </div>
           <div className="my-page__persona-list">
-            {personas.map((persona) => (
+            {personaItems.map((persona) => (
               <button
                 className="my-page__persona-card"
                 type="button"
                 key={persona.id}
-                onClick={() => console.log('persona click', persona.id)}
+                onClick={() => window.localStorage.setItem('remory_persona_id', persona.personaId)}
               >
                 <span className="my-page__persona-avatar">
                   <img src={persona.image} alt={`${persona.name} 페르소나`} />

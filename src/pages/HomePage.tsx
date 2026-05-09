@@ -1,11 +1,24 @@
+import { useEffect, useState } from 'react'
+import { authApi } from '../services/authApi'
+import { storybookApi } from '../services/storybookApi'
+import { targetApi } from '../services/targetApi'
+import type { Target } from '../types/api'
 import './HomePage.css'
 
 type IconName = 'bell' | 'chat' | 'check' | 'plus' | 'sparkle' | 'info' | 'mic' | 'photo' | 'home' | 'book' | 'my' | 'chevron'
 
-const personas = [
-  { id: 'mom', name: '엄마', image: '/images/my-page/persona-mom.png', active: true },
-  { id: 'grandma', name: '할머니', image: '/images/my-page/persona-grandma.png' },
-  { id: 'me', name: '나', image: '/images/my-page/persona-me.png' },
+type HomePersona = {
+  id: string
+  personaId: string
+  name: string
+  image: string
+  active?: boolean
+}
+
+const mockPersonas: HomePersona[] = [
+  { id: 'mom', personaId: 'mom', name: '엄마', image: '/images/my-page/persona-mom.png', active: true },
+  { id: 'grandma', personaId: 'grandma', name: '할머니', image: '/images/my-page/persona-grandma.png' },
+  { id: 'me', personaId: 'me', name: '나', image: '/images/my-page/persona-me.png' },
 ]
 
 const chatLines = [
@@ -29,6 +42,20 @@ const memoryCards = [
     icon: 'photo' as const,
   },
 ]
+
+function mapTargetsToPersonas(targets: Target[]): HomePersona[] {
+  return targets.slice(0, 3).map((target, index) => {
+    const personaId = target.persona_id ?? target.persona?.id ?? target.id
+
+    return {
+      id: String(target.id),
+      personaId: String(personaId),
+      name: target.nickname ?? target.name ?? target.persona?.nickname ?? target.persona?.name ?? `페르소나 ${index + 1}`,
+      image: target.image_url ?? target.persona?.image_url ?? mockPersonas[index]?.image ?? '/images/my-page/persona-mom.png',
+      active: index === 0,
+    }
+  })
+}
 
 function HomePageIcon({ name }: { name: IconName }) {
   switch (name) {
@@ -115,11 +142,61 @@ function HomePageIcon({ name }: { name: IconName }) {
 }
 
 function HomePage() {
+  const [displayName, setDisplayName] = useState('현규')
+  const [personaItems, setPersonaItems] = useState<HomePersona[]>(mockPersonas)
+
+  useEffect(() => {
+    let ignore = false
+
+    async function loadHomeData() {
+      try {
+        const user = await authApi.me()
+
+        if (!ignore && user.nickname) {
+          setDisplayName(user.nickname)
+        }
+      } catch {
+        // Keep the existing mock greeting when auth lookup fails.
+      }
+
+      try {
+        const response = await targetApi.listTargets()
+        const targets = response.items
+
+        if (!ignore && targets.length > 0) {
+          const nextPersonas = mapTargetsToPersonas(targets)
+          setPersonaItems(nextPersonas)
+          window.localStorage.setItem('remory_persona_id', nextPersonas[0].personaId)
+        }
+      } catch {
+        // Keep the existing mock persona cards when targets cannot be loaded.
+      }
+
+      storybookApi.listStorybooks().catch(() => undefined)
+    }
+
+    loadHomeData()
+
+    return () => {
+      ignore = true
+    }
+  }, [])
+
+  const handlePersonaClick = (personaId: string) => {
+    window.localStorage.setItem('remory_persona_id', personaId)
+    setPersonaItems((current) =>
+      current.map((persona) => ({
+        ...persona,
+        active: persona.personaId === personaId,
+      })),
+    )
+  }
+
   return (
     <main className="home-page">
       <section className="home-page__container" aria-label="Remory home">
         <header className="home-page__header">
-          <h1>안녕하세요, 현규님</h1>
+          <h1>안녕하세요, {displayName}님</h1>
           <button className="home-page__notification" type="button" aria-label="알림 열기" onClick={() => console.log('open notifications')}>
             <HomePageIcon name="bell" />
             <span />
@@ -154,12 +231,12 @@ function HomePage() {
           </div>
 
           <div className="home-page__persona-list" aria-label="페르소나 선택">
-            {personas.map((persona) => (
+            {personaItems.map((persona) => (
               <button
                 className={`home-page__persona-item${persona.active ? ' is-active' : ''}`}
                 type="button"
                 key={persona.id}
-                onClick={() => console.log('select persona', persona.id)}
+                onClick={() => handlePersonaClick(persona.personaId)}
               >
                 <span className="home-page__persona-avatar">
                   <img src={persona.image} alt={`${persona.name} 페르소나`} />

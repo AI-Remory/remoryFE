@@ -1,4 +1,6 @@
 import { useState, type FormEvent } from 'react'
+import { ApiError } from '../lib/apiClient'
+import { authApi } from '../services/authApi'
 import './AuthPage.css'
 
 type AuthTab = 'signup' | 'login'
@@ -67,29 +69,55 @@ function AuthPage() {
   const [agreedToTerms, setAgreedToTerms] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [showPasswordConfirm, setShowPasswordConfirm] = useState(false)
+  const [errorMessage, setErrorMessage] = useState('')
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   const isSignup = activeTab === 'signup'
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
+    setErrorMessage('')
 
-    if (isSignup) {
-      console.log({
-        name,
-        email,
-        password,
-        passwordConfirm,
-        agreedToTerms,
-      })
-      window.location.href = '/home'
+    if (isSubmitting) {
       return
     }
 
-    console.log({
-      email,
-      password,
-    })
-    window.location.href = '/home'
+    if (isSignup) {
+      if (password !== passwordConfirm) {
+        setErrorMessage('비밀번호가 일치하지 않습니다.')
+        return
+      }
+
+      if (!agreedToTerms) {
+        setErrorMessage('필수 약관에 동의해주세요.')
+        return
+      }
+    }
+
+    setIsSubmitting(true)
+
+    try {
+      if (isSignup) {
+        await authApi.register({
+          email,
+          nickname: name,
+          password,
+        })
+      } else {
+        await authApi.login({
+          email,
+          password,
+        })
+      }
+
+      window.location.href = '/home'
+    } catch (error) {
+      const message = error instanceof ApiError ? error.message : '인증 요청에 실패했습니다.'
+      setErrorMessage(message)
+      window.alert(message)
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   const handleSwitchTab = (tab: AuthTab) => {
@@ -230,8 +258,10 @@ function AuthPage() {
             </div>
           )}
 
-          <button className="auth-submit-button" type="submit">
-            {isSignup ? '회원가입 완료' : '로그인'}
+          {errorMessage && <p className="auth-error-message" role="alert">{errorMessage}</p>}
+
+          <button className="auth-submit-button" type="submit" disabled={isSubmitting}>
+            {isSubmitting ? '처리 중...' : isSignup ? '회원가입 완료' : '로그인'}
           </button>
         </form>
 

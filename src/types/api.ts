@@ -77,7 +77,7 @@ export type ChatMessage = {
   sender?: 'USER' | 'PERSONA' | 'AI' | 'SYSTEM' | string
   role?: 'user' | 'assistant' | 'system' | string
   message_type?: 'TEXT' | 'AUDIO' | string
-  content: string
+  content?: string | null
   audio_file_path?: string | null
   is_ai_generated?: boolean
   created_at?: string

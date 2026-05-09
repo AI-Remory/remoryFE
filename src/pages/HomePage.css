@@ -84,6 +84,14 @@
   background: #f08069;
 }
 
+.home-page__error-message {
+  margin: -6px 2px 16px;
+  color: #9f3329;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.45;
+}
+
 .home-page__hero {
   height: 350px;
   overflow: hidden;

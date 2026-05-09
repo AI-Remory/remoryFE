@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { ensureMomPersonaId } from '../services/personaSession'
 import { storybookApi } from '../services/storybookApi'
 import type { StoryBook, StoryChapter } from '../types/api'
 import './StorybookPage.css'
@@ -221,6 +222,15 @@ function StorybookPage() {
   const coverSubtitle = currentStorybook?.subtitle ?? currentStorybook?.summary ?? '기억을 다시 만나보세요'
   const coverDate = formatDate(currentStorybook?.created_at)
 
+  const handleChatNavigation = async () => {
+    try {
+      await ensureMomPersonaId()
+      window.location.href = '/chat'
+    } catch (error) {
+      console.error('Failed to prepare persona before chat navigation', error)
+    }
+  }
+
   return (
     <main className="storybook-page">
       <section className="storybook-page__container" aria-label="나의 스토리북">
@@ -254,7 +264,7 @@ function StorybookPage() {
           </div>
         </section>
 
-        <button className="storybook-page__ready-card" type="button" onClick={() => { window.location.href = '/chat' }}>
+        <button className="storybook-page__ready-card" type="button" onClick={handleChatNavigation}>
           <span className="storybook-page__ready-icon">
             <StorybookIcon name="sparkle" />
           </span>
@@ -307,7 +317,7 @@ function StorybookPage() {
         </section>
 
         <section className="storybook-page__actions" aria-label="스토리북 작업">
-          <button className="storybook-page__primary-button" type="button" onClick={() => { window.location.href = '/chat' }}>
+          <button className="storybook-page__primary-button" type="button" onClick={handleChatNavigation}>
             <StorybookIcon name="sparkle" />
             AI와 대화 시작
           </button>
@@ -322,7 +332,7 @@ function StorybookPage() {
             <StorybookIcon name="home" />
             <span>홈</span>
           </button>
-          <button className="storybook-page__nav-button" type="button" onClick={() => { window.location.href = '/chat' }}>
+          <button className="storybook-page__nav-button" type="button" onClick={handleChatNavigation}>
             <StorybookIcon name="chat" />
             <span>대화</span>
           </button>

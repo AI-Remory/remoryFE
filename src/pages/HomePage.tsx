@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { authApi } from '../services/authApi'
+import { ensureMomPersonaId } from '../services/personaSession'
 import { storybookApi } from '../services/storybookApi'
 import { targetApi } from '../services/targetApi'
 import type { Target } from '../types/api'
@@ -144,6 +145,7 @@ function HomePageIcon({ name }: { name: IconName }) {
 function HomePage() {
   const [displayName, setDisplayName] = useState('현규')
   const [personaItems, setPersonaItems] = useState<HomePersona[]>(mockPersonas)
+  const [errorMessage, setErrorMessage] = useState('')
 
   useEffect(() => {
     let ignore = false
@@ -176,6 +178,10 @@ function HomePage() {
       }
 
       storybookApi.listStorybooks().catch(() => undefined)
+
+      ensureMomPersonaId().catch(() => {
+        // The home UI can still render with mock cards when persona preparation fails.
+      })
     }
 
     loadHomeData()
@@ -195,6 +201,17 @@ function HomePage() {
     )
   }
 
+  const handleChatNavigation = async () => {
+    setErrorMessage('')
+
+    try {
+      await ensureMomPersonaId()
+      window.location.href = '/chat'
+    } catch {
+      setErrorMessage('페르소나를 준비하지 못했습니다. 다시 시도해주세요.')
+    }
+  }
+
   return (
     <main className="home-page">
       <section className="home-page__container" aria-label="Remory home">
@@ -205,6 +222,8 @@ function HomePage() {
             <span />
           </button>
         </header>
+
+        {errorMessage && <p className="home-page__error-message" role="alert">{errorMessage}</p>}
 
         <section className="home-page__hero">
           <div className="home-page__hero-content">
@@ -218,7 +237,7 @@ function HomePage() {
               <br />
               AI 페르소나와 이야기를 이어가세요.
             </p>
-            <button className="home-page__hero-button" type="button" onClick={() => { window.location.href = '/chat' }}>
+            <button className="home-page__hero-button" type="button" onClick={handleChatNavigation}>
               <HomePageIcon name="chat" />
               엄마와 대화하기
             </button>
@@ -279,7 +298,7 @@ function HomePage() {
                   </p>
                 ))}
               </div>
-              <button type="button" onClick={() => { window.location.href = '/chat' }}>
+              <button type="button" onClick={handleChatNavigation}>
                 이어서 대화하기
               </button>
             </div>
@@ -319,7 +338,7 @@ function HomePage() {
             <HomePageIcon name="home" />
             <span>홈</span>
           </button>
-          <button className="home-page__nav-button" type="button" onClick={() => { window.location.href = '/chat' }}>
+          <button className="home-page__nav-button" type="button" onClick={handleChatNavigation}>
             <HomePageIcon name="chat" />
             <span>대화</span>
           </button>

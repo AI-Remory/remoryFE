@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { authApi } from '../services/authApi'
+import { ensureMomPersonaId } from '../services/personaSession'
 import { storybookApi } from '../services/storybookApi'
 import { targetApi } from '../services/targetApi'
 import type { Target } from '../types/api'
@@ -241,6 +242,15 @@ function MyPage() {
     }
   }, [])
 
+  const handleChatNavigation = async () => {
+    try {
+      await ensureMomPersonaId()
+      window.location.href = '/chat'
+    } catch (error) {
+      console.error('Failed to prepare persona before chat navigation', error)
+    }
+  }
+
   return (
     <main className="my-page">
       <section className="my-page__container" aria-label="Remory my page">
@@ -387,7 +397,7 @@ function MyPage() {
             <AppIcon name="home" />
             <span>홈</span>
           </button>
-          <button className="my-page__nav-button" type="button" onClick={() => { window.location.href = '/chat' }}>
+          <button className="my-page__nav-button" type="button" onClick={handleChatNavigation}>
             <AppIcon name="chat" />
             <span>대화</span>
           </button>

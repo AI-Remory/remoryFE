@@ -80,6 +80,14 @@
   line-height: 1.1;
 }
 
+.chat-page__error-message {
+  margin: -4px 2px 14px;
+  color: #a43b2f;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.45;
+}
+
 .chat-page__persona-card {
   display: grid;
   grid-template-columns: 86px minmax(0, 1fr) 28px;

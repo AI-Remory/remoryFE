@@ -15,6 +15,7 @@ type ChatMessage = {
 type IconName = 'back' | 'history' | 'chevron' | 'sparkle' | 'book' | 'leaf' | 'send' | 'home' | 'chat' | 'my'
 
 const momAvatar = '/images/my-page/persona-mom.png'
+const MOCK_CHAT_MESSAGES_KEY = 'remory_mock_chat_messages'
 
 const initialMessages: ChatMessage[] = [
   { id: '1', sender: 'user', text: '엄마, 우리 제주도 여행 기억나?', time: '오후 3:21' },
@@ -35,6 +36,44 @@ const initialMessages: ChatMessage[] = [
     time: '오후 3:24',
   },
   { id: '8', sender: 'mom', text: '그럼, 우리 둘만의 비밀 하트였지~ 다음에 또 같이 가자. 이번엔 우도도 가보고!', time: '오후 3:24' },
+]
+
+const fallbackResponses = [
+  '응, 지금은 조용히 지내고 있어. 네가 이렇게 말 걸어주니까 마음이 한결 따뜻해진다.',
+  '그 말 들으니까 예전 생각이 난다. 그때 우리는 사소한 일에도 참 많이 웃었지.',
+  '요즘은 네 하루가 어떤지 궁금해. 밥은 잘 챙겨 먹고 있는 거지?',
+  '아이고, 그런 날도 있지. 괜찮아, 천천히 말해도 돼. 내가 듣고 있을게.',
+  '그 이야기는 조금 더 듣고 싶다. 너한테는 어떤 기억으로 남아 있어?',
+  '나는 네가 그렇게 기억해주는 것만으로도 참 고맙다. 마음이 따뜻해져.',
+  '그래, 그런 마음이 들 수 있어. 오늘 있었던 일부터 하나씩 이야기해볼까?',
+  '네 목소리가 들리는 것 같아서 좋다. 무슨 일이든 편하게 말해줘.',
+]
+
+const fallbackKeywordResponses: Array<{ keywords: string[]; response: string }> = [
+  {
+    keywords: ['뭐해', '뭐하', '하고 있어', '하시'],
+    response: '나는 네 이야기 기다리고 있었지. 너는 지금 뭐 하고 있었어?',
+  },
+  {
+    keywords: ['밥', '먹', '식사', '배고'],
+    response: '밥은 꼭 챙겨 먹어야지. 예전에 내가 해주던 반찬 중에 뭐가 제일 생각나?',
+  },
+  {
+    keywords: ['힘들', '우울', '속상', '피곤', '지쳐'],
+    response: '많이 힘들었구나. 괜찮아, 오늘은 잘 버틴 것만으로도 충분해.',
+  },
+  {
+    keywords: ['기억', '생각나', '추억'],
+    response: '그 기억은 나한테도 소중하게 느껴져. 그때 장면을 조금 더 자세히 말해줄래?',
+  },
+  {
+    keywords: ['사랑', '보고싶', '보고 싶'],
+    response: '나도 많이 보고 싶어. 이렇게 말해줘서 고맙고, 네 마음이 잘 전해졌어.',
+  },
+  {
+    keywords: ['아니', '아냐', '아뇨', '싫'],
+    response: '그랬구나. 내가 다르게 들었나 봐. 네가 원하는 쪽으로 다시 이야기해줄래?',
+  },
 ]
 
 function formatMessageTime(createdAt?: string) {
@@ -69,6 +108,58 @@ function mapApiMessage(message: ApiChatMessage): ChatMessage {
     text: message.content,
     time: formatMessageTime(message.created_at),
   }
+}
+
+function isBackendPersonaId(personaId: string) {
+  return /^\d+$/.test(personaId)
+}
+
+function createFallbackResponse(text: string, messageCount: number) {
+  const normalizedText = text.trim().toLowerCase()
+  const matchedResponse = fallbackKeywordResponses.find(({ keywords }) =>
+    keywords.some((keyword) => normalizedText.includes(keyword)),
+  )
+
+  if (matchedResponse) {
+    return matchedResponse.response
+  }
+
+  const fallbackIndex = messageCount % fallbackResponses.length
+  return fallbackResponses[fallbackIndex]
+}
+
+function isChatMessage(value: unknown): value is ChatMessage {
+  if (typeof value !== 'object' || value === null) {
+    return false
+  }
+
+  const message = value as Partial<ChatMessage>
+  return (
+    typeof message.id === 'string' &&
+    (message.sender === 'user' || message.sender === 'mom') &&
+    typeof message.text === 'string' &&
+    typeof message.time === 'string'
+  )
+}
+
+function getInitialMessages() {
+  const storedMessages = window.localStorage.getItem(MOCK_CHAT_MESSAGES_KEY)
+
+  if (!storedMessages) {
+    return initialMessages
+  }
+
+  try {
+    const parsed = JSON.parse(storedMessages)
+
+    if (Array.isArray(parsed) && parsed.every(isChatMessage)) {
+      return parsed
+    }
+  } catch {
+    window.localStorage.removeItem(MOCK_CHAT_MESSAGES_KEY)
+  }
+
+  return initialMessages
 }
 
 function ChatIcon({ name }: { name: IconName }) {
@@ -141,16 +232,26 @@ function ChatIcon({ name }: { name: IconName }) {
 }
 
 function ChatPage() {
-  const [messages, setMessages] = useState<ChatMessage[]>(initialMessages)
+  const [messages, setMessages] = useState<ChatMessage[]>(getInitialMessages)
   const [input, setInput] = useState('')
   const [chatId, setChatId] = useState<ApiId | null>(null)
   const [isSending, setIsSending] = useState(false)
 
   useEffect(() => {
+    if (!chatId) {
+      window.localStorage.setItem(MOCK_CHAT_MESSAGES_KEY, JSON.stringify(messages))
+    }
+  }, [chatId, messages])
+
+  useEffect(() => {
     let ignore = false
     const personaId = window.localStorage.getItem('remory_persona_id')
 
-    if (!personaId) {
+    if (!personaId || !isBackendPersonaId(personaId)) {
+      if (personaId) {
+        window.localStorage.removeItem('remory_persona_id')
+      }
+
       return () => {
         ignore = true
       }
@@ -173,6 +274,7 @@ function ChatPage() {
 
         if (!ignore && apiMessages.length > 0) {
           setMessages(apiMessages.map(mapApiMessage))
+          window.localStorage.removeItem(MOCK_CHAT_MESSAGES_KEY)
         }
       } catch {
         // Keep the existing mock conversation when chat APIs are unavailable.
@@ -187,6 +289,7 @@ function ChatPage() {
   }, [])
 
   const appendMockResponse = (text: string) => {
+    const personaReply = createFallbackResponse(text, messages.length)
     const userMessage: ChatMessage = {
       id: `user-${Date.now()}`,
       sender: 'user',
@@ -202,7 +305,7 @@ function ChatPage() {
         {
           id: `mom-${Date.now()}`,
           sender: 'mom',
-          text: '그래, 그 기억은 참 따뜻했지. 조금 더 이야기해줄래?',
+          text: personaReply,
           time: '오후 3:25',
         },
       ])

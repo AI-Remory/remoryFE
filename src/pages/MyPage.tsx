@@ -41,21 +41,18 @@ const mockPersonas: MyPersona[] = [
     name: '엄마',
     description: '따뜻한 조언을 해주시는 분',
     image: '/images/my-page/persona-mom.png',
-    personaId: 'mom',
   },
   {
     id: 'grandma',
     name: '할머니',
     description: '지혜롭고 따뜻하신 분',
     image: '/images/my-page/persona-grandma.png',
-    personaId: 'grandma',
   },
   {
     id: 'me',
     name: '나',
     description: '기록하고 있는 나',
     image: '/images/my-page/persona-me.png',
-    personaId: 'me',
   },
 ]
 

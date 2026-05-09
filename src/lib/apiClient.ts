@@ -1,6 +1,12 @@
 const DEFAULT_API_BASE_URL = 'http://localhost:8000/api/v1'
 
-export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || DEFAULT_API_BASE_URL
+function normalizeApiBaseUrl(baseUrl: string) {
+  const normalizedBase = baseUrl.replace(/\/+$/, '')
+
+  return normalizedBase.endsWith('/api/v1') ? normalizedBase : `${normalizedBase}/api/v1`
+}
+
+export const API_BASE_URL = normalizeApiBaseUrl(import.meta.env.VITE_API_BASE_URL || DEFAULT_API_BASE_URL)
 
 export const ACCESS_TOKEN_KEY = 'remory_access_token'
 export const REFRESH_TOKEN_KEY = 'remory_refresh_token'
@@ -46,10 +52,9 @@ export function clearTokens() {
 }
 
 function buildUrl(path: string) {
-  const normalizedBase = API_BASE_URL.replace(/\/+$/, '')
   const normalizedPath = path.startsWith('/') ? path : `/${path}`
 
-  return `${normalizedBase}${normalizedPath}`
+  return `${API_BASE_URL}${normalizedPath}`
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

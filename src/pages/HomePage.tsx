@@ -16,9 +16,9 @@ type HomePersona = {
 }
 
 const mockPersonas: HomePersona[] = [
-  { id: 'mom', personaId: 'mom', name: '엄마', image: '/images/my-page/persona-mom.png', active: true },
-  { id: 'grandma', personaId: 'grandma', name: '할머니', image: '/images/my-page/persona-grandma.png' },
-  { id: 'me', personaId: 'me', name: '나', image: '/images/my-page/persona-me.png' },
+  { id: 'mom', name: '엄마', image: '/images/my-page/persona-mom.png', active: true },
+  { id: 'grandma', name: '할머니', image: '/images/my-page/persona-grandma.png' },
+  { id: 'me', name: '나', image: '/images/my-page/persona-me.png' },
 ]
 
 const chatLines = [

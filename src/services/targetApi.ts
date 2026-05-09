@@ -1,11 +1,10 @@
 import { apiClient } from '../lib/apiClient'
-import type { ApiId, PaginatedTargets, Persona, Target } from '../types/api'
+import type { ApiId, PaginatedTargets, Persona, Target, TargetMediaUploadResponse } from '../types/api'
 
 type CreateTargetPayload = {
-  name?: string
-  nickname?: string
-  relationship?: string
-  description?: string
+  name: string
+  description?: string | null
+  target_type: string
 }
 
 export const targetApi = {
@@ -32,6 +31,6 @@ export const targetApi = {
     formData.append('media_type', mediaType)
     formData.append('file', file)
 
-    return apiClient.post<Target>(`/targets/${targetId}/media`, formData)
+    return apiClient.post<TargetMediaUploadResponse>(`/targets/${targetId}/media`, formData)
   },
 }

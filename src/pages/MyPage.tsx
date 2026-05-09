@@ -32,7 +32,7 @@ type MyPersona = {
   name: string
   description: string
   image: string
-  personaId: string
+  personaId?: string
 }
 
 const mockPersonas: MyPersona[] = [
@@ -75,14 +75,14 @@ const wideMenuItems: MenuItem[] = [
 
 function mapTargetsToPersonas(targets: Target[]): MyPersona[] {
   return targets.slice(0, 3).map((target, index) => {
-    const personaId = target.persona_id ?? target.persona?.id ?? target.id
+    const personaId = target.persona_id ?? target.persona?.id
 
     return {
       id: String(target.id),
-      personaId: String(personaId),
+      personaId: personaId === undefined || personaId === null ? undefined : String(personaId),
       name: target.nickname ?? target.name ?? target.persona?.nickname ?? target.persona?.name ?? `페르소나 ${index + 1}`,
-      description: target.description ?? target.relationship ?? target.persona?.description ?? '소중한 기억을 담고 있는 분',
-      image: target.image_url ?? target.persona?.image_url ?? mockPersonas[index]?.image ?? '/images/my-page/persona-mom.png',
+      description: target.description ?? target.target_type ?? target.relationship ?? target.persona?.description ?? '소중한 기억을 담고 있는 분',
+      image: target.image_url ?? target.profile_image_path ?? target.persona?.image_url ?? mockPersonas[index]?.image ?? '/images/my-page/persona-mom.png',
     }
   })
 }
@@ -217,7 +217,10 @@ function MyPage() {
         if (!ignore && targets.length > 0) {
           const nextPersonas = mapTargetsToPersonas(targets)
           setPersonaItems(nextPersonas)
-          window.localStorage.setItem('remory_persona_id', nextPersonas[0].personaId)
+
+          if (nextPersonas[0].personaId) {
+            window.localStorage.setItem('remory_persona_id', nextPersonas[0].personaId)
+          }
         }
       } catch {
         // Keep mock persona cards when targets cannot be loaded.
@@ -310,7 +313,11 @@ function MyPage() {
                 className="my-page__persona-card"
                 type="button"
                 key={persona.id}
-                onClick={() => window.localStorage.setItem('remory_persona_id', persona.personaId)}
+                onClick={() => {
+                  if (persona.personaId) {
+                    window.localStorage.setItem('remory_persona_id', persona.personaId)
+                  }
+                }}
               >
                 <span className="my-page__persona-avatar">
                   <img src={persona.image} alt={`${persona.name} 페르소나`} />

@@ -55,10 +55,11 @@ function formatMessageTime(createdAt?: string) {
 }
 
 function isUserMessage(message: ApiChatMessage) {
+  const senderType = message.sender_type?.toLowerCase()
   const sender = message.sender?.toLowerCase()
   const role = message.role?.toLowerCase()
 
-  return sender === 'user' || role === 'user'
+  return senderType === 'user' || sender === 'user' || role === 'user'
 }
 
 function mapApiMessage(message: ApiChatMessage): ChatMessage {

@@ -3,8 +3,9 @@ import type { ApiId, StoryBook, StoryBookDetail, StoryChapter } from '../types/a
 
 type CreateStorybookPayload = {
   title: string
-  persona_id?: ApiId
-  chat_id?: ApiId
+  interview_session_id?: ApiId | null
+  photo_memory_id?: ApiId | null
+  visibility?: 'PRIVATE' | 'LINK' | 'GROUP' | 'PUBLIC'
 }
 
 export const storybookApi = {

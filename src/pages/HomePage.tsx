@@ -9,7 +9,7 @@ type IconName = 'bell' | 'chat' | 'check' | 'plus' | 'sparkle' | 'info' | 'mic' 
 
 type HomePersona = {
   id: string
-  personaId: string
+  personaId?: string
   name: string
   image: string
   active?: boolean
@@ -45,13 +45,13 @@ const memoryCards = [
 
 function mapTargetsToPersonas(targets: Target[]): HomePersona[] {
   return targets.slice(0, 3).map((target, index) => {
-    const personaId = target.persona_id ?? target.persona?.id ?? target.id
+    const personaId = target.persona_id ?? target.persona?.id
 
     return {
       id: String(target.id),
-      personaId: String(personaId),
+      personaId: personaId === undefined || personaId === null ? undefined : String(personaId),
       name: target.nickname ?? target.name ?? target.persona?.nickname ?? target.persona?.name ?? `페르소나 ${index + 1}`,
-      image: target.image_url ?? target.persona?.image_url ?? mockPersonas[index]?.image ?? '/images/my-page/persona-mom.png',
+      image: target.image_url ?? target.profile_image_path ?? target.persona?.image_url ?? mockPersonas[index]?.image ?? '/images/my-page/persona-mom.png',
       active: index === 0,
     }
   })
@@ -166,7 +166,10 @@ function HomePage() {
         if (!ignore && targets.length > 0) {
           const nextPersonas = mapTargetsToPersonas(targets)
           setPersonaItems(nextPersonas)
-          window.localStorage.setItem('remory_persona_id', nextPersonas[0].personaId)
+
+          if (nextPersonas[0].personaId) {
+            window.localStorage.setItem('remory_persona_id', nextPersonas[0].personaId)
+          }
         }
       } catch {
         // Keep the existing mock persona cards when targets cannot be loaded.
@@ -236,7 +239,11 @@ function HomePage() {
                 className={`home-page__persona-item${persona.active ? ' is-active' : ''}`}
                 type="button"
                 key={persona.id}
-                onClick={() => handlePersonaClick(persona.personaId)}
+                onClick={() => {
+                  if (persona.personaId) {
+                    handlePersonaClick(persona.personaId)
+                  }
+                }}
               >
                 <span className="home-page__persona-avatar">
                   <img src={persona.image} alt={`${persona.name} 페르소나`} />

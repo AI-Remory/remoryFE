@@ -5,7 +5,8 @@ export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || DEFAULT_API_BAS
 export const ACCESS_TOKEN_KEY = 'remory_access_token'
 export const REFRESH_TOKEN_KEY = 'remory_refresh_token'
 
-type ApiErrorDetail = string | string[] | { msg?: string; message?: string } | null
+type ApiErrorDetailItem = string | { msg?: string; message?: string }
+type ApiErrorDetail = ApiErrorDetailItem | ApiErrorDetailItem[] | null
 
 type RequestOptions = {
   method?: string
@@ -61,7 +62,15 @@ function getDetailMessage(detail: ApiErrorDetail) {
   }
 
   if (Array.isArray(detail)) {
-    return detail.join('\n')
+    return detail
+      .map((item) => {
+        if (typeof item === 'string') {
+          return item
+        }
+
+        return item.message ?? item.msg ?? '입력값을 확인해주세요.'
+      })
+      .join('\n')
   }
 
   if (detail?.message) {
@@ -113,11 +122,17 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
     }
   }
 
-  const response = await fetch(buildUrl(path), {
-    method,
-    headers,
-    body,
-  })
+  let response: Response
+
+  try {
+    response = await fetch(buildUrl(path), {
+      method,
+      headers,
+      body,
+    })
+  } catch {
+    throw new ApiError('백엔드 서버에 연결할 수 없습니다. 서버 실행 상태와 API 주소를 확인해주세요.', 0, null)
+  }
 
   const parsed = await parseResponse(response)
 

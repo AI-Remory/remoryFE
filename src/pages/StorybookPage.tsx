@@ -82,7 +82,7 @@ function getChapterIcon(index: number): Chapter['icon'] {
 function mapStoryChapters(apiChapters: StoryChapter[]): Chapter[] {
   return apiChapters.map((chapter, index) => ({
     id: String(chapter.id),
-    label: chapter.label ?? `${index + 1}번째 기억`,
+    label: chapter.label ?? `${chapter.order_index ?? index + 1}번째 기억`,
     title: chapter.title,
     duration: chapter.duration ? String(chapter.duration) : '0:00',
     icon: getChapterIcon(index),
@@ -218,7 +218,7 @@ function StorybookPage() {
   const coverTitleLines = coverTitle.split(' ')
   const coverFirstLine = coverTitleLines.slice(0, -1).join(' ') || '엄마의 따뜻한'
   const coverSecondLine = coverTitleLines.at(-1) ?? '말 한마디'
-  const coverSubtitle = currentStorybook?.subtitle ?? '기억을 다시 만나보세요'
+  const coverSubtitle = currentStorybook?.subtitle ?? currentStorybook?.summary ?? '기억을 다시 만나보세요'
   const coverDate = formatDate(currentStorybook?.created_at)
 
   return (

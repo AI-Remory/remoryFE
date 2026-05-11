@@ -9,25 +9,29 @@ type ConsentKey = 'privacy' | 'photo' | 'voice' | 'persona'
 type SetupIconName =
   | 'arrow'
   | 'back'
+  | 'camera'
   | 'chat'
   | 'check'
   | 'chevron'
+  | 'edit'
+  | 'flower'
   | 'heart'
   | 'image'
   | 'mic'
   | 'note'
   | 'play'
+  | 'plus'
   | 'sparkle'
   | 'upload'
+  | 'user'
+
+type RelationshipChoice = '엄마' | '아빠' | '할머니' | '친구' | '직접 입력'
 
 type PersonaDraft = {
   name: string
   relationship: string
+  relationshipLabel: string
   description: string
-}
-
-type QuickChoice = PersonaDraft & {
-  label: string
 }
 
 const TOTAL_STEPS = 5
@@ -39,45 +43,7 @@ const defaultPhotoPreviewPaths = [
   '/images/setup/setup-photo-2.png',
   '/images/setup/setup-photo-3.png',
 ]
-
-const quickChoices: QuickChoice[] = [
-  {
-    label: '엄마',
-    name: '엄마',
-    relationship: 'parent',
-    description: '따뜻한 조언을 해주는 분',
-  },
-  {
-    label: '아빠',
-    name: '아빠',
-    relationship: 'parent',
-    description: '든든하게 곁을 지켜주는 분',
-  },
-  {
-    label: '할머니',
-    name: '할머니',
-    relationship: 'grandparent',
-    description: '다정한 이야기를 들려주는 분',
-  },
-  {
-    label: '할아버지',
-    name: '할아버지',
-    relationship: 'grandparent',
-    description: '삶의 지혜를 나눠주는 분',
-  },
-  {
-    label: '친구',
-    name: '친구',
-    relationship: 'friend',
-    description: '편하게 추억을 나누는 사람',
-  },
-  {
-    label: '나 자신',
-    name: '나 자신',
-    relationship: 'self',
-    description: '나의 기억과 이야기를 남기고 싶은 사람',
-  },
-]
+const relationshipChoices: RelationshipChoice[] = ['엄마', '아빠', '할머니', '친구', '직접 입력']
 
 const consentItems: Array<{ key: ConsentKey; label: string }> = [
   { key: 'privacy', label: '개인정보 수집 및 이용' },
@@ -102,6 +68,13 @@ function SetupIcon({ name, className }: { name: SetupIconName; className?: strin
           <circle cx="21.5" cy="12.5" r="2.1" fill="currentColor" />
         </svg>
       )
+    case 'user':
+      return (
+        <svg className={className} viewBox="0 0 32 32" fill="none" aria-hidden="true">
+          <circle cx="16" cy="11.2" r="5.2" fill="currentColor" />
+          <path d="M6.8 26.2c1.1-5.5 4.5-8.3 9.2-8.3s8.1 2.8 9.2 8.3" fill="currentColor" />
+        </svg>
+      )
     case 'mic':
       return (
         <svg className={className} viewBox="0 0 32 32" fill="none" aria-hidden="true">
@@ -114,6 +87,37 @@ function SetupIcon({ name, className }: { name: SetupIconName; className?: strin
         <svg className={className} viewBox="0 0 32 32" fill="none" aria-hidden="true">
           <path d="M7.4 22.4 5.6 27l5.1-1.4c1.5.7 3.3 1.1 5.3 1.1 6.4 0 11.6-4.5 11.6-10S22.4 6.8 16 6.8 4.4 11.3 4.4 16.8c0 2.1 1.1 4.1 3 5.6Z" stroke="currentColor" strokeWidth="2.2" strokeLinejoin="round" />
           <path d="M11.1 16.9h.02M16 16.9h.02M20.9 16.9h.02" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
+        </svg>
+      )
+    case 'camera':
+      return (
+        <svg className={className} viewBox="0 0 32 32" fill="none" aria-hidden="true">
+          <path d="M11.2 10.2 13 7.5h6l1.8 2.7h3.7a2.5 2.5 0 0 1 2.5 2.5v10.1a2.5 2.5 0 0 1-2.5 2.5h-17A2.5 2.5 0 0 1 5 22.8V12.7a2.5 2.5 0 0 1 2.5-2.5h3.7Z" stroke="currentColor" strokeWidth="2.2" strokeLinejoin="round" />
+          <circle cx="16" cy="17.6" r="4.2" stroke="currentColor" strokeWidth="2.2" />
+        </svg>
+      )
+    case 'plus':
+      return (
+        <svg className={className} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" />
+        </svg>
+      )
+    case 'edit':
+      return (
+        <svg className={className} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="m4.5 16.6-.8 3.7 3.7-.8L18.8 8.1l-2.9-2.9L4.5 16.6Z" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round" />
+          <path d="m14.8 6.3 2.9 2.9" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" />
+        </svg>
+      )
+    case 'flower':
+      return (
+        <svg className={className} viewBox="0 0 48 48" fill="none" aria-hidden="true">
+          <path d="M23.8 39.5c.4-8.8 3.4-16.4 9-22.8" stroke="#9f8f6b" strokeWidth="1.8" strokeLinecap="round" />
+          <path d="M20.7 28.3c-3.7-6.4-8.2-9-13.5-7.9 1.1 5.2 4.8 8 11.1 8.4" fill="#d7c39a" />
+          <path d="M29.6 19.6c-4.4-2.3-5-5.9-1.8-10.8 5.2 2.3 5.8 5.9 1.8 10.8Z" fill="#f2b58d" />
+          <path d="M34.4 20.6c-.2-5 2.6-7.3 8.2-7-1 5.4-3.7 7.8-8.2 7Z" fill="#efc5a5" />
+          <path d="M26.5 25.5c-4.5-3.8-4.6-7.6-.3-11.5 4.7 3.8 4.8 7.6.3 11.5Z" fill="#f3a874" />
+          <path d="M26.8 33.2c4.8-2.3 8.2-1 10.1 3.8-5 1.9-8.4.6-10.1-3.8Z" fill="#d9caa0" />
         </svg>
       )
     case 'note':
@@ -174,7 +178,7 @@ function StepProgress({ onBack, step }: { onBack?: () => void; step: SetupStep }
   return (
     <div
       className={`setup-page__progress${onBack ? ' setup-page__progress--with-back' : ''}`}
-      aria-label={step === 4 ? '초기 설정 4단계 중 4단계' : `초기 설정 ${TOTAL_STEPS}단계 중 ${step}단계`}
+      aria-label={`초기 설정 ${TOTAL_STEPS}단계 중 ${step}단계`}
     >
       {onBack && (
         <button className="setup-page__back-button" type="button" aria-label="이전 단계로 돌아가기" onClick={onBack}>
@@ -209,6 +213,20 @@ function StepProgress({ onBack, step }: { onBack?: () => void; step: SetupStep }
   )
 }
 
+function mapRelationshipToTargetType(relationship: RelationshipChoice, customRelationship: string) {
+  switch (relationship) {
+    case '엄마':
+    case '아빠':
+      return 'parent'
+    case '할머니':
+      return 'grandparent'
+    case '친구':
+      return 'friend'
+    case '직접 입력':
+      return customRelationship.trim() || 'other'
+  }
+}
+
 function SetupPage() {
   const [step, setStep] = useState<SetupStep>(1)
   const [consents, setConsents] = useState<Record<ConsentKey, boolean>>({
@@ -217,12 +235,18 @@ function SetupPage() {
     voice: false,
     persona: false,
   })
-  const [selectedChoice, setSelectedChoice] = useState('엄마')
   const [personaDraft, setPersonaDraft] = useState<PersonaDraft>({
     name: '엄마',
     relationship: 'parent',
+    relationshipLabel: '엄마',
     description: '따뜻한 조언을 해주는 분',
   })
+  const [personaName, setPersonaName] = useState('')
+  const [selectedRelationship, setSelectedRelationship] = useState<RelationshipChoice>('엄마')
+  const [customRelationship, setCustomRelationship] = useState('')
+  const [personaDescription, setPersonaDescription] = useState('')
+  const [profileImageFile, setProfileImageFile] = useState<File | null>(null)
+  const [profileImagePreviewUrl, setProfileImagePreviewUrl] = useState<string | null>(null)
   const [targetId, setTargetId] = useState<ApiId | null>(() => window.localStorage.getItem(REMORY_TARGET_ID_KEY))
   const [selectedPhotoFiles, setSelectedPhotoFiles] = useState<File[]>([])
   const [selectedVoiceFile, setSelectedVoiceFile] = useState<File | null>(null)
@@ -235,9 +259,10 @@ function SetupPage() {
   const [isComplete, setIsComplete] = useState(false)
 
   const allConsented = consentItems.every((item) => consents[item.key])
-  const personaName = personaDraft.name.trim() || '엄마'
+  const savedPersonaName = personaDraft.name.trim() || '엄마'
   const personaRelationship = personaDraft.relationship.trim() || 'parent'
-  const personaDescription = personaDraft.description.trim() || '따뜻한 조언을 해주는 분'
+  const savedRelationshipLabel = personaDraft.relationshipLabel.trim() || '엄마'
+  const savedPersonaDescription = personaDraft.description.trim() || '따뜻한 조언을 해주는 분'
   const memoryNoteCount = memoryNotes.length
   const memoryTypesAdded = [
     selectedPhotoFiles.length > 0,
@@ -250,6 +275,14 @@ function SetupPage() {
       photoPreviewUrls.forEach((url) => URL.revokeObjectURL(url))
     }
   }, [photoPreviewUrls])
+
+  useEffect(() => {
+    return () => {
+      if (profileImagePreviewUrl) {
+        URL.revokeObjectURL(profileImagePreviewUrl)
+      }
+    }
+  }, [profileImagePreviewUrl])
 
   const handleSkipSetup = () => {
     window.localStorage.setItem(SETUP_SKIPPED_KEY, 'true')
@@ -272,21 +305,20 @@ function SetupPage() {
     })
   }
 
-  const handleQuickChoice = (choice: QuickChoice) => {
-    setSelectedChoice(choice.label)
-    setPersonaDraft({
-      name: choice.name,
-      relationship: choice.relationship,
-      description: choice.description,
-    })
+  const handleProfileImageChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const nextFile = event.target.files?.[0] ?? null
+
+    setProfileImageFile(nextFile)
+    setProfileImagePreviewUrl(nextFile ? URL.createObjectURL(nextFile) : null)
+    event.target.value = ''
   }
 
-  const updatePersonaDraft = (field: keyof PersonaDraft, value: string) => {
-    setSelectedChoice('')
-    setPersonaDraft((current) => ({
-      ...current,
-      [field]: value,
-    }))
+  const handleRelationshipSelect = (relationship: RelationshipChoice) => {
+    setSelectedRelationship(relationship)
+
+    if (relationship !== '직접 입력') {
+      setCustomRelationship('')
+    }
   }
 
   const handlePhotoChange = (event: ChangeEvent<HTMLInputElement>) => {
@@ -323,6 +355,47 @@ function SetupPage() {
 
   const handlePersonaSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
+    setErrorMessage('')
+
+    const nextName = personaName.trim()
+    const nextCustomRelationship = customRelationship.trim()
+
+    if (!nextName) {
+      setErrorMessage('페르소나 이름을 입력해주세요.')
+      return
+    }
+
+    if (selectedRelationship === '직접 입력' && !nextCustomRelationship) {
+      setErrorMessage('관계를 입력해주세요.')
+      return
+    }
+
+    const relationshipLabel = selectedRelationship === '직접 입력' ? nextCustomRelationship : selectedRelationship
+    const description = personaDescription.trim() || `${nextName}의 기억을 남기고 싶어요.`
+
+    setPersonaDraft({
+      name: nextName,
+      relationship: mapRelationshipToTargetType(selectedRelationship, nextCustomRelationship),
+      relationshipLabel,
+      description,
+    })
+    setStep(4)
+  }
+
+  const handleSkipPersonaStep = () => {
+    setErrorMessage('')
+    setPersonaName('')
+    setSelectedRelationship('엄마')
+    setCustomRelationship('')
+    setPersonaDescription('')
+    setProfileImageFile(null)
+    setProfileImagePreviewUrl(null)
+    setPersonaDraft({
+      name: '엄마',
+      relationship: 'parent',
+      relationshipLabel: '엄마',
+      description: '따뜻한 조언을 해주는 분',
+    })
     setStep(4)
   }
 
@@ -332,8 +405,8 @@ function SetupPage() {
     }
 
     const target = await targetApi.createTarget({
-      name: personaName,
-      description: personaDescription,
+      name: savedPersonaName,
+      description: savedPersonaDescription,
       target_type: personaRelationship,
     })
 
@@ -359,6 +432,10 @@ function SetupPage() {
       }
 
       if (!skipMediaUpload) {
+        if (profileImageFile) {
+          await targetApi.uploadTargetMedia(nextTargetId, 'image', profileImageFile)
+        }
+
         await Promise.all(selectedPhotoFiles.map((file) => targetApi.uploadTargetMedia(nextTargetId, 'image', file)))
 
         if (selectedVoiceFile) {
@@ -382,7 +459,16 @@ function SetupPage() {
   return (
     <main className="setup-page">
       <section className="setup-page__container" aria-label="리메모리 초기 설정">
-        <StepProgress step={step} onBack={step === 4 ? () => setStep(3) : undefined} />
+        <StepProgress
+          step={step}
+          onBack={
+            step === 3
+              ? () => setStep(2)
+              : step === 4
+                ? () => setStep(3)
+                : undefined
+          }
+        />
 
         {step === 1 && (
           <div className="setup-page__step setup-page__step--welcome">
@@ -497,64 +583,133 @@ function SetupPage() {
         )}
 
         {step === 3 && (
-          <form className="setup-page__step" onSubmit={handlePersonaSubmit}>
-            <h1 className="setup-page__title setup-page__title--compact">누구의 기억을 남기고 싶나요?</h1>
-
-            <div className="setup-page__choice-grid" aria-label="빠른 관계 선택">
-              {quickChoices.map((choice) => (
-                <button
-                  className={`setup-page__choice-card${selectedChoice === choice.label ? ' setup-page__choice-card--selected' : ''}`}
-                  type="button"
-                  key={choice.label}
-                  aria-pressed={selectedChoice === choice.label}
-                  onClick={() => handleQuickChoice(choice)}
-                >
-                  <span>{choice.label}</span>
-                  {selectedChoice === choice.label && <SetupIcon name="check" />}
-                </button>
-              ))}
+          <form className="setup-page__step setup-page__step--persona" onSubmit={handlePersonaSubmit}>
+            <div className="setup-page__persona-heading">
+              <h1 className="setup-page__persona-title">
+                첫 페르소나를 만들어볼까요?
+                <span className="setup-page__tiny-heart" aria-hidden="true">♥</span>
+              </h1>
+              <p className="setup-page__persona-description">소중한 사람의 첫 AI 페르소나를 만들어보세요.</p>
             </div>
 
-            <div className="setup-page__field-group">
-              <label className="setup-page__label" htmlFor="setup-persona-name">이름</label>
-              <input
-                className="setup-page__input"
-                id="setup-persona-name"
-                type="text"
-                value={personaDraft.name}
-                required
-                onChange={(event) => updatePersonaDraft('name', event.target.value)}
-              />
+            <div className="setup-page__persona-card">
+              <div className="setup-page__avatar-picker">
+                <input
+                  className="setup-page__file-input"
+                  id="setup-profile-image"
+                  type="file"
+                  accept="image/*"
+                  aria-label="프로필 사진 선택"
+                  onChange={handleProfileImageChange}
+                />
+                <label className="setup-page__avatar-preview" htmlFor="setup-profile-image">
+                  {profileImagePreviewUrl ? (
+                    <img src={profileImagePreviewUrl} alt="선택한 프로필 미리보기" />
+                  ) : (
+                    <span className="setup-page__avatar-placeholder">
+                      <SetupIcon name="user" />
+                    </span>
+                  )}
+                </label>
+                <label className="setup-page__avatar-button" htmlFor="setup-profile-image" aria-label="프로필 사진 추가">
+                  <SetupIcon name="camera" />
+                  <SetupIcon name="plus" />
+                </label>
+              </div>
+
+              <section className="setup-page__form-section">
+                <label className="setup-page__form-label" htmlFor="setup-persona-name">
+                  <SetupIcon name="user" />
+                  이름
+                </label>
+                <input
+                  className="setup-page__form-input"
+                  id="setup-persona-name"
+                  type="text"
+                  maxLength={20}
+                  placeholder="이름을 입력해주세요"
+                  value={personaName}
+                  onChange={(event) => setPersonaName(event.target.value)}
+                />
+              </section>
+
+              <section className="setup-page__form-section">
+                <span className="setup-page__form-label" id="setup-relationship-label">
+                  <SetupIcon name="heart" />
+                  나와의 관계
+                </span>
+                <div className="setup-page__relationship-chips" aria-labelledby="setup-relationship-label">
+                  {relationshipChoices.map((relationship) => (
+                    <button
+                      className={`setup-page__relationship-chip${selectedRelationship === relationship ? ' setup-page__relationship-chip--selected' : ''}${relationship === '직접 입력' ? ' setup-page__relationship-chip--custom' : ''}`}
+                      type="button"
+                      key={relationship}
+                      aria-pressed={selectedRelationship === relationship}
+                      onClick={() => handleRelationshipSelect(relationship)}
+                    >
+                      {relationship}
+                      {relationship === '직접 입력' && <SetupIcon name="edit" />}
+                    </button>
+                  ))}
+                </div>
+                {selectedRelationship === '직접 입력' && (
+                  <label className="setup-page__sr-only" htmlFor="setup-custom-relationship">직접 관계 입력</label>
+                )}
+                {selectedRelationship === '직접 입력' && (
+                  <input
+                    className="setup-page__form-input setup-page__custom-relationship"
+                    id="setup-custom-relationship"
+                    type="text"
+                    maxLength={20}
+                    placeholder="관계를 입력해주세요"
+                    value={customRelationship}
+                    onChange={(event) => setCustomRelationship(event.target.value)}
+                  />
+                )}
+              </section>
+
+              <section className="setup-page__form-section">
+                <label className="setup-page__form-label" htmlFor="setup-persona-description">
+                  <SetupIcon name="chat" />
+                  한 줄 소개
+                </label>
+                <div className="setup-page__intro-textarea-wrap">
+                  <textarea
+                    className="setup-page__form-input setup-page__intro-textarea"
+                    id="setup-persona-description"
+                    maxLength={50}
+                    placeholder="어떤 분인지 한 줄로 소개해주세요"
+                    value={personaDescription}
+                    onChange={(event) => setPersonaDescription(event.target.value)}
+                  />
+                  <span className="setup-page__character-count">{personaDescription.length}/50</span>
+                </div>
+              </section>
+
+              <div className="setup-page__persona-tip">
+                <SetupIcon name="flower" />
+                <p>
+                  실제 사진과 자연스러운 설명을 넣으면
+                  <br />
+                  더 닮은 페르소나가 만들어져요.
+                </p>
+                <span aria-hidden="true">♥</span>
+              </div>
             </div>
 
-            <div className="setup-page__field-group">
-              <label className="setup-page__label" htmlFor="setup-persona-relationship">관계</label>
-              <input
-                className="setup-page__input"
-                id="setup-persona-relationship"
-                type="text"
-                value={personaDraft.relationship}
-                required
-                onChange={(event) => updatePersonaDraft('relationship', event.target.value)}
-              />
-            </div>
-
-            <div className="setup-page__field-group">
-              <label className="setup-page__label" htmlFor="setup-persona-description">어떤 사람인지 설명</label>
-              <textarea
-                className="setup-page__input setup-page__textarea"
-                id="setup-persona-description"
-                value={personaDraft.description}
-                required
-                rows={4}
-                onChange={(event) => updatePersonaDraft('description', event.target.value)}
-              />
-            </div>
+            {errorMessage && (
+              <p className="setup-page__error" role="alert">
+                {errorMessage}
+              </p>
+            )}
 
             <div className="setup-page__actions">
               <button className="setup-page__primary-button" type="submit">
+                <SetupIcon name="sparkle" />
                 다음
-                <SetupIcon name="arrow" />
+              </button>
+              <button className="setup-page__secondary-button" type="button" onClick={handleSkipPersonaStep}>
+                건너뛰기
               </button>
             </div>
           </form>
@@ -781,13 +936,13 @@ function SetupPage() {
                 <span className="setup-page__complete-icon">
                   <SetupIcon name="sparkle" />
                 </span>
-                <h1 className="setup-page__title setup-page__title--compact">{personaName} 페르소나가 준비됐어요</h1>
+                <h1 className="setup-page__title setup-page__title--compact">{savedPersonaName} 페르소나가 준비됐어요</h1>
                 <p className="setup-page__description setup-page__description--compact">
                   이제 대화를 시작하거나 홈에서 페르소나를 확인할 수 있어요.
                 </p>
                 <div className="setup-page__split-actions">
                   <button className="setup-page__primary-button" type="button" onClick={() => { window.location.href = '/chat' }}>
-                    {personaName}와 대화하기
+                    {savedPersonaName}와 대화하기
                   </button>
                   <button className="setup-page__secondary-action-button" type="button" onClick={() => { window.location.href = '/home' }}>
                     홈으로 가기
@@ -796,7 +951,7 @@ function SetupPage() {
               </div>
             ) : (
               <>
-                <h1 className="setup-page__title setup-page__title--compact">{personaName} 페르소나를 준비할게요</h1>
+                <h1 className="setup-page__title setup-page__title--compact">{savedPersonaName} 페르소나를 준비할게요</h1>
                 <p className="setup-page__description setup-page__description--compact">
                   입력한 정보를 바탕으로 AI 페르소나를 만들고 대화를 시작할 수 있어요.
                 </p>
@@ -805,15 +960,15 @@ function SetupPage() {
                   <dl>
                     <div>
                       <dt>이름</dt>
-                      <dd>{personaName}</dd>
+                      <dd>{savedPersonaName}</dd>
                     </div>
                     <div>
                       <dt>관계</dt>
-                      <dd>{personaRelationship}</dd>
+                      <dd>{savedRelationshipLabel}</dd>
                     </div>
                     <div>
                       <dt>설명</dt>
-                      <dd>{personaDescription}</dd>
+                      <dd>{savedPersonaDescription}</dd>
                     </div>
                     <div>
                       <dt>사진 추가 여부</dt>

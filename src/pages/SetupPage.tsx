@@ -16,6 +16,7 @@ type SetupIconName =
   | 'edit'
   | 'flower'
   | 'heart'
+  | 'home'
   | 'image'
   | 'mic'
   | 'note'
@@ -131,6 +132,13 @@ function SetupIcon({ name, className }: { name: SetupIconName; className?: strin
       return (
         <svg className={className} viewBox="0 0 32 32" fill="none" aria-hidden="true">
           <path d="M16 27s-9.4-5.7-11.4-12.2C3.3 10.6 5.7 7 9.7 7c2.4 0 4.4 1.3 5.4 3.1C16.1 8.3 18.1 7 20.5 7c4 0 6.4 3.6 5.1 7.8C23.6 21.3 16 27 16 27Z" fill="currentColor" />
+        </svg>
+      )
+    case 'home':
+      return (
+        <svg className={className} viewBox="0 0 32 32" fill="none" aria-hidden="true">
+          <path d="M5.5 15.5 16 6l10.5 9.5" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
+          <path d="M8.5 14.5V27h7v-7h3v7h7V14.5" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
       )
     case 'check':
@@ -252,23 +260,20 @@ function SetupPage() {
   const [selectedVoiceFile, setSelectedVoiceFile] = useState<File | null>(null)
   const [memoryNotes, setMemoryNotes] = useState<string[]>([])
   const [memoryNoteInput, setMemoryNoteInput] = useState('')
+  const [isNoteEditorOpen, setIsNoteEditorOpen] = useState(false)
   const [photoPreviewUrls, setPhotoPreviewUrls] = useState<string[]>([])
   const [failedDefaultPhotoIndexes, setFailedDefaultPhotoIndexes] = useState<Set<number>>(() => new Set())
   const [errorMessage, setErrorMessage] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [isComplete, setIsComplete] = useState(false)
 
   const allConsented = consentItems.every((item) => consents[item.key])
   const savedPersonaName = personaDraft.name.trim() || '엄마'
   const personaRelationship = personaDraft.relationship.trim() || 'parent'
-  const savedRelationshipLabel = personaDraft.relationshipLabel.trim() || '엄마'
   const savedPersonaDescription = personaDraft.description.trim() || '따뜻한 조언을 해주는 분'
   const memoryNoteCount = memoryNotes.length
-  const memoryTypesAdded = [
-    selectedPhotoFiles.length > 0,
-    selectedVoiceFile !== null,
-    memoryNoteCount > 0,
-  ].filter(Boolean).length
+  const completePhotoCount = selectedPhotoFiles.length + (profileImageFile ? 1 : 0)
+  const completeVoiceCount = selectedVoiceFile ? 1 : 0
+  const completeProfileImageSrc = profileImagePreviewUrl ?? '/images/my-page/persona-mom.png'
 
   useEffect(() => {
     return () => {
@@ -351,6 +356,7 @@ function SetupPage() {
 
     setMemoryNotes((current) => [...current, nextNote])
     setMemoryNoteInput('')
+    setIsNoteEditorOpen(false)
   }
 
   const handlePersonaSubmit = (event: FormEvent<HTMLFormElement>) => {
@@ -399,6 +405,14 @@ function SetupPage() {
     setStep(4)
   }
 
+  const buildDescription = () => {
+    if (memoryNotes.length === 0) {
+      return savedPersonaDescription
+    }
+
+    return `${savedPersonaDescription}\n\n추가 기억:\n${memoryNotes.join('\n')}`
+  }
+
   const ensureTargetId = async () => {
     if (targetId !== null) {
       return targetId
@@ -406,7 +420,7 @@ function SetupPage() {
 
     const target = await targetApi.createTarget({
       name: savedPersonaName,
-      description: savedPersonaDescription,
+      description: buildDescription(),
       target_type: personaRelationship,
     })
 
@@ -427,10 +441,6 @@ function SetupPage() {
     try {
       const nextTargetId = await ensureTargetId()
 
-      if (memoryNotes.length > 0) {
-        window.localStorage.setItem(SETUP_MEMORY_NOTES_KEY, JSON.stringify(memoryNotes))
-      }
-
       if (!skipMediaUpload) {
         if (profileImageFile) {
           await targetApi.uploadTargetMedia(nextTargetId, 'image', profileImageFile)
@@ -446,8 +456,8 @@ function SetupPage() {
       const persona = await targetApi.createPersona(nextTargetId)
 
       window.localStorage.setItem(REMORY_PERSONA_ID_KEY, String(persona.id))
+      window.localStorage.setItem(SETUP_MEMORY_NOTES_KEY, JSON.stringify(memoryNotes))
       window.localStorage.setItem(SETUP_COMPLETED_KEY, 'true')
-      setIsComplete(true)
       setStep(5)
     } catch {
       setErrorMessage('기억 데이터를 저장하지 못했습니다. 백엔드 서버 연결을 확인해주세요.')
@@ -740,7 +750,7 @@ function SetupPage() {
                   aria-label="사진 파일 선택"
                   onChange={handlePhotoChange}
                 />
-                <label className="setup-page__memory-card" htmlFor="setup-photo-file">
+                <label className="setup-page__memory-card" htmlFor="setup-photo-file" aria-label="사진 추가">
                   <span className="setup-page__memory-card-icon">
                     <SetupIcon name="image" />
                   </span>
@@ -788,7 +798,7 @@ function SetupPage() {
                   aria-label="음성 파일 선택"
                   onChange={handleVoiceChange}
                 />
-                <label className="setup-page__memory-card" htmlFor="setup-voice-file">
+                <label className="setup-page__memory-card" htmlFor="setup-voice-file" aria-label="음성 추가">
                   <span className="setup-page__memory-card-icon setup-page__memory-card-icon--lavender">
                     <SetupIcon name="mic" />
                   </span>
@@ -819,37 +829,46 @@ function SetupPage() {
                 </label>
               </div>
 
-              <article className="setup-page__memory-card setup-page__memory-card--note">
-                <span className="setup-page__memory-card-icon">
-                  <SetupIcon name="note" />
-                </span>
-                <span className="setup-page__memory-card-content">
-                  <strong>설명 추가</strong>
-                  <small>
-                    기억하고 싶은 이야기를
-                    <br />
-                    적어주세요.
-                  </small>
-                  <em className="setup-page__memory-count">{memoryNoteCount}개 추가됨</em>
-                </span>
-                <span className="setup-page__memory-card-preview">
-                  <span className="setup-page__note-preview">
-                    {memoryNotes[0] ?? (
-                      <>
-                        제주도 여행을 정말 좋아해요.
-                        <br />
-                        바닷바람과 성산일출봉을
-                        <br />
-                        특히 기억해요.
-                      </>
-                    )}
+              <div className="setup-page__memory-note-wrap">
+                <button
+                  className="setup-page__memory-card setup-page__memory-card--note"
+                  type="button"
+                  aria-expanded={isNoteEditorOpen}
+                  aria-label="설명 추가"
+                  onClick={() => setIsNoteEditorOpen((current) => !current)}
+                >
+                  <span className="setup-page__memory-card-icon">
+                    <SetupIcon name="note" />
                   </span>
-                </span>
-                <SetupIcon name="chevron" className="setup-page__memory-chevron" />
-                <div className="setup-page__note-editor">
+                  <span className="setup-page__memory-card-content">
+                    <strong>설명 추가</strong>
+                    <small>
+                      기억하고 싶은 이야기를
+                      <br />
+                      적어주세요.
+                    </small>
+                    <em className="setup-page__memory-count">{memoryNoteCount}개 추가됨</em>
+                  </span>
+                  <span className="setup-page__memory-card-preview">
+                    <span className="setup-page__note-preview">
+                      {memoryNotes[0] ?? (
+                        <>
+                          제주도 여행을 정말 좋아해요.
+                          <br />
+                          바닷바람과 성산일출봉을
+                          <br />
+                          특히 기억해요.
+                        </>
+                      )}
+                    </span>
+                  </span>
+                  <SetupIcon name="chevron" className="setup-page__memory-chevron" />
+                </button>
+                {isNoteEditorOpen && (
+                  <div className="setup-page__note-editor">
                   <label className="setup-page__sr-only" htmlFor="setup-memory-note">기억 설명 입력</label>
                   <textarea
-                    className="setup-page__note-input"
+                    className="setup-page__note-textarea"
                     id="setup-memory-note"
                     value={memoryNoteInput}
                     rows={3}
@@ -864,8 +883,9 @@ function SetupPage() {
                   >
                     설명 추가
                   </button>
-                </div>
-              </article>
+                  </div>
+                )}
+              </div>
             </div>
 
             <div className="setup-page__memory-tip">
@@ -874,7 +894,6 @@ function SetupPage() {
               </span>
               <p>
                 3가지 중 <strong>2가지</strong>를 추가하면 더 자연스러운 대화가 가능해요.
-                <small>현재 {memoryTypesAdded}가지가 추가됐어요.</small>
               </p>
             </div>
 
@@ -930,80 +949,99 @@ function SetupPage() {
         )}
 
         {step === 5 && (
-          <div className="setup-page__step">
-            {isComplete ? (
-              <div className="setup-page__complete-card" role="status">
-                <span className="setup-page__complete-icon">
-                  <SetupIcon name="sparkle" />
+          <div className="setup-page__step setup-page__step--complete" role="status">
+            <div className="setup-page__complete-heading">
+              {Array.from({ length: 8 }, (_, index) => (
+                <span className={`setup-page__complete-decoration setup-page__complete-decoration--${index + 1}`} key={`complete-decoration-${index + 1}`} aria-hidden="true" />
+              ))}
+
+              <h1 className="setup-page__complete-title">
+                페르소나가 완성되었어요!
+                <span className="setup-page__tiny-heart" aria-hidden="true">♥</span>
+              </h1>
+              <p className="setup-page__complete-description">
+                이제 ‘{savedPersonaName}’와 대화를 시작해보세요.
+                <br />
+                소중한 추억이 다시 살아납니다.
+              </p>
+            </div>
+
+            <div className="setup-page__complete-card">
+              <div className="setup-page__complete-avatar-wrap">
+                <span className="setup-page__complete-flower setup-page__complete-flower--left" aria-hidden="true">
+                  <SetupIcon name="flower" />
                 </span>
-                <h1 className="setup-page__title setup-page__title--compact">{savedPersonaName} 페르소나가 준비됐어요</h1>
-                <p className="setup-page__description setup-page__description--compact">
-                  이제 대화를 시작하거나 홈에서 페르소나를 확인할 수 있어요.
-                </p>
-                <div className="setup-page__split-actions">
-                  <button className="setup-page__primary-button" type="button" onClick={() => { window.location.href = '/chat' }}>
-                    {savedPersonaName}와 대화하기
-                  </button>
-                  <button className="setup-page__secondary-action-button" type="button" onClick={() => { window.location.href = '/home' }}>
-                    홈으로 가기
-                  </button>
-                </div>
+                <span className="setup-page__complete-flower setup-page__complete-flower--right" aria-hidden="true">
+                  <SetupIcon name="flower" />
+                </span>
+                <span className="setup-page__complete-heart-badge" aria-hidden="true">
+                  <SetupIcon name="heart" />
+                </span>
+                <span className="setup-page__complete-avatar-ring">
+                  <img
+                    className="setup-page__complete-avatar"
+                    src={completeProfileImageSrc}
+                    alt={`${savedPersonaName} 페르소나 프로필`}
+                  />
+                </span>
               </div>
-            ) : (
-              <>
-                <h1 className="setup-page__title setup-page__title--compact">{savedPersonaName} 페르소나를 준비할게요</h1>
-                <p className="setup-page__description setup-page__description--compact">
-                  입력한 정보를 바탕으로 AI 페르소나를 만들고 대화를 시작할 수 있어요.
-                </p>
 
-                <div className="setup-page__summary-card">
-                  <dl>
-                    <div>
-                      <dt>이름</dt>
-                      <dd>{savedPersonaName}</dd>
-                    </div>
-                    <div>
-                      <dt>관계</dt>
-                      <dd>{savedRelationshipLabel}</dd>
-                    </div>
-                    <div>
-                      <dt>설명</dt>
-                      <dd>{savedPersonaDescription}</dd>
-                    </div>
-                    <div>
-                      <dt>사진 추가 여부</dt>
-                      <dd>{selectedPhotoFiles.length > 0 ? `${selectedPhotoFiles.length}장 추가됨` : '없음'}</dd>
-                    </div>
-                    <div>
-                      <dt>음성 추가 여부</dt>
-                      <dd>{selectedVoiceFile ? '1개 추가됨' : '없음'}</dd>
-                    </div>
-                    <div>
-                      <dt>설명 추가 여부</dt>
-                      <dd>{memoryNoteCount > 0 ? `${memoryNoteCount}개 추가됨` : '없음'}</dd>
-                    </div>
-                  </dl>
-                </div>
+              <h2 className="setup-page__complete-name">{savedPersonaName}</h2>
+              <p className="setup-page__complete-summary">{savedPersonaDescription}</p>
 
-                {errorMessage && (
-                  <p className="setup-page__error" role="alert">
-                    {errorMessage}
+              <div className="setup-page__complete-stats" aria-label="추가된 데이터 요약">
+                <span className="setup-page__complete-stat">
+                  <SetupIcon name="image" />
+                  사진 {completePhotoCount}장
+                </span>
+                <span className="setup-page__complete-stat">
+                  <SetupIcon name="mic" />
+                  음성 {completeVoiceCount}개
+                </span>
+                <span className="setup-page__complete-stat">
+                  <SetupIcon name="heart" />
+                  기억 {memoryNoteCount}개
+                </span>
+              </div>
+
+              <div className="setup-page__complete-divider" />
+
+              <section className="setup-page__complete-chat-preview" aria-label="대화 미리보기">
+                <div className="setup-page__complete-chat-row">
+                  <img
+                    className="setup-page__complete-chat-avatar"
+                    src={completeProfileImageSrc}
+                    alt=""
+                    aria-hidden="true"
+                  />
+                  <p className="setup-page__complete-bubble setup-page__complete-bubble--user">
+                    {savedPersonaName}, 우리 제주도 여행 기억나?
                   </p>
-                )}
-
-                <div className="setup-page__actions">
-                  <button
-                    className="setup-page__primary-button"
-                    type="button"
-                    disabled={isSubmitting}
-                    onClick={() => void handleCreatePersona(false)}
-                  >
-                    <SetupIcon name="sparkle" />
-                    {isSubmitting ? '저장 중...' : '페르소나 만들기'}
-                  </button>
                 </div>
-              </>
-            )}
+                <div className="setup-page__complete-chat-row setup-page__complete-chat-row--persona">
+                  <p className="setup-page__complete-bubble setup-page__complete-bubble--persona">
+                    그럼, 바닷바람이 참 좋았지.
+                  </p>
+                  <span className="setup-page__complete-chat-flower" aria-hidden="true">
+                    <SetupIcon name="flower" />
+                  </span>
+                </div>
+                <p className="setup-page__complete-chat-helper">
+                  이제 {savedPersonaName}와 함께 소중한 이야기를 나눠보세요.
+                </p>
+              </section>
+
+              <div className="setup-page__complete-actions">
+                <button className="setup-page__complete-primary-button" type="button" onClick={() => { window.location.href = '/chat' }}>
+                  <SetupIcon name="sparkle" />
+                  대화 시작하기
+                </button>
+                <button className="setup-page__complete-secondary-button" type="button" onClick={() => { window.location.href = '/home' }}>
+                  <SetupIcon name="home" />
+                  홈으로 가기
+                </button>
+              </div>
+            </div>
           </div>
         )}
       </section>

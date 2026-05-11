@@ -1,11 +1,24 @@
-import { useState, type ChangeEvent, type FormEvent } from 'react'
+import { useEffect, useState, type ChangeEvent, type FormEvent } from 'react'
 import { REMORY_PERSONA_ID_KEY, REMORY_TARGET_ID_KEY } from '../services/personaSession'
 import { targetApi } from '../services/targetApi'
+import type { ApiId } from '../types/api'
 import './SetupPage.css'
 
 type SetupStep = 1 | 2 | 3 | 4 | 5
 type ConsentKey = 'privacy' | 'photo' | 'voice' | 'persona'
-type SetupIconName = 'image' | 'mic' | 'chat' | 'check' | 'sparkle' | 'upload' | 'arrow'
+type SetupIconName =
+  | 'arrow'
+  | 'back'
+  | 'chat'
+  | 'check'
+  | 'chevron'
+  | 'heart'
+  | 'image'
+  | 'mic'
+  | 'note'
+  | 'play'
+  | 'sparkle'
+  | 'upload'
 
 type PersonaDraft = {
   name: string
@@ -19,7 +32,13 @@ type QuickChoice = PersonaDraft & {
 
 const TOTAL_STEPS = 5
 const SETUP_COMPLETED_KEY = 'remory_setup_completed'
+const SETUP_MEMORY_NOTES_KEY = 'remory_setup_memory_notes'
 const SETUP_SKIPPED_KEY = 'remory_setup_skipped'
+const defaultPhotoPreviewPaths = [
+  '/images/setup/setup-photo-1.png',
+  '/images/setup/setup-photo-2.png',
+  '/images/setup/setup-photo-3.png',
+]
 
 const quickChoices: QuickChoice[] = [
   {
@@ -69,6 +88,12 @@ const consentItems: Array<{ key: ConsentKey; label: string }> = [
 
 function SetupIcon({ name, className }: { name: SetupIconName; className?: string }) {
   switch (name) {
+    case 'back':
+      return (
+        <svg className={className} viewBox="0 0 32 32" fill="none" aria-hidden="true">
+          <path d="M20.8 6.8 11.6 16l9.2 9.2M12 16h14" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      )
     case 'image':
       return (
         <svg className={className} viewBox="0 0 32 32" fill="none" aria-hidden="true">
@@ -91,6 +116,19 @@ function SetupIcon({ name, className }: { name: SetupIconName; className?: strin
           <path d="M11.1 16.9h.02M16 16.9h.02M20.9 16.9h.02" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
         </svg>
       )
+    case 'note':
+      return (
+        <svg className={className} viewBox="0 0 32 32" fill="none" aria-hidden="true">
+          <path d="M9 5.8h11.3L25 10.5v15.7H9V5.8Z" stroke="currentColor" strokeWidth="2.2" strokeLinejoin="round" />
+          <path d="M20.2 6.2v4.7h4.4M12.5 14.5h7.2M12.5 18.8h6.1M12.5 23h3.8" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      )
+    case 'heart':
+      return (
+        <svg className={className} viewBox="0 0 32 32" fill="none" aria-hidden="true">
+          <path d="M16 27s-9.4-5.7-11.4-12.2C3.3 10.6 5.7 7 9.7 7c2.4 0 4.4 1.3 5.4 3.1C16.1 8.3 18.1 7 20.5 7c4 0 6.4 3.6 5.1 7.8C23.6 21.3 16 27 16 27Z" fill="currentColor" />
+        </svg>
+      )
     case 'check':
       return (
         <svg className={className} viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -111,6 +149,18 @@ function SetupIcon({ name, className }: { name: SetupIconName; className?: strin
           <path d="M7.2 19.8v4.7A2.5 2.5 0 0 0 9.7 27h12.6a2.5 2.5 0 0 0 2.5-2.5v-4.7" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" />
         </svg>
       )
+    case 'play':
+      return (
+        <svg className={className} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="m9 7 8 5-8 5V7Z" fill="currentColor" />
+        </svg>
+      )
+    case 'chevron':
+      return (
+        <svg className={className} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="m9 5 7 7-7 7" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      )
     case 'arrow':
       return (
         <svg className={className} viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -120,20 +170,40 @@ function SetupIcon({ name, className }: { name: SetupIconName; className?: strin
   }
 }
 
-function StepProgress({ step }: { step: SetupStep }) {
+function StepProgress({ onBack, step }: { onBack?: () => void; step: SetupStep }) {
   return (
-    <div className="setup-page__progress" aria-label={`초기 설정 ${step}단계, 총 ${TOTAL_STEPS}단계`}>
-      <p className="setup-page__step-count">
-        <span>{step}</span>
-        <em> / {TOTAL_STEPS}</em>
-      </p>
-      <div className="setup-page__dots" aria-hidden="true">
-        {Array.from({ length: TOTAL_STEPS }, (_, index) => (
-          <span
-            className={`setup-page__dot${index + 1 === step ? ' setup-page__dot--active' : ''}`}
-            key={`setup-step-dot-${index + 1}`}
-          />
-        ))}
+    <div
+      className={`setup-page__progress${onBack ? ' setup-page__progress--with-back' : ''}`}
+      aria-label={step === 4 ? '초기 설정 4단계 중 4단계' : `초기 설정 ${TOTAL_STEPS}단계 중 ${step}단계`}
+    >
+      {onBack && (
+        <button className="setup-page__back-button" type="button" aria-label="이전 단계로 돌아가기" onClick={onBack}>
+          <SetupIcon name="back" />
+        </button>
+      )}
+      <div className="setup-page__step-area">
+        <p className="setup-page__step-count">
+          <span>{step}</span>
+          <em> / {TOTAL_STEPS}</em>
+        </p>
+        <div className="setup-page__dots" aria-hidden="true">
+          {Array.from({ length: TOTAL_STEPS }, (_, index) => {
+            const dotStep = index + 1
+
+            return (
+              <span
+                className={[
+                  'setup-page__dot',
+                  dotStep <= step ? 'setup-page__dot--active' : '',
+                  dotStep === step ? 'setup-page__dot--current' : '',
+                ]
+                  .filter(Boolean)
+                  .join(' ')}
+                key={`setup-step-dot-${dotStep}`}
+              />
+            )
+          })}
+        </div>
       </div>
     </div>
   )
@@ -153,8 +223,13 @@ function SetupPage() {
     relationship: 'parent',
     description: '따뜻한 조언을 해주는 분',
   })
-  const [photoFile, setPhotoFile] = useState<File | null>(null)
-  const [voiceFile, setVoiceFile] = useState<File | null>(null)
+  const [targetId, setTargetId] = useState<ApiId | null>(() => window.localStorage.getItem(REMORY_TARGET_ID_KEY))
+  const [selectedPhotoFiles, setSelectedPhotoFiles] = useState<File[]>([])
+  const [selectedVoiceFile, setSelectedVoiceFile] = useState<File | null>(null)
+  const [memoryNotes, setMemoryNotes] = useState<string[]>([])
+  const [memoryNoteInput, setMemoryNoteInput] = useState('')
+  const [photoPreviewUrls, setPhotoPreviewUrls] = useState<string[]>([])
+  const [failedDefaultPhotoIndexes, setFailedDefaultPhotoIndexes] = useState<Set<number>>(() => new Set())
   const [errorMessage, setErrorMessage] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isComplete, setIsComplete] = useState(false)
@@ -163,6 +238,18 @@ function SetupPage() {
   const personaName = personaDraft.name.trim() || '엄마'
   const personaRelationship = personaDraft.relationship.trim() || 'parent'
   const personaDescription = personaDraft.description.trim() || '따뜻한 조언을 해주는 분'
+  const memoryNoteCount = memoryNotes.length
+  const memoryTypesAdded = [
+    selectedPhotoFiles.length > 0,
+    selectedVoiceFile !== null,
+    memoryNoteCount > 0,
+  ].filter(Boolean).length
+
+  useEffect(() => {
+    return () => {
+      photoPreviewUrls.forEach((url) => URL.revokeObjectURL(url))
+    }
+  }, [photoPreviewUrls])
 
   const handleSkipSetup = () => {
     window.localStorage.setItem(SETUP_SKIPPED_KEY, 'true')
@@ -203,11 +290,35 @@ function SetupPage() {
   }
 
   const handlePhotoChange = (event: ChangeEvent<HTMLInputElement>) => {
-    setPhotoFile(event.target.files?.[0] ?? null)
+    const nextPhotoFiles = Array.from(event.target.files ?? [])
+
+    setSelectedPhotoFiles(nextPhotoFiles)
+    setPhotoPreviewUrls(nextPhotoFiles.slice(0, 3).map((file) => URL.createObjectURL(file)))
+    event.target.value = ''
   }
 
   const handleVoiceChange = (event: ChangeEvent<HTMLInputElement>) => {
-    setVoiceFile(event.target.files?.[0] ?? null)
+    setSelectedVoiceFile(event.target.files?.[0] ?? null)
+    event.target.value = ''
+  }
+
+  const handleDefaultPhotoError = (index: number) => {
+    setFailedDefaultPhotoIndexes((current) => {
+      const next = new Set(current)
+      next.add(index)
+      return next
+    })
+  }
+
+  const handleAddMemoryNote = () => {
+    const nextNote = memoryNoteInput.trim()
+
+    if (!nextNote) {
+      return
+    }
+
+    setMemoryNotes((current) => [...current, nextNote])
+    setMemoryNoteInput('')
   }
 
   const handlePersonaSubmit = (event: FormEvent<HTMLFormElement>) => {
@@ -215,7 +326,24 @@ function SetupPage() {
     setStep(4)
   }
 
-  const handleCreatePersona = async () => {
+  const ensureTargetId = async () => {
+    if (targetId !== null) {
+      return targetId
+    }
+
+    const target = await targetApi.createTarget({
+      name: personaName,
+      description: personaDescription,
+      target_type: personaRelationship,
+    })
+
+    setTargetId(target.id)
+    window.localStorage.setItem(REMORY_TARGET_ID_KEY, String(target.id))
+
+    return target.id
+  }
+
+  const handleCreatePersona = async (skipMediaUpload = false) => {
     if (isSubmitting) {
       return
     }
@@ -224,29 +352,28 @@ function SetupPage() {
     setIsSubmitting(true)
 
     try {
-      const target = await targetApi.createTarget({
-        name: personaName,
-        description: personaDescription,
-        target_type: personaRelationship,
-      })
+      const nextTargetId = await ensureTargetId()
 
-      window.localStorage.setItem(REMORY_TARGET_ID_KEY, String(target.id))
-
-      if (photoFile) {
-        await targetApi.uploadTargetMedia(target.id, 'image', photoFile)
+      if (memoryNotes.length > 0) {
+        window.localStorage.setItem(SETUP_MEMORY_NOTES_KEY, JSON.stringify(memoryNotes))
       }
 
-      if (voiceFile) {
-        await targetApi.uploadTargetMedia(target.id, 'voice', voiceFile)
+      if (!skipMediaUpload) {
+        await Promise.all(selectedPhotoFiles.map((file) => targetApi.uploadTargetMedia(nextTargetId, 'image', file)))
+
+        if (selectedVoiceFile) {
+          await targetApi.uploadTargetMedia(nextTargetId, 'voice', selectedVoiceFile)
+        }
       }
 
-      const persona = await targetApi.createPersona(target.id)
+      const persona = await targetApi.createPersona(nextTargetId)
 
       window.localStorage.setItem(REMORY_PERSONA_ID_KEY, String(persona.id))
       window.localStorage.setItem(SETUP_COMPLETED_KEY, 'true')
       setIsComplete(true)
+      setStep(5)
     } catch {
-      setErrorMessage('초기 설정 저장에 실패했습니다. 백엔드 서버 연결을 확인해주세요.')
+      setErrorMessage('기억 데이터를 저장하지 못했습니다. 백엔드 서버 연결을 확인해주세요.')
     } finally {
       setIsSubmitting(false)
     }
@@ -255,7 +382,7 @@ function SetupPage() {
   return (
     <main className="setup-page">
       <section className="setup-page__container" aria-label="리메모리 초기 설정">
-        <StepProgress step={step} />
+        <StepProgress step={step} onBack={step === 4 ? () => setStep(3) : undefined} />
 
         {step === 1 && (
           <div className="setup-page__step setup-page__step--welcome">
@@ -434,69 +561,214 @@ function SetupPage() {
         )}
 
         {step === 4 && (
-          <div className="setup-page__step">
-            <h1 className="setup-page__title setup-page__title--compact">사진이나 음성을 추가해보세요</h1>
-            <p className="setup-page__description setup-page__description--compact">
-              사진과 음성을 추가하면 AI가 말투와 기억의 맥락을 더 잘 이해할 수 있어요.
-            </p>
+          <div className="setup-page__step setup-page__step--memory">
+            <div className="setup-page__memory-heading">
+              <h1 className="setup-page__memory-title">
+                기억을 채워주세요
+                <span className="setup-page__tiny-heart" aria-hidden="true">♥</span>
+              </h1>
+              <p className="setup-page__memory-description">
+                사진, 음성, 설명을 추가하면
+                <br />
+                AI 페르소나가 더 생생하게 기억할 수 있어요.
+              </p>
+            </div>
 
-            <div className="setup-page__upload-grid">
-              <div className="setup-page__upload-field">
+            <div className="setup-page__memory-stack">
+              <div className="setup-page__memory-field">
                 <input
                   className="setup-page__file-input"
                   id="setup-photo-file"
                   type="file"
                   accept="image/*"
+                  multiple
+                  aria-label="사진 파일 선택"
                   onChange={handlePhotoChange}
                 />
-                <label className="setup-page__upload-card" htmlFor="setup-photo-file">
-                  <span className="setup-page__upload-icon setup-page__upload-icon--image">
+                <label className="setup-page__memory-card" htmlFor="setup-photo-file">
+                  <span className="setup-page__memory-card-icon">
                     <SetupIcon name="image" />
                   </span>
-                  <span className="setup-page__upload-copy">
-                    <strong>사진 업로드</strong>
-                    <small>{photoFile ? photoFile.name : '사진 파일을 선택해주세요.'}</small>
+                  <span className="setup-page__memory-card-content">
+                    <strong>사진 추가</strong>
+                    <small>
+                      소중한 순간을 사진으로
+                      <br />
+                      남겨주세요.
+                    </small>
+                    <em className="setup-page__memory-count">{selectedPhotoFiles.length}장 추가됨</em>
                   </span>
-                  <SetupIcon name="upload" />
+                  <span className="setup-page__memory-card-preview">
+                    <span className="setup-page__photo-preview-list" aria-hidden="true">
+                      {photoPreviewUrls.length > 0
+                        ? photoPreviewUrls.map((url, index) => (
+                            <span className="setup-page__photo-preview" key={url}>
+                              <img src={url} alt="" />
+                              {selectedPhotoFiles.length > 3 && index === 2 && (
+                                <span className="setup-page__photo-overflow">+{selectedPhotoFiles.length - 3}</span>
+                              )}
+                            </span>
+                          ))
+                        : defaultPhotoPreviewPaths.map((path, index) => (
+                            <span className="setup-page__photo-preview setup-page__photo-preview--placeholder" key={path}>
+                              {failedDefaultPhotoIndexes.has(index) ? (
+                                <span />
+                              ) : (
+                                <img src={path} alt="" onError={() => handleDefaultPhotoError(index)} />
+                              )}
+                            </span>
+                          ))}
+                    </span>
+                  </span>
+                  <SetupIcon name="chevron" className="setup-page__memory-chevron" />
                 </label>
               </div>
 
-              <div className="setup-page__upload-field">
+              <div className="setup-page__memory-field">
                 <input
                   className="setup-page__file-input"
                   id="setup-voice-file"
                   type="file"
                   accept="audio/*"
+                  aria-label="음성 파일 선택"
                   onChange={handleVoiceChange}
                 />
-                <label className="setup-page__upload-card" htmlFor="setup-voice-file">
-                  <span className="setup-page__upload-icon setup-page__upload-icon--voice">
+                <label className="setup-page__memory-card" htmlFor="setup-voice-file">
+                  <span className="setup-page__memory-card-icon setup-page__memory-card-icon--lavender">
                     <SetupIcon name="mic" />
                   </span>
-                  <span className="setup-page__upload-copy">
-                    <strong>음성 업로드</strong>
-                    <small>{voiceFile ? voiceFile.name : '음성 파일을 선택해주세요.'}</small>
+                  <span className="setup-page__memory-card-content">
+                    <strong>음성 추가</strong>
+                    <small>
+                      목소리를 녹음하면 더
+                      <br />
+                      자연스럽게 대화할 수 있어요.
+                    </small>
+                    <em className="setup-page__memory-count">{selectedVoiceFile ? 1 : 0}개 추가됨</em>
                   </span>
-                  <SetupIcon name="upload" />
+                  <span className="setup-page__memory-card-preview">
+                    <span className="setup-page__audio-preview" aria-hidden="true">
+                      <span className="setup-page__play-button">
+                        <SetupIcon name="play" />
+                      </span>
+                      <span className="setup-page__waveform">
+                        {Array.from({ length: 9 }, (_, index) => (
+                          <i key={`setup-wave-${index}`} />
+                        ))}
+                      </span>
+                      <span>00:28</span>
+                    </span>
+                    {selectedVoiceFile && <span className="setup-page__audio-file-name">{selectedVoiceFile.name}</span>}
+                  </span>
+                  <SetupIcon name="chevron" className="setup-page__memory-chevron" />
                 </label>
+              </div>
+
+              <article className="setup-page__memory-card setup-page__memory-card--note">
+                <span className="setup-page__memory-card-icon">
+                  <SetupIcon name="note" />
+                </span>
+                <span className="setup-page__memory-card-content">
+                  <strong>설명 추가</strong>
+                  <small>
+                    기억하고 싶은 이야기를
+                    <br />
+                    적어주세요.
+                  </small>
+                  <em className="setup-page__memory-count">{memoryNoteCount}개 추가됨</em>
+                </span>
+                <span className="setup-page__memory-card-preview">
+                  <span className="setup-page__note-preview">
+                    {memoryNotes[0] ?? (
+                      <>
+                        제주도 여행을 정말 좋아해요.
+                        <br />
+                        바닷바람과 성산일출봉을
+                        <br />
+                        특히 기억해요.
+                      </>
+                    )}
+                  </span>
+                </span>
+                <SetupIcon name="chevron" className="setup-page__memory-chevron" />
+                <div className="setup-page__note-editor">
+                  <label className="setup-page__sr-only" htmlFor="setup-memory-note">기억 설명 입력</label>
+                  <textarea
+                    className="setup-page__note-input"
+                    id="setup-memory-note"
+                    value={memoryNoteInput}
+                    rows={3}
+                    placeholder="예: 매년 봄이면 꽃구경 가는 걸 좋아했어요."
+                    onChange={(event) => setMemoryNoteInput(event.target.value)}
+                  />
+                  <button
+                    className="setup-page__note-add-button"
+                    type="button"
+                    disabled={memoryNoteInput.trim().length === 0}
+                    onClick={handleAddMemoryNote}
+                  >
+                    설명 추가
+                  </button>
+                </div>
+              </article>
+            </div>
+
+            <div className="setup-page__memory-tip">
+              <span>
+                <SetupIcon name="sparkle" />
+              </span>
+              <p>
+                3가지 중 <strong>2가지</strong>를 추가하면 더 자연스러운 대화가 가능해요.
+                <small>현재 {memoryTypesAdded}가지가 추가됐어요.</small>
+              </p>
+            </div>
+
+            <div className="setup-page__memory-summary">
+              <span className="setup-page__memory-summary-heart">
+                <SetupIcon name="heart" />
+              </span>
+              <div className="setup-page__memory-summary-copy">
+                <h2>지금까지 추가된 기억</h2>
+                <div>
+                  <span>
+                    <SetupIcon name="image" />
+                    사진 {selectedPhotoFiles.length}장
+                  </span>
+                  <span>
+                    <SetupIcon name="mic" />
+                    음성 {selectedVoiceFile ? 1 : 0}개
+                  </span>
+                  <span>
+                    <SetupIcon name="note" />
+                    설명 {memoryNoteCount}개
+                  </span>
+                </div>
               </div>
             </div>
 
-            <div className="setup-page__split-actions">
+            {errorMessage && (
+              <p className="setup-page__error" role="alert">
+                {errorMessage}
+              </p>
+            )}
+
+            <div className="setup-page__memory-actions">
               <button
-                className="setup-page__secondary-action-button"
+                className="setup-page__create-button"
                 type="button"
-                onClick={() => {
-                  setPhotoFile(null)
-                  setVoiceFile(null)
-                  setStep(5)
-                }}
+                disabled={isSubmitting}
+                onClick={() => void handleCreatePersona(false)}
               >
-                건너뛰기
+                <SetupIcon name="sparkle" />
+                {isSubmitting ? '페르소나 생성 중...' : '페르소나 생성하기'}
               </button>
-              <button className="setup-page__primary-button" type="button" onClick={() => setStep(5)}>
-                다음
-                <SetupIcon name="arrow" />
+              <button
+                className="setup-page__skip-button"
+                type="button"
+                disabled={isSubmitting}
+                onClick={() => void handleCreatePersona(true)}
+              >
+                나중에 추가할게요
               </button>
             </div>
           </div>
@@ -545,11 +817,15 @@ function SetupPage() {
                     </div>
                     <div>
                       <dt>사진 추가 여부</dt>
-                      <dd>{photoFile ? '추가됨' : '없음'}</dd>
+                      <dd>{selectedPhotoFiles.length > 0 ? `${selectedPhotoFiles.length}장 추가됨` : '없음'}</dd>
                     </div>
                     <div>
                       <dt>음성 추가 여부</dt>
-                      <dd>{voiceFile ? '추가됨' : '없음'}</dd>
+                      <dd>{selectedVoiceFile ? '1개 추가됨' : '없음'}</dd>
+                    </div>
+                    <div>
+                      <dt>설명 추가 여부</dt>
+                      <dd>{memoryNoteCount > 0 ? `${memoryNoteCount}개 추가됨` : '없음'}</dd>
                     </div>
                   </dl>
                 </div>
@@ -565,7 +841,7 @@ function SetupPage() {
                     className="setup-page__primary-button"
                     type="button"
                     disabled={isSubmitting}
-                    onClick={handleCreatePersona}
+                    onClick={() => void handleCreatePersona(false)}
                   >
                     <SetupIcon name="sparkle" />
                     {isSubmitting ? '저장 중...' : '페르소나 만들기'}

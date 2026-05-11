@@ -1,9 +1,25 @@
 import { useState, type FormEvent } from 'react'
 import { ApiError } from '../lib/apiClient'
 import { authApi } from '../services/authApi'
+import { targetApi } from '../services/targetApi'
 import './AuthPage.css'
 
 type AuthTab = 'signup' | 'login'
+
+async function redirectAfterAuth() {
+  try {
+    const targets = await targetApi.listTargets()
+
+    if (targets.items.length === 0) {
+      window.location.href = '/setup'
+      return
+    }
+
+    window.location.href = '/home'
+  } catch {
+    window.location.href = '/setup'
+  }
+}
 
 function BackIcon() {
   return (
@@ -115,7 +131,7 @@ function AuthPage() {
         })
       }
 
-      window.location.href = '/home'
+      await redirectAfterAuth()
     } catch (error) {
       const message = error instanceof ApiError ? error.message : '인증 요청에 실패했습니다.'
       setErrorMessage(message)

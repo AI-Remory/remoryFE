@@ -5,6 +5,7 @@ import HomePage from './pages/HomePage'
 import LandingPage from './pages/LandingPage'
 import MyPage from './pages/MyPage'
 import ProfilePage from './pages/ProfilePage'
+import SetupPage from './pages/SetupPage'
 import StorybookPage from './pages/StorybookPage'
 import './App.css'
 
@@ -21,6 +22,10 @@ function App() {
 
   if (pathname.startsWith('/auth')) {
     return <AuthPage />
+  }
+
+  if (pathname.startsWith('/setup')) {
+    return <SetupPage />
   }
 
   if (pathname.startsWith('/home')) {

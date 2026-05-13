@@ -1,61 +1,50 @@
 import { useState, type FormEvent } from 'react'
-import { ApiError } from '../services/apiClient'
 import { useAuth } from '../hooks/useAuth'
+import { ApiError } from '../services/apiClient'
 import './AuthPage.css'
 
 type AuthTab = 'signup' | 'login'
 
 function BackIcon() {
   return (
-    <svg width="28" height="28" viewBox="0 0 28 28" fill="none" aria-hidden="true">
-      <path d="M17.5 5.25 8.75 14l8.75 8.75" stroke="currentColor" strokeWidth="2.8" strokeLinecap="round" />
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M15 5 8 12l7 7" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   )
 }
 
 function UserIcon() {
   return (
-    <svg width="30" height="30" viewBox="0 0 30 30" fill="none" aria-hidden="true">
-      <circle cx="15" cy="9.25" r="5.1" stroke="currentColor" strokeWidth="2.2" />
-      <path
-        d="M5.5 25.25c.9-5.35 4.55-8.35 9.5-8.35s8.6 3 9.5 8.35"
-        stroke="currentColor"
-        strokeWidth="2.2"
-        strokeLinecap="round"
-      />
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <circle cx="12" cy="8" r="4" stroke="currentColor" strokeWidth="1.9" />
+      <path d="M4.8 20c.8-4.4 3.4-6.7 7.2-6.7s6.4 2.3 7.2 6.7" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" />
     </svg>
   )
 }
 
 function MailIcon() {
   return (
-    <svg width="30" height="30" viewBox="0 0 30 30" fill="none" aria-hidden="true">
-      <rect x="4.75" y="7.25" width="20.5" height="15.5" rx="1.7" stroke="currentColor" strokeWidth="2.2" />
-      <path d="m5.7 8.25 9.3 7.55 9.3-7.55" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <rect x="3.5" y="6" width="17" height="12" rx="2" stroke="currentColor" strokeWidth="1.9" />
+      <path d="m4.6 7.2 7.4 6 7.4-6" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" />
     </svg>
   )
 }
 
 function LockIcon() {
   return (
-    <svg width="30" height="30" viewBox="0 0 30 30" fill="none" aria-hidden="true">
-      <rect x="6.75" y="13.25" width="16.5" height="11" rx="2.1" stroke="currentColor" strokeWidth="2.2" />
-      <path d="M10 13.25V9.8a5 5 0 0 1 10 0v3.45" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
-      <path d="M15 17.75v2.75" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <rect x="5" y="11" width="14" height="9" rx="2" stroke="currentColor" strokeWidth="1.9" />
+      <path d="M8 11V8a4 4 0 0 1 8 0v3" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" />
     </svg>
   )
 }
 
 function EyeIcon() {
   return (
-    <svg width="31" height="31" viewBox="0 0 31 31" fill="none" aria-hidden="true">
-      <path
-        d="M3.9 15.5s4.2-7.05 11.6-7.05S27.1 15.5 27.1 15.5s-4.2 7.05-11.6 7.05S3.9 15.5 3.9 15.5Z"
-        stroke="currentColor"
-        strokeWidth="2.2"
-        strokeLinejoin="round"
-      />
-      <circle cx="15.5" cy="15.5" r="3.55" stroke="currentColor" strokeWidth="2.2" />
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M3.5 12s3.2-5.4 8.5-5.4 8.5 5.4 8.5 5.4-3.2 5.4-8.5 5.4S3.5 12 3.5 12Z" stroke="currentColor" strokeWidth="1.9" strokeLinejoin="round" />
+      <circle cx="12" cy="12" r="2.8" stroke="currentColor" strokeWidth="1.9" />
     </svg>
   )
 }
@@ -95,7 +84,7 @@ function AuthPage() {
       }
 
       if (!agreedToTerms) {
-        setErrorMessage('필수 약관에 동의해주세요.')
+        setErrorMessage('필수 약관에 동의해 주세요.')
         return
       }
     }
@@ -127,156 +116,149 @@ function AuthPage() {
 
   const handleSwitchTab = (tab: AuthTab) => {
     setActiveTab(tab)
+    setErrorMessage('')
   }
 
   const handleBottomAction = () => {
-    setActiveTab(isSignup ? 'login' : 'signup')
+    handleSwitchTab(isSignup ? 'login' : 'signup')
   }
 
   return (
     <main className="auth-page">
-      <section className="auth-container" aria-label="Remory authentication">
-        <button
-          className="auth-back-button"
-          type="button"
-          aria-label="이전 화면으로 돌아가기"
-          onClick={() => window.history.back()}
-        >
-          <BackIcon />
-        </button>
-
-        <h1 className="auth-logo-title">Remory</h1>
-
-        <div className="auth-tab-wrapper" role="tablist" aria-label="인증 방식 선택">
-          <button
-            className={`auth-tab-button${isSignup ? ' active' : ''}`}
-            type="button"
-            role="tab"
-            aria-selected={isSignup}
-            onClick={() => handleSwitchTab('signup')}
-          >
-            회원가입
+      <section className="auth-shell" aria-label="Remory 인증">
+        <aside className="auth-intro" aria-label="서비스 소개">
+          <button className="auth-back-button" type="button" aria-label="이전 화면으로 돌아가기" onClick={() => window.history.back()}>
+            <BackIcon />
           </button>
-          <button
-            className={`auth-tab-button${!isSignup ? ' active' : ''}`}
-            type="button"
-            role="tab"
-            aria-selected={!isSignup}
-            onClick={() => handleSwitchTab('login')}
-          >
-            로그인
-          </button>
-        </div>
+          <p className="auth-kicker">Remory</p>
+          <h1>소중한 기억을 안전하게 이어가세요.</h1>
+          <p>
+            로그인하면 기억 대상, 페르소나, 스토리북을 한 곳에서 관리할 수 있습니다. 회원가입 후에는 사용자가 직접
+            필요한 정보를 추가합니다.
+          </p>
+        </aside>
 
-        <form className="auth-form" onSubmit={handleSubmit}>
-          {isSignup && (
-            <label className="auth-input-box">
-              <span className="auth-input-icon">
-                <UserIcon />
-              </span>
-              <input
-                aria-label="이름"
-                type="text"
-                placeholder="이름"
-                value={name}
-                onChange={(event) => setName(event.target.value)}
-              />
-            </label>
-          )}
+        <section className="auth-card" aria-label={isSignup ? '회원가입' : '로그인'}>
+          <div className="auth-card__heading">
+            <p>계정</p>
+            <h2>{isSignup ? '회원가입' : '로그인'}</h2>
+          </div>
 
-          <label className="auth-input-box">
-            <span className="auth-input-icon">
-              <MailIcon />
-            </span>
-            <input
-              aria-label="이메일"
-              type="email"
-              placeholder="이메일"
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
-            />
-          </label>
-
-          <label className="auth-input-box">
-            <span className="auth-input-icon">
-              <LockIcon />
-            </span>
-            <input
-              aria-label="비밀번호"
-              type={showPassword ? 'text' : 'password'}
-              placeholder="비밀번호"
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-            />
+          <div className="auth-tab-wrapper" role="tablist" aria-label="인증 방식 선택">
             <button
-              className="auth-eye-button"
+              className={`auth-tab-button${isSignup ? ' active' : ''}`}
               type="button"
-              aria-label={showPassword ? '비밀번호 숨기기' : '비밀번호 보기'}
-              onClick={() => setShowPassword((current) => !current)}
+              role="tab"
+              aria-selected={isSignup}
+              onClick={() => handleSwitchTab('signup')}
             >
-              <EyeIcon />
+              회원가입
             </button>
-          </label>
+            <button
+              className={`auth-tab-button${!isSignup ? ' active' : ''}`}
+              type="button"
+              role="tab"
+              aria-selected={!isSignup}
+              onClick={() => handleSwitchTab('login')}
+            >
+              로그인
+            </button>
+          </div>
 
-          {isSignup && (
+          <form className="auth-form" onSubmit={handleSubmit}>
+            {isSignup && (
+              <label className="auth-input-box">
+                <span className="auth-input-label">이름</span>
+                <span className="auth-input-control">
+                  <UserIcon />
+                  <input type="text" placeholder="이름" value={name} onChange={(event) => setName(event.target.value)} required />
+                </span>
+              </label>
+            )}
+
             <label className="auth-input-box">
-              <span className="auth-input-icon">
-                <LockIcon />
+              <span className="auth-input-label">이메일</span>
+              <span className="auth-input-control">
+                <MailIcon />
+                <input type="email" placeholder="name@example.com" value={email} onChange={(event) => setEmail(event.target.value)} required />
               </span>
-              <input
-                aria-label="비밀번호 확인"
-                type={showPasswordConfirm ? 'text' : 'password'}
-                placeholder="비밀번호 확인"
-                value={passwordConfirm}
-                onChange={(event) => setPasswordConfirm(event.target.value)}
-              />
-              <button
-                className="auth-eye-button"
-                type="button"
-                aria-label={showPasswordConfirm ? '비밀번호 확인 숨기기' : '비밀번호 확인 보기'}
-                onClick={() => setShowPasswordConfirm((current) => !current)}
-              >
-                <EyeIcon />
-              </button>
             </label>
-          )}
 
-          {isSignup && (
-            <div className="auth-terms-row">
-              <button
-                className={`auth-check-circle${agreedToTerms ? ' checked' : ''}`}
-                type="button"
-                aria-label="개인정보 및 데이터 사용 동의"
-                aria-pressed={agreedToTerms}
-                onClick={() => setAgreedToTerms((current) => !current)}
-              >
-                <span />
-              </button>
-              <p className="auth-terms-text">개인정보 수집 및 이용, 음성 및 데이터 사용에 동의합니다. (필수)</p>
-              <button
-                className="auth-detail-button"
-                type="button"
-                disabled
-                title="약관 상세 화면은 API 연결 후 제공됩니다."
-              >
-                자세히 보기
-              </button>
+            <label className="auth-input-box">
+              <span className="auth-input-label">비밀번호</span>
+              <span className="auth-input-control">
+                <LockIcon />
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  placeholder="비밀번호"
+                  value={password}
+                  onChange={(event) => setPassword(event.target.value)}
+                  required
+                  minLength={isSignup ? 8 : undefined}
+                />
+                <button
+                  className="auth-eye-button"
+                  type="button"
+                  aria-label={showPassword ? '비밀번호 숨기기' : '비밀번호 보기'}
+                  onClick={() => setShowPassword((current) => !current)}
+                >
+                  <EyeIcon />
+                </button>
+              </span>
+            </label>
+
+            {isSignup && (
+              <label className="auth-input-box">
+                <span className="auth-input-label">비밀번호 확인</span>
+                <span className="auth-input-control">
+                  <LockIcon />
+                  <input
+                    type={showPasswordConfirm ? 'text' : 'password'}
+                    placeholder="비밀번호 확인"
+                    value={passwordConfirm}
+                    onChange={(event) => setPasswordConfirm(event.target.value)}
+                    required
+                    minLength={8}
+                  />
+                  <button
+                    className="auth-eye-button"
+                    type="button"
+                    aria-label={showPasswordConfirm ? '비밀번호 확인 숨기기' : '비밀번호 확인 보기'}
+                    onClick={() => setShowPasswordConfirm((current) => !current)}
+                  >
+                    <EyeIcon />
+                  </button>
+                </span>
+              </label>
+            )}
+
+            {isSignup && (
+              <label className="auth-terms-row">
+                <input type="checkbox" checked={agreedToTerms} onChange={(event) => setAgreedToTerms(event.target.checked)} />
+                <span>개인정보 수집 및 서비스 이용에 동의합니다. (필수)</span>
+              </label>
+            )}
+
+            <div className="auth-message-slot">
+              {errorMessage && (
+                <p className="auth-error-message" role="alert">
+                  {errorMessage}
+                </p>
+              )}
             </div>
-          )}
 
-          {errorMessage && <p className="auth-error-message" role="alert">{errorMessage}</p>}
+            <button className="auth-submit-button" type="submit" disabled={isSubmitting}>
+              {isSubmitting ? '처리 중...' : isSignup ? '회원가입 완료' : '로그인'}
+            </button>
+          </form>
 
-          <button className="auth-submit-button" type="submit" disabled={isSubmitting}>
-            {isSubmitting ? '처리 중...' : isSignup ? '회원가입 완료' : '로그인'}
-          </button>
-        </form>
-
-        <p className="auth-bottom-text">
-          {isSignup ? '이미 계정이 있나요?' : '아직 계정이 없나요?'}{' '}
-          <button className="auth-login-link" type="button" onClick={handleBottomAction}>
-            {isSignup ? '로그인' : '회원가입'}
-          </button>
-        </p>
+          <p className="auth-bottom-text">
+            {isSignup ? '이미 계정이 있나요?' : '아직 계정이 없나요?'}{' '}
+            <button className="auth-login-link" type="button" onClick={handleBottomAction}>
+              {isSignup ? '로그인' : '회원가입'}
+            </button>
+          </p>
+        </section>
       </section>
     </main>
   )

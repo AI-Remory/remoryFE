@@ -1,169 +1,81 @@
-# RemoryFE Agent Manual
+# Remory Frontend Agent Rules
 
-This file is the first operating manual for coding agents working in this repository. Read it before changing code.
+이 문서는 Codex/Agent가 `remory/frontend` 레포에서 작업할 때 지켜야 하는 규칙만 담습니다.
 
-## Project Overview
-
-RemoryFE is a React 19 + Vite frontend. The current repository is close to the default Vite React template and uses TypeScript as the active build path.
-
-Current active entry path:
-
-- `index.html`
-- `src/main.tsx`
-- `src/App.tsx`
-- `src/index.css`
-- `src/App.css`
-
-There are also JavaScript template files (`src/main.jsx`, `src/App.jsx`) and duplicate Vite config files (`vite.config.ts`, `vite.config.js`). Treat them as migration leftovers until the team decides whether to remove or consolidate them.
-
-## Main Folder Structure
-
-- `src/`: application source code.
-- `src/assets/`: current static assets imported by React components.
-- `public/`: static files served from the site root, such as `icons.svg` and `favicon.svg`.
-- `docs/agent-harness/`: agent-facing architecture, frontend, API, quality, security, and planning rules.
-- Root config files: Vite, TypeScript, ESLint, npm lockfile, and package metadata.
-
-Target structure for future incremental refactors:
+## 프로젝트 구조
 
 ```text
-src/
-  app/
-    App.tsx
-    router/
-  pages/
-  features/
-  components/
-  shared/
-    api/
-    hooks/
-    lib/
-    ui/
-    styles/
-    assets/
+remory/
+  backend/
+    docs/
+  frontend/
+    src/
+    docs/
 ```
 
-Do not force this layout in one large move. Introduce it gradually when a feature or refactor has a clear reason.
+주요 프론트 구조:
 
-## Commands
+- `src/routes.tsx`: route config
+- `src/navigation.ts`: desktop/mobile navigation config
+- `src/components/layout/`: AppShell, Header, navigation layout
+- `src/pages/`: route-level pages and domain re-export folders
+- `src/services/`: API client and domain service layer
+- `src/types/`: backend response/request 기반 TypeScript type
+- `src/hooks/`: auth, voice call 등 shared hooks
+- `src/utils/`: file URL 등 utility
 
-Install dependencies:
+## 작업 규칙
 
-```bash
-npm install
+1. API endpoint, request body, response body를 추측하지 않는다.
+2. 작업 전 `../backend/docs`, `docs/API_INTEGRATION.md`, `http://141.164.48.128:8000/openapi.json`을 확인한다.
+3. 실제 명세를 확인한 뒤 `type -> service -> page` 순서로 구현한다.
+4. 페이지 컴포넌트에서 직접 `fetch`를 쓰지 않는다.
+5. 모든 REST 요청은 `src/services/apiClient.ts`와 domain service를 통해 처리한다.
+6. API base URL은 `import.meta.env.VITE_API_BASE_URL`만 사용한다.
+7. WebSocket base URL은 `import.meta.env.VITE_WS_BASE_URL`만 사용한다.
+8. 코드에 `http://141.164.48.128:8000`을 하드코딩하지 않는다.
+9. 백엔드에 없는 프론트 기능, route, 자동 생성 flow를 새로 만들지 않는다.
+10. 모르는 필드나 endpoint는 임의로 만들지 말고 TODO와 확인 필요 메모를 남긴다.
+11. 작업 후 `npm run build`와 `npm run lint`를 실행한다.
+
+## API와 상태 관리
+
+- access token은 `localStorage`의 `remory_access_token`에 저장한다.
+- refresh token은 실제 응답에 있을 때만 `remory_refresh_token`에 저장한다.
+- FormData 요청은 `Content-Type`을 직접 지정하지 않는다.
+- JSON 요청은 service/apiClient에서 `Content-Type: application/json`을 붙인다.
+- 204 응답과 JSON이 아닌 응답을 안전하게 처리한다.
+- 서버 error의 `detail` 또는 `message`를 UI에 표시할 수 있게 `ApiError`로 전달한다.
+
+## 디자인과 접근성
+
+- 기존 Remory의 따뜻한 기억 플랫폼 톤을 유지하되, 과한 브라운/세피아 톤은 피한다.
+- 본문 폰트는 16px 이상을 유지한다.
+- 버튼과 주요 터치 타깃은 최소 44px 높이를 유지한다.
+- `focus-visible` 스타일을 제거하지 않는다.
+- 색상만으로 상태를 구분하지 않는다. badge text, label, helper/error text를 함께 사용한다.
+- input에는 label을 연결하고 loading, empty, error state를 명확히 제공한다.
+- 모바일은 bottom nav, 태블릿/데스크톱은 sidebar 또는 넓은 card layout을 기준으로 한다.
+
+## Git과 커밋 메시지
+
+- 사용자가 만들었을 수 있는 변경을 임의로 되돌리지 않는다.
+- `git reset --hard`, `git checkout --` 같은 파괴적 명령은 명시 요청 없이는 사용하지 않는다.
+- 커밋을 요청받으면 작업 범위를 작게 유지하고, 메시지는 다음 형식을 권장한다.
+
+```text
+type(scope): summary
 ```
 
-Run local development server:
+예시:
 
-```bash
-npm run dev
-```
+- `docs(frontend): consolidate project guides`
+- `fix(auth): preserve server error detail`
+- `feat(target): connect media upload flow`
 
-Build production bundle:
+## 완료 기준
 
-```bash
-npm run build
-```
-
-Run lint:
-
-```bash
-npm run lint
-```
-
-Preview production build:
-
-```bash
-npm run preview
-```
-
-Test command:
-
-- No test script is configured yet.
-- Do not add a full test framework only for a small documentation or harness change.
-- When behavior grows beyond the template app, add a focused test plan before introducing test tooling.
-
-## Code Rules
-
-- Preserve existing UI behavior unless the task explicitly asks for a change.
-- Prefer small, reviewable patches over broad rewrites.
-- Use TypeScript for new React source files.
-- Keep component logic readable; move repeated or bulky logic into hooks or utilities.
-- Avoid adding dependencies unless the benefit is clear and the same goal cannot be met with the current stack.
-- Keep imports local and explicit. Avoid hidden global behavior.
-- Do not leave unexplained `console.log` statements in committed code.
-
-## Component Rules
-
-- `pages` should represent route-level screens.
-- `features` should hold feature-specific components, hooks, and logic.
-- `components` should hold reusable app-level components.
-- `shared/ui` should hold reusable presentational UI primitives.
-- Components should receive data through props when possible.
-- Components that render UI should not own unrelated API concerns.
-- Loading, empty, and error states should be explicit when data fetching is introduced.
-
-## API Rules
-
-- Do not scatter `fetch` or `axios` calls directly through JSX components.
-- Put shared API clients and request helpers under `src/shared/api`.
-- Put feature-specific API functions under the relevant `src/features/<feature>/api` folder when they are not reused elsewhere.
-- Read backend base URLs from Vite environment variables such as `import.meta.env.VITE_API_BASE_URL`.
-- Never expose secrets in frontend environment variables. Only variables prefixed with `VITE_` are exposed to browser code.
-- Normalize API errors close to the request layer so UI code receives predictable shapes.
-
-## Styling Rules
-
-- Keep global design tokens and reset-like styles in `src/index.css` or future `src/shared/styles`.
-- Keep component-specific styles close to the component while the app is small.
-- Avoid global selectors that unexpectedly affect future pages or shared UI.
-- Preserve responsive behavior when editing layout styles.
-- Do not introduce one-off visual systems when existing variables and conventions are enough.
-
-## Naming Rules
-
-- React components: `PascalCase.tsx`.
-- Hooks: `useThing.ts`.
-- Utilities: `camelCase.ts`.
-- CSS files: match the owning component or use clear shared names.
-- Route/page components: `PascalCase.tsx` under `src/pages` when routing exists.
-- Folders: lowercase or kebab-case; keep names domain-focused.
-
-## Areas Agents Should Not Modify Casually
-
-- `package-lock.json`: modify only when dependencies actually change.
-- `node_modules/`: never edit.
-- Generated build output such as `dist/`: never edit manually.
-- `.env` files and secrets: do not create real secret values or commit them.
-- Template duplicate files (`src/App.jsx`, `src/main.jsx`, `vite.config.js`): do not remove them without a dedicated cleanup task and build verification.
-- README conflict markers: currently present; fix only in a focused cleanup or documentation task.
-
-## Dependency Direction
-
-- `pages` may import from `features`, `components`, and `shared`.
-- `features` may import from `shared`.
-- `components` may import from `shared`.
-- `shared` must not import from `pages`, `features`, or app-specific components.
-- API code should live in `shared/api` or feature-local API modules, not inside JSX-heavy components.
-- Business logic should live in hooks or utilities when it becomes longer than a small inline expression.
-
-## Completion Criteria
-
-Before finishing a task, confirm:
-
-- Whether `npm install` was needed.
-- `npm run build` passes, unless blocked and documented.
-- `npm run lint` passes, unless blocked and documented.
-- Main screens still render or the limitation is documented.
-- Changed files and reasons are summarized.
-- Any remaining TODOs or risks are documented.
-
-## PR or Commit Checklist
-
-- [ ] Scope is small and tied to the requested task.
-- [ ] Existing behavior is preserved or intentional changes are documented.
-- [ ] `npm run build` was run.
-- [ ] `npm run lint` was run when available.
-- [ ] New dependencies are justified.
-- [ ] API or environment changes are documented.
-- [ ] Large refactors have a plan, rollback path, and validation notes.
+- 변경 이유와 파일을 요약한다.
+- `npm run build` 통과 여부를 보고한다.
+- `npm run lint` 통과 여부를 보고한다.
+- 실행하지 못한 검증이나 남은 위험이 있으면 명확히 적는다.

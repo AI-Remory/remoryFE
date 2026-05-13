@@ -10,8 +10,8 @@ function LandingPage() {
   }
 
   return (
-    <main className="remory-onboarding-page" aria-label="Remory onboarding">
-      <section className="remory-onboarding-screen" aria-label="Remory first onboarding screen">
+    <main className="remory-onboarding-page" aria-label="Remory 온보딩">
+      <section className="remory-onboarding-screen" aria-label="Remory 첫 온보딩 화면">
         <header className="remory-onboarding-header">
           <div className="remory-onboarding-brand" aria-label="Remory">
             <span className="remory-onboarding-logo" aria-hidden="true">

@@ -34,7 +34,7 @@ function DashboardActionCard({
 }) {
   return (
     <a className={`dashboard-action-card dashboard-action-card--${status}`} href={href}>
-      <span>{status === 'ready' ? 'Ready' : status === 'next' ? 'Next' : 'Needs setup'}</span>
+      <span>{status === 'ready' ? '준비됨' : status === 'next' ? '다음 단계' : '준비 필요'}</span>
       <strong>{title}</strong>
       <p>{description}</p>
     </a>
@@ -55,18 +55,18 @@ function PersonaGateChecklist({
   const approvedVerification = verifications.some((verification) => verification.status === 'APPROVED')
 
   const items = [
-    { label: 'Create a Target', done: hasTarget, href: '/targets/new' },
-    { label: 'Record consent', done: hasConsent, href: target ? `/compliance/consent?target_id=${target.id}` : '/compliance/consent' },
-    { label: 'Submit verification', done: approvedVerification, href: target ? `/compliance/verification?target_id=${target.id}` : '/compliance/verification' },
-    { label: 'Upload photo or voice media', done: Boolean(target?.profile_image_path), href: target ? `/targets/media?target_id=${target.id}` : '/targets/media' },
-    { label: 'Create Persona', done: false, href: target ? `/personas?target_id=${target.id}` : '/personas' },
+    { label: '기억 대상 만들기', done: hasTarget, href: '/targets/new' },
+    { label: '동의 기록하기', done: hasConsent, href: target ? `/compliance/consent?target_id=${target.id}` : '/compliance/consent' },
+    { label: '관계 입증 제출하기', done: approvedVerification, href: target ? `/compliance/verification?target_id=${target.id}` : '/compliance/verification' },
+    { label: '사진 또는 음성 업로드하기', done: Boolean(target?.profile_image_path), href: target ? `/targets/media?target_id=${target.id}` : '/targets/media' },
+    { label: '페르소나 만들기', done: false, href: target ? `/personas?target_id=${target.id}` : '/personas' },
   ]
 
   return (
-    <section className="dashboard-panel" aria-label="Persona creation checklist">
+    <section className="dashboard-panel" aria-label="페르소나 생성 체크리스트">
       <div className="dashboard-panel__heading">
-        <span>Persona gate</span>
-        <h2>Steps before a Persona is ready</h2>
+        <span>페르소나 준비</span>
+        <h2>페르소나 생성 전 필요한 단계</h2>
       </div>
       <div className="dashboard-checklist">
         {items.map((item) => (
@@ -114,7 +114,7 @@ function HomePage() {
         if (!ignore) {
           setState((current) => ({
             ...current,
-            error: error instanceof Error ? error.message : 'Dashboard data could not be loaded.',
+            error: error instanceof Error ? error.message : '대시보드 데이터를 불러오지 못했습니다.',
           }))
         }
       }
@@ -132,8 +132,8 @@ function HomePage() {
     if (!latestTarget) {
       return [
         {
-          title: 'Add your first person',
-          description: 'Create a Target before verification, consent, media, Persona, and memories can be connected.',
+          title: '첫 기억 대상 추가',
+          description: '입증, 동의, 미디어, 페르소나, 기억 자료를 연결하려면 먼저 기억 대상을 만들어야 합니다.',
           href: '/targets/new',
           status: 'next' as const,
         },
@@ -142,20 +142,20 @@ function HomePage() {
 
     return [
       {
-        title: 'Review verification and consent',
-        description: 'Check the trust requirements needed before Persona creation.',
+        title: '입증과 동의 확인',
+        description: '페르소나 생성 전에 필요한 신뢰 요건을 확인하세요.',
         href: `/compliance?target_id=${latestTarget.id}`,
         status: 'next' as const,
       },
       {
-        title: 'Upload memories',
-        description: 'Add photos or start an interview so StoryBooks have a real source.',
+        title: '기억 자료 업로드',
+        description: '스토리북의 실제 source가 될 사진을 추가하거나 인터뷰를 시작하세요.',
         href: '/memories',
         status: 'ready' as const,
       },
       {
-        title: 'Create or open Persona',
-        description: 'Create Persona after backend gate checks pass.',
+        title: '페르소나 만들기 또는 열기',
+        description: '백엔드 gate 검사가 통과된 뒤 페르소나를 만들 수 있습니다.',
         href: `/personas?target_id=${latestTarget.id}`,
         status: 'blocked' as const,
       },
@@ -163,20 +163,20 @@ function HomePage() {
   }, [latestTarget])
 
   return (
-    <AppShell title="Dashboard" subtitle={`Signed in as ${state.nickname}. Your next Remory actions are grouped by backend workflow.`} badge="API connected">
+    <AppShell title="대시보드" subtitle={`${state.nickname}님으로 로그인했습니다. 다음 작업은 백엔드 흐름 기준으로 정리되어 있습니다.`} badge="API 연결됨">
       <main className="dashboard-page">
         <header className="dashboard-hero">
           <div>
-            <span>Workflow</span>
-            <h1>Build a verified memory flow before conversations.</h1>
-            <p>Start with a person, complete consent and verification, add memories, then create Persona conversations and StoryBooks.</p>
+            <span>작업 흐름</span>
+            <h1>대화를 시작하기 전에 신뢰할 수 있는 기억 흐름을 준비하세요.</h1>
+            <p>기억 대상을 만들고 동의와 관계 입증을 완료한 뒤, 기억 자료를 추가해 페르소나 대화와 스토리북을 생성합니다.</p>
           </div>
-          <a href="/targets/new">Add Target</a>
+          <a href="/targets/new">기억 대상 추가</a>
         </header>
 
         {state.error && <p className="dashboard-error" role="alert">{state.error}</p>}
 
-        <section className="dashboard-actions" aria-label="Next actions">
+        <section className="dashboard-actions" aria-label="다음 작업">
           {nextActions.map((action) => (
             <DashboardActionCard key={action.title} {...action} />
           ))}
@@ -186,13 +186,13 @@ function HomePage() {
 
         <section className="dashboard-panel">
           <div className="dashboard-panel__heading">
-            <span>StoryBook source</span>
-            <h2>Choose a source before generating a StoryBook</h2>
+            <span>스토리북 source</span>
+            <h2>스토리북 생성 전 source를 선택하세요</h2>
           </div>
           <div className="dashboard-source-grid">
-            <a href="/memories/photos">PhotoMemory source</a>
-            <a href="/memories/interviews">AIInterviewSession source</a>
-            <a href="/storybooks/create">Create StoryBook</a>
+            <a href="/memories/photos">사진 기억 source</a>
+            <a href="/memories/interviews">AI 인터뷰 source</a>
+            <a href="/storybooks/create">스토리북 만들기</a>
           </div>
         </section>
       </main>

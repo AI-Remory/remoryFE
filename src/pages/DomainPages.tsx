@@ -61,6 +61,7 @@ import type { TargetDetailResponse, TargetResponse, TargetType } from '../types/
 import type { VerificationRequestResponse, VerificationStatus, VerificationType } from '../types/verification'
 import type { VoiceCallMessage, VoiceCallStatus } from '../types/voice'
 import type { PersonaVoiceProfileResponse, VoiceProfileStatus } from '../types/voiceProfile'
+import { getDisplayLabel } from '../utils/displayLabels'
 import { toPlayableFileUrl } from '../utils/fileUrl'
 import './DomainPages.css'
 
@@ -170,7 +171,7 @@ function getApiErrorMessage(error: unknown) {
     return error.message
   }
 
-  return 'Request failed.'
+  return '요청에 실패했습니다.'
 }
 
 function isOwnerOnlyError(error: unknown) {
@@ -224,18 +225,18 @@ function formatFileSize(bytes: number) {
 function getPersonaStatusMessage(status: PersonaStatus) {
   switch (status) {
     case 'READY':
-      return 'Persona is ready. Chat and voice call entry points are available.'
+      return '페르소나가 준비되었습니다. 채팅과 음성 통화를 사용할 수 있습니다.'
     case 'PENDING':
-      return 'Persona generation is pending. Refresh status until it becomes READY.'
+      return '페르소나 생성이 대기 중입니다. 준비 완료가 될 때까지 상태를 새로고침하세요.'
     case 'FAILED':
-      return 'Persona generation failed. Check server error detail when creating again.'
+      return '페르소나 생성에 실패했습니다. 다시 생성할 때 서버 오류 상세를 확인하세요.'
     default:
-      return 'Unknown persona status.'
+      return '알 수 없는 페르소나 상태입니다.'
   }
 }
 
 function PersonaStatusBadge({ status }: { status: PersonaStatus }) {
-  return <span className={`persona-status-badge persona-status-badge--${status.toLowerCase()}`}>{status}</span>
+  return <span className={`persona-status-badge persona-status-badge--${status.toLowerCase()}`}>{getDisplayLabel(status)}</span>
 }
 
 function isVoiceProfileReadyForCall(profile: PersonaVoiceProfileResponse | null | undefined) {
@@ -247,41 +248,41 @@ function isVoiceProfileReadyForCall(profile: PersonaVoiceProfileResponse | null 
 
 function getVoiceProfileStatusMessage(profile: PersonaVoiceProfileResponse | null) {
   if (!profile) {
-    return 'No voice profile has been returned for this Persona.'
+    return '이 페르소나의 음성 프로필이 아직 없습니다.'
   }
 
   switch (profile.status) {
     case 'READY':
       return isVoiceProfileReadyForCall(profile)
-        ? 'Voice profile is READY and confirmed. Voice call entry is available.'
-        : 'Voice profile is READY but user or admin confirmation is still required.'
+        ? '음성 프로필이 준비되고 확인되었습니다. 음성 통화를 사용할 수 있습니다.'
+        : '음성 프로필은 준비되었지만 사용자 또는 관리자 확인이 필요합니다.'
     case 'NEEDS_MORE_SAMPLES':
-      return 'Voice profile needs more voice samples before it can be used.'
+      return '사용하려면 음성 샘플이 더 필요합니다.'
     case 'FAILED':
-      return profile.error_message ?? 'Voice profile generation failed.'
+      return profile.error_message ?? '음성 프로필 생성에 실패했습니다.'
     case 'PROCESSING':
-      return 'Voice profile is processing.'
+      return '음성 프로필을 처리 중입니다.'
     case 'PENDING':
-      return 'Voice profile is pending.'
+      return '음성 프로필이 대기 중입니다.'
     case 'REVOKED':
-      return 'Voice profile was revoked.'
+      return '음성 프로필이 철회되었습니다.'
     default:
-      return 'Voice profile status is not available.'
+      return '음성 프로필 상태를 확인할 수 없습니다.'
   }
 }
 
 function VoiceProfileStatusBadge({ status }: { status?: VoiceProfileStatus | null }) {
-  return <span className={`persona-status-badge persona-status-badge--${(status ?? 'pending').toLowerCase()}`}>{status ?? 'null'}</span>
+  return <span className={`persona-status-badge persona-status-badge--${(status ?? 'pending').toLowerCase()}`}>{getDisplayLabel(status)}</span>
 }
 
 function getSenderLabel(senderType: SenderType) {
   switch (senderType) {
     case 'USER':
-      return 'User'
+      return '사용자'
     case 'PERSONA':
-      return 'Persona'
+      return '페르소나'
     case 'SYSTEM':
-      return 'System'
+      return '시스템'
     default:
       return senderType
   }
@@ -353,43 +354,43 @@ function TargetListApiPage() {
   }, [])
 
   return (
-    <AppShell title="Targets" subtitle="Targets returned by GET /targets." badge="API connected">
+    <AppShell title="기억 대상" subtitle="GET /targets로 불러온 기억 대상 목록입니다." badge="API 연결됨">
       <main className="domain-page target-api-page">
         <header className="domain-page__hero">
           <div>
-            <span className="domain-page__eyebrow">TargetListPage</span>
-            <h1>Target list</h1>
+            <span className="domain-page__eyebrow">기억 대상 목록</span>
+            <h1>기억 대상 목록</h1>
             <p>Response fields are rendered as provided by TargetResponse.</p>
           </div>
           <span className="domain-page__badge domain-page__badge--connected">GET /targets</span>
         </header>
 
-        {isLoading && <TargetStateMessage title="Loading targets" message="Fetching your Target list from the backend." />}
+        {isLoading && <TargetStateMessage title="기억 대상을 불러오는 중" message="백엔드에서 기억 대상 목록을 불러오고 있습니다." />}
 
         {!isLoading && errorMessage && (
           <TargetStateMessage
-            title={isPermissionError ? 'No permission' : 'Target list failed'}
+            title={isPermissionError ? '권한 없음' : '기억 대상 목록을 불러오지 못했습니다'}
             message={isPermissionError ? 'You do not have permission to access these targets.' : errorMessage}
           />
         )}
 
         {!isLoading && !errorMessage && targets.length === 0 && (
           <TargetStateMessage
-            action={{ href: '/targets/new', label: 'Create target' }}
-            title="No targets yet"
-            message="Create your first Target to prepare media, consent, verification, and persona flows."
+            action={{ href: '/targets/new', label: '기억 대상 만들기' }}
+            title="아직 기억 대상이 없습니다"
+            message="미디어, 동의, 입증, 페르소나 흐름을 준비하려면 첫 기억 대상을 만들어 주세요."
           />
         )}
 
         {!isLoading && !errorMessage && targets.length > 0 && (
           <>
-            <section className="domain-page__metrics" aria-label="Target summary">
+            <section className="domain-page__metrics" aria-label="기억 대상 요약">
               <article>
-                <span>total</span>
+                <span>전체</span>
                 <strong>{total}</strong>
               </article>
               <article>
-                <span>loaded</span>
+                <span>불러옴</span>
                 <strong>{targets.length}</strong>
               </article>
               <article>
@@ -398,7 +399,7 @@ function TargetListApiPage() {
               </article>
             </section>
 
-            <section className="target-card-grid" aria-label="Target cards">
+            <section className="target-card-grid" aria-label="기억 대상 카드">
               {targets.map((target) => (
                 <article className="target-card" key={target.id}>
                   <div className="target-card__avatar">
@@ -424,7 +425,7 @@ function TargetListApiPage() {
                         <dd>{formatDateTime(target.updated_at)}</dd>
                       </div>
                     </dl>
-                    <a href={`/targets/detail?target_id=${target.id}`}>Open detail</a>
+                    <a href={`/targets/detail?target_id=${target.id}`}>상세 보기</a>
                   </div>
                 </article>
               ))}
@@ -467,20 +468,20 @@ function TargetCreateApiPage() {
   }
 
   return (
-    <AppShell title="Create Target" subtitle="Creates a Target with POST /targets." badge="API connected">
+    <AppShell title="기억 대상 만들기" subtitle="POST /targets로 기억 대상을 만듭니다." badge="API 연결됨">
       <main className="domain-page target-api-page">
         <header className="domain-page__hero">
           <div>
-            <span className="domain-page__eyebrow">TargetCreatePage</span>
-            <h1>Create target</h1>
-            <p>Request body follows TargetCreateRequest: name, description, target_type.</p>
+            <span className="domain-page__eyebrow">기억 대상 생성</span>
+            <h1>기억 대상 만들기</h1>
+            <p>요청 본문은 TargetCreateRequest의 name, description, target_type을 따릅니다.</p>
           </div>
           <span className="domain-page__badge domain-page__badge--connected">POST /targets</span>
         </header>
 
         <form className="target-form" onSubmit={handleSubmit}>
           <div className="target-form__field">
-            <label htmlFor="target-name">name</label>
+                <label htmlFor="target-name">이름</label>
             <input
               id="target-name"
               minLength={1}
@@ -490,18 +491,18 @@ function TargetCreateApiPage() {
               type="text"
               value={name}
             />
-            <p className="target-form__helper">Required. 1 to 255 characters.</p>
+            <p className="target-form__helper">필수 항목입니다. 1~255자로 입력하세요.</p>
           </div>
 
           <div className="target-form__field">
-            <label htmlFor="target-description">description</label>
+                <label htmlFor="target-description">설명</label>
             <textarea
               id="target-description"
               onChange={(event) => setDescription(event.target.value)}
               rows={5}
               value={description}
             />
-            <p className="target-form__helper">Optional. Sent as null when empty.</p>
+            <p className="target-form__helper">선택 항목입니다. 비워두면 null로 전송됩니다.</p>
           </div>
 
           <div className="target-form__field">
@@ -509,23 +510,23 @@ function TargetCreateApiPage() {
             <select id="target-type" onChange={(event) => setTargetType(event.target.value as TargetType)} value={targetType}>
               {targetTypeOptions.map((option) => (
                 <option key={option} value={option}>
-                  {option}
+                  {getDisplayLabel(option)}
                 </option>
               ))}
             </select>
-            <p className="target-form__helper">OpenAPI TargetType enum.</p>
+            <p className="target-form__helper">OpenAPI TargetType enum 값입니다.</p>
           </div>
 
           {errorMessage && (
             <p className="target-form__error" role="alert">
-              {isPermissionError ? 'You do not have permission to create this Target.' : errorMessage}
+              {isPermissionError ? '이 기억 대상을 만들 권한이 없습니다.' : errorMessage}
             </p>
           )}
 
           <div className="target-form__actions">
-            <a href="/targets">Cancel</a>
+            <a href="/targets">취소</a>
             <button disabled={isSubmitting} type="submit">
-              {isSubmitting ? 'Creating...' : 'Create target'}
+              {isSubmitting ? '생성 중...' : '기억 대상 만들기'}
             </button>
           </div>
         </form>
@@ -690,7 +691,7 @@ function TargetDetailApiPage() {
     }
 
     if (!getLatestApprovedVerification(verificationRequests)) {
-      setErrorMessage('Persona creation requires an APPROVED verification request for this Target.')
+      setErrorMessage('이 기억 대상에 APPROVED 상태의 입증 요청이 필요합니다.')
       return
     }
 
@@ -711,23 +712,23 @@ function TargetDetailApiPage() {
   }
 
   return (
-    <AppShell title="Target Detail" subtitle="Reads, updates, and deletes an owned Target." badge="API connected">
+    <AppShell title="기억 대상 상세" subtitle="소유한 기억 대상을 조회, 수정, 삭제합니다." badge="API 연결됨">
       <main className="domain-page target-api-page">
         <header className="domain-page__hero">
           <div>
-            <span className="domain-page__eyebrow">TargetDetailPage</span>
-            <h1>Target detail</h1>
+            <span className="domain-page__eyebrow">기억 대상 상세</span>
+            <h1>기억 대상 상세</h1>
             <p>Detail response uses TargetDetailResponse fields.</p>
           </div>
           <span className="domain-page__badge domain-page__badge--connected">GET PUT DELETE</span>
         </header>
 
-        {isLoading && <TargetStateMessage title="Loading target" message="Fetching Target detail from the backend." />}
+        {isLoading && <TargetStateMessage title="기억 대상을 불러오는 중" message="백엔드에서 기억 대상 상세 정보를 불러오고 있습니다." />}
 
         {!isLoading && errorMessage && !target && (
           <TargetStateMessage
-            action={{ href: '/targets', label: 'Back to list' }}
-            title={isPermissionError ? 'No permission' : 'Target detail failed'}
+            action={{ href: '/targets', label: '목록으로 돌아가기' }}
+            title={isPermissionError ? '권한 없음' : '기억 대상 상세를 불러오지 못했습니다'}
             message={isPermissionError ? 'You do not have permission to access this Target.' : errorMessage}
           />
         )}
@@ -786,30 +787,29 @@ function TargetDetailApiPage() {
 
             <form className="target-form" onSubmit={handleUpdate}>
               <section className="target-api-state">
-                <h2>Persona gate</h2>
+                <h2>페르소나 준비 조건</h2>
                 {gateErrorMessage && <p role="alert">{gateErrorMessage}</p>}
                 <dl>
                   <div>
-                    <dt>verification</dt>
-                    <dd>{getLatestApprovedVerification(verificationRequests) ? 'APPROVED' : 'APPROVED required'}</dd>
+                    <dt>입증</dt>
+                    <dd>{getLatestApprovedVerification(verificationRequests) ? '승인됨' : '승인 필요'}</dd>
                   </div>
                   <div>
                     <dt>ai_persona_creation_consent</dt>
-                    <dd>{hasPersonaCreationConsent(consents) ? 'consented' : 'not consented or revoked'}</dd>
+                    <dd>{hasPersonaCreationConsent(consents) ? '동의 완료' : '동의 없음 또는 철회됨'}</dd>
                   </div>
                 </dl>
                 <p>
-                  Persona creation is disabled until at least one Target verification request has status APPROVED. Server
-                  403 detail is shown unchanged when returned.
+                  하나 이상의 관계 입증 요청이 APPROVED 상태가 될 때까지 페르소나 생성은 비활성화됩니다. 서버 403 detail은 반환된 그대로 표시됩니다.
                 </p>
                 <div className="target-form__actions">
-                  <a href={`/verification?target_id=${target.id}`}>Open verification</a>
-                  <a href={`/consents?target_id=${target.id}`}>Open consent</a>
+                  <a href={`/verification?target_id=${target.id}`}>입증 열기</a>
+                  <a href={`/consents?target_id=${target.id}`}>동의 열기</a>
                 </div>
               </section>
 
               <div className="target-form__field">
-                <label htmlFor="detail-target-name">name</label>
+                <label htmlFor="detail-target-name">이름</label>
                 <input
                   id="detail-target-name"
                   onChange={(event) => setFormValues((current) => ({ ...current, name: event.target.value }))}
@@ -820,7 +820,7 @@ function TargetDetailApiPage() {
               </div>
 
               <div className="target-form__field">
-                <label htmlFor="detail-target-description">description</label>
+                <label htmlFor="detail-target-description">설명</label>
                 <textarea
                   id="detail-target-description"
                   onChange={(event) => setFormValues((current) => ({ ...current, description: event.target.value }))}
@@ -840,7 +840,7 @@ function TargetDetailApiPage() {
                 >
                   {targetTypeOptions.map((option) => (
                     <option key={option} value={option}>
-                      {option}
+                      {getDisplayLabel(option)}
                     </option>
                   ))}
                 </select>
@@ -854,19 +854,19 @@ function TargetDetailApiPage() {
               )}
 
               <div className="target-form__actions">
-                <a href="/targets">Back to list</a>
+                <a href="/targets">목록으로 돌아가기</a>
                 <button disabled={isSaving} type="submit">
-                  {isSaving ? 'Saving...' : 'Save changes'}
+                  {isSaving ? '저장 중...' : '변경사항 저장'}
                 </button>
                 <button disabled={isDeleting} onClick={handleDelete} type="button">
-                  {isDeleting ? 'Deleting...' : 'Delete'}
+                  {isDeleting ? '삭제 중...' : '삭제'}
                 </button>
                 <button
                   disabled={isCreatingPersona || !getLatestApprovedVerification(verificationRequests)}
                   onClick={handleCreatePersona}
                   type="button"
                 >
-                  {isCreatingPersona ? 'Creating persona...' : 'Create persona'}
+                  {isCreatingPersona ? '페르소나 생성 중...' : '페르소나 만들기'}
                 </button>
               </div>
             </form>
@@ -1044,12 +1044,12 @@ function TargetMediaApiPage() {
   }
 
   return (
-    <AppShell title="Target Media" subtitle="Uploads and lists target media with real multipart APIs." badge="API connected">
+    <AppShell title="기억 대상 미디어" subtitle="실제 multipart API로 대상 미디어를 업로드하고 조회합니다." badge="API 연결됨">
       <main className="domain-page target-api-page">
         <header className="domain-page__hero">
           <div>
-            <span className="domain-page__eyebrow">TargetMediaPage</span>
-            <h1>Target media</h1>
+            <span className="domain-page__eyebrow">기억 대상 미디어</span>
+            <h1>기억 대상 미디어</h1>
             <p>Uses media_type and file multipart fields from OpenAPI.</p>
           </div>
           <span className="domain-page__badge domain-page__badge--connected">GET POST DELETE</span>
@@ -1069,17 +1069,17 @@ function TargetMediaApiPage() {
             <p className="target-form__helper">Path param for /targets/{'{target_id}'}/media.</p>
           </div>
           <div className="target-form__actions">
-            <a href="/targets">Open target list</a>
-            <button type="submit">Load media</button>
+            <a href="/targets">기억 대상 목록 열기</a>
+            <button type="submit">미디어 불러오기</button>
           </div>
         </form>
 
         {activeTargetId && (
-          <section className="target-media-upload-grid" aria-label="Media upload">
+          <section className="target-media-upload-grid" aria-label="미디어 업로드">
             <article className="target-media-upload-card">
-              <h2>Photo upload</h2>
+              <h2>사진 업로드</h2>
               <div className="target-form__field">
-                <label htmlFor="target-image-file">file</label>
+                <label htmlFor="target-image-file">파일</label>
                 <input
                   accept="image/*"
                   id="target-image-file"
@@ -1094,14 +1094,14 @@ function TargetMediaApiPage() {
                 </div>
               )}
               <button disabled={uploadingMediaType === 'image'} onClick={() => void handleUpload('image')} type="button">
-                {uploadingMediaType === 'image' ? 'Uploading...' : 'Upload photo'}
+                {uploadingMediaType === 'image' ? '업로드 중...' : '사진 업로드'}
               </button>
             </article>
 
             <article className="target-media-upload-card">
-              <h2>Voice upload</h2>
+              <h2>음성 업로드</h2>
               <div className="target-form__field">
-                <label htmlFor="target-voice-file">file</label>
+                <label htmlFor="target-voice-file">파일</label>
                 <input
                   accept="audio/*"
                   id="target-voice-file"
@@ -1116,7 +1116,7 @@ function TargetMediaApiPage() {
                 </div>
               )}
               <button disabled={uploadingMediaType === 'voice'} onClick={() => void handleUpload('voice')} type="button">
-                {uploadingMediaType === 'voice' ? 'Uploading...' : 'Upload voice'}
+                {uploadingMediaType === 'voice' ? '업로드 중...' : '음성 업로드'}
               </button>
             </article>
           </section>
@@ -1129,17 +1129,17 @@ function TargetMediaApiPage() {
           </p>
         )}
 
-        {isLoading && <TargetStateMessage title="Loading media" message="Fetching media files for this target." />}
+        {isLoading && <TargetStateMessage title="미디어를 불러오는 중" message="이 대상의 미디어 파일을 불러오고 있습니다." />}
 
         {!isLoading && activeTargetId && !errorMessage && mediaItems.length === 0 && (
           <TargetStateMessage
-            title="No media yet"
-            message="Upload a photo or voice file to attach media to this Target."
+            title="아직 미디어가 없습니다"
+            message="이 기억 대상에 연결할 사진 또는 음성 파일을 업로드하세요."
           />
         )}
 
         {!isLoading && mediaItems.length > 0 && (
-          <section className="target-media-grid" aria-label="Target media list">
+          <section className="target-media-grid" aria-label="기억 대상 미디어 목록">
             {mediaItems.map((media) => (
               <article className="target-media-card" key={media.id}>
                 <div className="target-media-card__preview">
@@ -1181,7 +1181,7 @@ function TargetMediaApiPage() {
                     </div>
                   </dl>
                   <button disabled={deletingMediaId === media.id} onClick={() => void handleDelete(media.id)} type="button">
-                    {deletingMediaId === media.id ? 'Deleting...' : 'Delete media'}
+                    {deletingMediaId === media.id ? '삭제 중...' : '미디어 삭제'}
                   </button>
                 </div>
               </article>
@@ -1265,25 +1265,25 @@ function PersonaDetailCard({
       </article>
 
       <aside className="persona-action-card">
-        <h2>Actions</h2>
-        <p>{isReady ? 'READY status enables chat. Voice call also requires a READY and confirmed voice profile.' : 'Chat and voice call are disabled until status is READY.'}</p>
+        <h2>작업</h2>
+        <p>{isReady ? 'READY 상태이면 채팅을 사용할 수 있습니다. 음성 통화에는 준비 완료 및 확인된 음성 프로필도 필요합니다.' : '상태가 READY가 될 때까지 채팅과 음성 통화는 비활성화됩니다.'}</p>
         <div className="persona-action-card__actions">
           <a aria-disabled={!isReady} href={isReady ? `/persona-chat?persona_id=${persona.id}` : undefined}>
-            Open chat
+            채팅 열기
           </a>
           <a aria-disabled={!canUseVoiceCall} href={canUseVoiceCall ? `/persona-voice-call?persona_id=${persona.id}` : undefined}>
             Voice call
           </a>
-          <a href={`/personas/voice-profile?persona_id=${persona.id}`}>Voice profile</a>
+          <a href={`/personas/voice-profile?persona_id=${persona.id}`}>음성 프로필</a>
           {onRefreshStatus && (
             <button disabled={isRefreshingStatus} onClick={onRefreshStatus} type="button">
-              {isRefreshingStatus ? 'Refreshing...' : 'Refresh status'}
+              {isRefreshingStatus ? '새로고침 중...' : '상태 새로고침'}
             </button>
           )}
         </div>
 
         <section className="target-api-state">
-          <h2>Voice profile gate</h2>
+          <h2>음성 프로필 조건</h2>
           <p>{getVoiceProfileStatusMessage(persona.voice_profile ?? null)}</p>
           {persona.voice_profile ? (
           <dl>
@@ -1293,11 +1293,11 @@ function PersonaDetailCard({
             </div>
             <div>
               <dt>voice_profile.status</dt>
-              <dd>{persona.voice_profile.status ?? 'null'}</dd>
+              <dd>{getDisplayLabel(persona.voice_profile.status)}</dd>
             </div>
             <div>
               <dt>review_status</dt>
-              <dd>{persona.voice_profile.review_status ?? 'null'}</dd>
+              <dd>{getDisplayLabel(persona.voice_profile.review_status)}</dd>
             </div>
             <div>
               <dt>quality_score</dt>
@@ -1305,7 +1305,7 @@ function PersonaDetailCard({
             </div>
           </dl>
           ) : (
-            <p>No voice_profile field was returned in PersonaDetailResponse.</p>
+            <p>PersonaDetailResponse에 voice_profile 필드가 없습니다.</p>
           )}
         </section>
       </aside>
@@ -1418,7 +1418,7 @@ function ConsentApiPage() {
 
     try {
       await consentService.revokeConsent(consentId)
-      setNotice('Consent revoked.')
+      setNotice('동의가 철회되었습니다.')
       await loadConsents(activeTargetId)
     } catch (error) {
       setIsPermissionError(isOwnerOnlyError(error))
@@ -1429,13 +1429,13 @@ function ConsentApiPage() {
   }
 
   return (
-    <AppShell title="Consent" subtitle="Connected to ConsentLog APIs." badge="API connected">
+    <AppShell title="동의" subtitle="ConsentLog API에 연결된 화면입니다." badge="API 연결됨">
       <main className="domain-page target-api-page">
         <header className="domain-page__hero">
           <div>
-            <span className="domain-page__eyebrow">ConsentPage</span>
-            <h1>Target consent logs</h1>
-            <p>Lists, creates, and revokes consent records using backend ConsentLog endpoints.</p>
+            <span className="domain-page__eyebrow">동의 관리</span>
+            <h1>기억 대상 동의 기록</h1>
+            <p>백엔드 ConsentLog endpoint로 동의 기록을 조회, 생성, 철회합니다.</p>
           </div>
           <span className="domain-page__badge domain-page__badge--connected">GET POST PATCH</span>
         </header>
@@ -1455,7 +1455,7 @@ function ConsentApiPage() {
           </div>
           <div className="target-form__actions">
             <button disabled={isLoading} type="submit">
-              {isLoading ? 'Loading...' : 'Load consents'}
+              {isLoading ? '불러오는 중...' : '동의 불러오기'}
             </button>
           </div>
         </form>
@@ -1466,7 +1466,7 @@ function ConsentApiPage() {
             <select id="consent-type" onChange={(event) => setConsentType(event.target.value as ConsentType)} value={consentType}>
               {consentTypeOptions.map((option) => (
                 <option key={option} value={option}>
-                  {option}
+                  {getDisplayLabel(option)}
                 </option>
               ))}
             </select>
@@ -1483,7 +1483,7 @@ function ConsentApiPage() {
           </div>
 
           <div className="target-form__field">
-            <label htmlFor="consent-details">details</label>
+            <label htmlFor="consent-details">상세 내용</label>
             <textarea id="consent-details" onChange={(event) => setDetails(event.target.value)} rows={3} value={details} />
           </div>
 
@@ -1501,18 +1501,18 @@ function ConsentApiPage() {
 
           <div className="target-form__actions">
             <button disabled={isSubmitting} type="submit">
-              {isSubmitting ? 'Creating...' : 'Create consent'}
+              {isSubmitting ? '생성 중...' : '동의 생성'}
             </button>
           </div>
         </form>
 
-        <section className="target-card-grid" aria-label="Consent records">
+        <section className="target-card-grid" aria-label="동의 기록">
           {consents.map((consent) => (
             <article className="target-card" key={consent.id}>
               <div className="target-card__body">
                 <div className="target-card__title-row">
-                  <h2>{consent.consent_type}</h2>
-                  <span>{consent.revoked_at ? 'REVOKED' : consent.is_consented ? 'CONSENTED' : 'NOT_CONSENTED'}</span>
+                  <h2>{getDisplayLabel(consent.consent_type)}</h2>
+                  <span>{consent.revoked_at ? '철회됨' : consent.is_consented ? '동의 완료' : '미동의'}</span>
                 </div>
                 <dl>
                   <div>
@@ -1534,7 +1534,7 @@ function ConsentApiPage() {
                 </dl>
                 {consent.details && <p>{consent.details}</p>}
                 <button disabled={Boolean(consent.revoked_at) || revokingConsentId === consent.id} onClick={() => void handleRevoke(consent.id)} type="button">
-                  {revokingConsentId === consent.id ? 'Revoking...' : 'Revoke'}
+                  {revokingConsentId === consent.id ? 'Revoking...' : '승인 철회'}
                 </button>
               </div>
             </article>
@@ -1542,7 +1542,7 @@ function ConsentApiPage() {
         </section>
 
         {activeTargetId && consents.length === 0 && !isLoading && (
-          <TargetStateMessage title="No consents" message="No ConsentLog records were returned for this Target." />
+          <TargetStateMessage title="동의 기록이 없습니다" message="이 대상에 대한 ConsentLog 기록이 없습니다." />
         )}
       </main>
     </AppShell>
@@ -1554,15 +1554,15 @@ function getVerificationStatusMessage(status: VerificationStatus) {
     case 'APPROVED':
       return 'Persona and voice features can be unlocked for this Target.'
     case 'PENDING':
-      return 'Admin review is pending.'
+      return '관리자 검토를 기다리고 있습니다.'
     case 'NEED_MORE_INFO':
-      return 'Admin requested more information. Check admin_note.'
+      return '관리자가 추가 정보를 요청했습니다. admin_note를 확인하세요.'
     case 'REJECTED':
-      return 'Rejected. Check rejection_reason.'
+      return '거절되었습니다. rejection_reason을 확인하세요.'
     case 'EXPIRED':
       return 'Expired. Submit a new verification request.'
     case 'REVOKED':
-      return 'Revoked. Submit a new verification request.'
+      return '철회되었습니다. 새 입증 요청을 제출하세요.'
     default:
       return status
   }
@@ -1676,13 +1676,13 @@ function TargetVerificationApiPage() {
   }
 
   return (
-    <AppShell title="Target Verification" subtitle="Connected to TargetVerificationRequest APIs." badge="API connected">
+    <AppShell title="관계 입증" subtitle="TargetVerificationRequest API에 연결된 화면입니다." badge="API 연결됨">
       <main className="domain-page target-api-page">
         <header className="domain-page__hero">
           <div>
-            <span className="domain-page__eyebrow">TargetVerificationPage</span>
-            <h1>Target verification requests</h1>
-            <p>Submit multipart verification files and review Target verification status.</p>
+            <span className="domain-page__eyebrow">관계 입증</span>
+            <h1>관계 입증 요청</h1>
+            <p>multipart 입증 파일을 제출하고 대상 입증 상태를 확인합니다.</p>
           </div>
           <span className="domain-page__badge domain-page__badge--connected">multipart/form-data</span>
         </header>
@@ -1702,7 +1702,7 @@ function TargetVerificationApiPage() {
           </div>
           <div className="target-form__actions">
             <button disabled={isLoading} type="submit">
-              {isLoading ? 'Loading...' : 'Load requests'}
+              {isLoading ? '불러오는 중...' : '요청 불러오기'}
             </button>
           </div>
         </form>
@@ -1717,7 +1717,7 @@ function TargetVerificationApiPage() {
             >
               {verificationTypeOptions.map((option) => (
                 <option key={option} value={option}>
-                  {option}
+                  {getDisplayLabel(option)}
                 </option>
               ))}
             </select>
@@ -1729,7 +1729,7 @@ function TargetVerificationApiPage() {
           </div>
 
           <div className="target-form__field">
-            <label htmlFor="verification-file">file</label>
+            <label htmlFor="verification-file">파일</label>
             <input id="verification-file" onChange={(event) => setFile(event.target.files?.[0] ?? null)} required type="file" />
             <p className="target-form__helper">Multipart field names: verification_type_param, applicant_note, file.</p>
           </div>
@@ -1743,18 +1743,18 @@ function TargetVerificationApiPage() {
 
           <div className="target-form__actions">
             <button disabled={isSubmitting} type="submit">
-              {isSubmitting ? 'Submitting...' : 'Submit verification'}
+              {isSubmitting ? 'Submitting...' : '입증 제출'}
             </button>
           </div>
         </form>
 
-        <section className="target-card-grid" aria-label="Verification requests">
+        <section className="target-card-grid" aria-label="입증 요청">
           {requests.map((request) => (
             <article className="target-card" key={request.id}>
               <div className="target-card__body">
                 <div className="target-card__title-row">
-                  <h2>{request.verification_type}</h2>
-                  <span>{request.status}</span>
+                  <h2>{getDisplayLabel(request.verification_type)}</h2>
+                  <span>{getDisplayLabel(request.status)}</span>
                 </div>
                 <p>{getVerificationStatusMessage(request.status)}</p>
                 <dl>
@@ -1782,7 +1782,7 @@ function TargetVerificationApiPage() {
                 {request.admin_note && <p>admin_note: {request.admin_note}</p>}
                 {request.rejection_reason && <p>rejection_reason: {request.rejection_reason}</p>}
                 <button onClick={() => void handleOpenDetail(request.id)} type="button">
-                  Load detail
+                  상세 불러오기
                 </button>
               </div>
             </article>
@@ -1790,7 +1790,7 @@ function TargetVerificationApiPage() {
         </section>
 
         {activeTargetId && requests.length === 0 && !isLoading && (
-          <TargetStateMessage title="No verification requests" message="Submit a verification request to unlock Persona creation after approval." />
+          <TargetStateMessage title="입증 요청이 없습니다" message="승인 후 페르소나 생성을 열려면 입증 요청을 제출하세요." />
         )}
 
         {selectedRequest && (
@@ -1798,8 +1798,8 @@ function TargetVerificationApiPage() {
             <h2>Verification detail #{selectedRequest.id}</h2>
             <dl>
               <div>
-                <dt>status</dt>
-                <dd>{selectedRequest.status}</dd>
+                <dt>상태</dt>
+                <dd>{getDisplayLabel(selectedRequest.status)}</dd>
               </div>
               <div>
                 <dt>applicant_note</dt>
@@ -1860,13 +1860,13 @@ function PersonaListApiPage() {
   }
 
   return (
-    <AppShell title="Personas" subtitle="Persona list endpoint is not present in OpenAPI; creation uses Target." badge="API connected">
+    <AppShell title="페르소나" subtitle="OpenAPI에 페르소나 목록 endpoint가 없어 Target 기준 생성만 제공합니다." badge="API 연결됨">
       <main className="domain-page target-api-page">
         <header className="domain-page__hero">
           <div>
-            <span className="domain-page__eyebrow">PersonaListPage</span>
-            <h1>Persona creation</h1>
-            <p>No Persona list endpoint exists in the checked OpenAPI. Use target_id to create a Persona.</p>
+            <span className="domain-page__eyebrow">페르소나 생성</span>
+            <h1>페르소나 생성</h1>
+            <p>확인한 OpenAPI에는 페르소나 목록 endpoint가 없습니다. target_id로 페르소나를 생성하세요.</p>
           </div>
           <span className="domain-page__badge domain-page__badge--connected">POST /targets/{'{target_id}'}/persona</span>
         </header>
@@ -1885,23 +1885,23 @@ function PersonaListApiPage() {
             <p className="target-form__helper">The backend validates verification, consent, media, and ownership conditions.</p>
           </div>
           <div className="target-form__actions">
-            <a href="/targets">Open targets</a>
+            <a href="/targets">기억 대상 열기</a>
             <button disabled={isCreating} type="submit">
-              {isCreating ? 'Creating...' : 'Create persona'}
+              {isCreating ? '생성 중...' : '페르소나 만들기'}
             </button>
           </div>
         </form>
 
         {errorMessage && (
           <p className="target-form__error" role="alert">
-            {isPermissionError ? 'You do not have permission to create a Persona for this Target.' : errorMessage}
+            {isPermissionError ? '이 기억 대상의 페르소나를 만들 권한이 없습니다.' : errorMessage}
           </p>
         )}
 
         {!persona && !errorMessage && (
           <TargetStateMessage
-            title="No list API"
-            message="OpenAPI exposes create, detail, and status endpoints for Persona, but no Persona collection endpoint."
+            title="목록 API 없음"
+            message="OpenAPI에는 페르소나 생성, 상세, 상태 endpoint가 있지만 목록 endpoint는 없습니다."
           />
         )}
 
@@ -1977,23 +1977,23 @@ function PersonaDetailApiPage() {
   }, [personaId])
 
   return (
-    <AppShell title="Persona Detail" subtitle="Reads Persona detail and status from real backend APIs." badge="API connected">
+    <AppShell title="페르소나 상세" subtitle="실제 백엔드 API에서 페르소나 상세와 상태를 조회합니다." badge="API 연결됨">
       <main className="domain-page target-api-page">
         <header className="domain-page__hero">
           <div>
-            <span className="domain-page__eyebrow">PersonaDetailPage</span>
-            <h1>Persona detail</h1>
+            <span className="domain-page__eyebrow">페르소나 상세</span>
+            <h1>페르소나 상세</h1>
             <p>Response fields follow PersonaDetailResponse and PersonaStatusResponse.</p>
           </div>
           <span className="domain-page__badge domain-page__badge--connected">GET /personas/{'{persona_id}'}</span>
         </header>
 
-        {isLoading && <TargetStateMessage title="Loading persona" message="Fetching Persona detail from the backend." />}
+        {isLoading && <TargetStateMessage title="페르소나를 불러오는 중" message="백엔드에서 페르소나 상세 정보를 불러오고 있습니다." />}
 
         {!isLoading && errorMessage && !persona && (
           <TargetStateMessage
             action={{ href: '/personas', label: 'Back to Persona creation' }}
-            title={isPermissionError ? 'No permission' : 'Persona detail failed'}
+            title={isPermissionError ? '권한 없음' : '페르소나 상세를 불러오지 못했습니다'}
             message={isPermissionError ? 'You do not have permission to access this Persona.' : errorMessage}
           />
         )}
@@ -2024,7 +2024,7 @@ function ChatMessageBubble({ message }: { message: PersonaMessageResponse }) {
     <article className={`persona-chat-message persona-chat-message--${message.sender_type.toLowerCase()}`}>
       <header>
         <strong>{getSenderLabel(message.sender_type)}</strong>
-        <span>{message.message_type}</span>
+        <span>{getDisplayLabel(message.message_type)}</span>
       </header>
       {message.content && <p>{message.content}</p>}
       {message.message_type === 'AUDIO' && audioUrl && <audio controls preload="metadata" src={audioUrl} />}
@@ -2190,15 +2190,15 @@ function PersonaChatApiPage() {
   }
 
   return (
-    <AppShell title="Persona Chat" subtitle="Creates chats and sends Persona messages through backend APIs." badge="API connected">
+    <AppShell title="페르소나 채팅" subtitle="백엔드 API로 채팅방을 만들고 페르소나 메시지를 전송합니다." badge="API 연결됨">
       <main className="domain-page target-api-page persona-chat-page">
         <header className="domain-page__hero">
           <div>
-            <span className="domain-page__eyebrow">PersonaChatPage</span>
-            <h1>Persona chat</h1>
+            <span className="domain-page__eyebrow">페르소나 채팅</span>
+            <h1>페르소나 채팅</h1>
             <p>Uses PersonaChatResponse, PersonaMessageResponse, and PersonaMessagePairResponse as defined by OpenAPI.</p>
           </div>
-          <span className="domain-page__badge domain-page__badge--connected">Chat API</span>
+          <span className="domain-page__badge domain-page__badge--connected">채팅 API</span>
         </header>
 
         <form className="target-form target-media-target-form" onSubmit={handlePersonaSubmit}>
@@ -2215,9 +2215,9 @@ function PersonaChatApiPage() {
             <p className="target-form__helper">Path param for /personas/{'{persona_id}'}/chats.</p>
           </div>
           <div className="target-form__actions">
-            <a href="/personas">Create persona</a>
+            <a href="/personas">페르소나 만들기</a>
             <button disabled={isLoadingChats} type="submit">
-              {isLoadingChats ? 'Loading...' : 'Load chats'}
+              {isLoadingChats ? '불러오는 중...' : '채팅방 불러오기'}
             </button>
           </div>
         </form>
@@ -2231,14 +2231,14 @@ function PersonaChatApiPage() {
         {activePersonaId && (
           <section className="persona-chat-layout">
             <aside className="persona-chat-sidebar">
-              <h2>Chats</h2>
+              <h2>채팅방</h2>
               <div className="target-form__field">
-                <label htmlFor="chat-title">title</label>
+                <label htmlFor="chat-title">제목</label>
                 <input
                   id="chat-title"
                   maxLength={255}
                   onChange={(event) => setChatTitle(event.target.value)}
-                  placeholder="Optional title"
+                  placeholder="선택 제목"
                   type="text"
                   value={chatTitle}
                 />
@@ -2247,10 +2247,10 @@ function PersonaChatApiPage() {
                 {isCreatingChat ? 'Starting...' : 'Start new chat'}
               </button>
 
-              {isLoadingChats && <p className="persona-chat-empty">Loading chat rooms...</p>}
+              {isLoadingChats && <p className="persona-chat-empty">채팅방을 불러오는 중...</p>}
 
               {!isLoadingChats && chats.length === 0 && (
-                <p className="persona-chat-empty">No chat rooms yet. Start a new chat to send messages.</p>
+                <p className="persona-chat-empty">아직 채팅방이 없습니다. 새 채팅을 시작해 메시지를 보내세요.</p>
               )}
 
               {chats.length > 0 && (
@@ -2275,14 +2275,14 @@ function PersonaChatApiPage() {
 
             <section className="persona-chat-thread">
               <div className="persona-chat-thread__header">
-                <h2>Messages</h2>
-                <span>{activeChatId ? `chat_id ${activeChatId}` : 'No chat selected'}</span>
+                <h2>메시지</h2>
+                <span>{activeChatId ? `chat_id ${activeChatId}` : '선택된 채팅 없음'}</span>
               </div>
 
-              {isLoadingMessages && <p className="persona-chat-empty">Loading messages...</p>}
+              {isLoadingMessages && <p className="persona-chat-empty">메시지를 불러오는 중...</p>}
 
               {!isLoadingMessages && activeChatId && messages.length === 0 && (
-                <p className="persona-chat-empty">No messages yet. Send the first TEXT message.</p>
+                <p className="persona-chat-empty">아직 메시지가 없습니다. 첫 텍스트 메시지를 보내세요.</p>
               )}
 
               <div className="persona-chat-messages" aria-live="polite">
@@ -2303,12 +2303,12 @@ function PersonaChatApiPage() {
               )}
 
               <form className="persona-chat-composer" onSubmit={handleSendMessage}>
-                <label htmlFor="persona-chat-message">content</label>
+                <label htmlFor="persona-chat-message">내용</label>
                 <textarea
                   disabled={!activeChatId || isSending}
                   id="persona-chat-message"
                   onChange={(event) => setMessageContent(event.target.value)}
-                  placeholder="Send a TEXT message"
+                  placeholder="텍스트 메시지를 입력하세요"
                   rows={3}
                   value={messageContent}
                 />
@@ -2355,7 +2355,7 @@ function VoiceProfileDetailCard({ profile }: { profile: PersonaVoiceProfileRespo
         </div>
         <div>
           <dt>review_status</dt>
-          <dd>{profile.review_status ?? 'null'}</dd>
+          <dd>{getDisplayLabel(profile.review_status)}</dd>
         </div>
         <div>
           <dt>reference_audio_count</dt>
@@ -2510,7 +2510,7 @@ function PersonaVoiceProfileApiPage() {
       const response = await voiceProfileService.createVoiceProfile(personaId)
       setProfile(response)
       setActivePersonaId(personaId)
-      setNotice('Voice profile creation requested.')
+      setNotice('음성 프로필 생성이 요청되었습니다.')
     } catch (error) {
       setIsPermissionError(isOwnerOnlyError(error))
       setErrorMessage(getApiErrorMessage(error))
@@ -2536,7 +2536,7 @@ function PersonaVoiceProfileApiPage() {
       const response = await voiceProfileService.evaluateVoiceProfile(personaId)
       setProfile(response)
       setActivePersonaId(personaId)
-      setNotice('Voice profile evaluated.')
+      setNotice('음성 프로필 평가가 완료되었습니다.')
     } catch (error) {
       setIsPermissionError(isOwnerOnlyError(error))
       setErrorMessage(getApiErrorMessage(error))
@@ -2565,7 +2565,7 @@ function PersonaVoiceProfileApiPage() {
       })
       setProfile(response)
       setActivePersonaId(personaId)
-      setNotice('Voice profile confirmed.')
+      setNotice('음성 프로필 확인이 완료되었습니다.')
     } catch (error) {
       setIsPermissionError(isOwnerOnlyError(error))
       setErrorMessage(getApiErrorMessage(error))
@@ -2577,13 +2577,13 @@ function PersonaVoiceProfileApiPage() {
   const canEnterVoiceCall = isVoiceProfileReadyForCall(profile)
 
   return (
-    <AppShell title="Persona Voice Profile" subtitle="Connected to PersonaVoiceProfile APIs." badge="API connected">
+    <AppShell title="페르소나 음성 프로필" subtitle="PersonaVoiceProfile API에 연결된 화면입니다." badge="API 연결됨">
       <main className="domain-page target-api-page">
         <header className="domain-page__hero">
           <div>
-            <span className="domain-page__eyebrow">PersonaVoiceProfilePage</span>
-            <h1>Persona voice profile</h1>
-            <p>Create, evaluate, confirm, and inspect the voice profile returned by the backend.</p>
+            <span className="domain-page__eyebrow">페르소나 음성 프로필</span>
+            <h1>페르소나 음성 프로필</h1>
+            <p>백엔드가 반환한 음성 프로필을 생성, 평가, 확인, 조회합니다.</p>
           </div>
           <span className="domain-page__badge domain-page__badge--connected">GET POST PATCH</span>
         </header>
@@ -2603,10 +2603,10 @@ function PersonaVoiceProfileApiPage() {
           </div>
           <div className="target-form__actions">
             <button disabled={isLoading} type="submit">
-              {isLoading ? 'Loading...' : 'Load profile'}
+              {isLoading ? '불러오는 중...' : '프로필 불러오기'}
             </button>
             <button disabled={isCreating} onClick={() => void handleCreate()} type="button">
-              {isCreating ? 'Creating...' : 'Create profile'}
+              {isCreating ? '생성 중...' : '프로필 생성'}
             </button>
             <button disabled={isEvaluating} onClick={() => void handleEvaluate()} type="button">
               {isEvaluating ? 'Evaluating...' : 'Evaluate'}
@@ -2642,10 +2642,10 @@ function PersonaVoiceProfileApiPage() {
           </p>
         )}
 
-        {isLoading && <TargetStateMessage title="Loading voice profile" message="Fetching PersonaVoiceProfileResponse from the backend." />}
+        {isLoading && <TargetStateMessage title="음성 프로필을 불러오는 중" message="백엔드에서 PersonaVoiceProfileResponse를 불러오고 있습니다." />}
 
         {!isLoading && activePersonaId && !profile && !errorMessage && (
-          <TargetStateMessage title="No voice profile" message="Create a voice profile after uploading Target voice media." />
+          <TargetStateMessage title="음성 프로필이 없습니다" message="대상 음성 미디어를 업로드한 뒤 음성 프로필을 만들어 주세요." />
         )}
 
         {profile && <VoiceProfileDetailCard profile={profile} />}
@@ -2672,7 +2672,7 @@ function InterviewSessionCard({ session }: { session: AIInterviewSessionResponse
       <div className="target-card__body">
         <div className="target-card__title-row">
           <h2>{session.title ?? `Interview ${session.id}`}</h2>
-          <span>{session.status}</span>
+          <span>{getDisplayLabel(session.status)}</span>
         </div>
         <dl>
           <div>
@@ -2697,8 +2697,8 @@ function InterviewSessionCard({ session }: { session: AIInterviewSessionResponse
           </div>
         </dl>
         <div className="target-form__actions">
-          <a href={`/interviews/session?session_id=${session.id}`}>Open session</a>
-          <a href={`/storybooks/create?interview_session_id=${session.id}`}>Use for StoryBook</a>
+          <a href={`/interviews/session?session_id=${session.id}`}>세션 열기</a>
+          <a href={`/storybooks/create?interview_session_id=${session.id}`}>스토리북에 사용</a>
         </div>
       </div>
     </article>
@@ -2767,13 +2767,13 @@ function InterviewListApiPage() {
   }
 
   return (
-    <AppShell title="Interviews" subtitle="Creates AI interview sessions with the real backend API." badge="API connected">
+    <AppShell title="인터뷰" subtitle="실제 백엔드 API로 AI 인터뷰 세션을 생성합니다." badge="API 연결됨">
       <main className="domain-page target-api-page">
         <header className="domain-page__hero">
           <div>
-            <span className="domain-page__eyebrow">InterviewListPage</span>
-            <h1>Create interview session</h1>
-            <p>OpenAPI exposes create and detail endpoints, but no interview list endpoint.</p>
+            <span className="domain-page__eyebrow">인터뷰 목록</span>
+            <h1>인터뷰 세션 만들기</h1>
+            <p>OpenAPI에는 생성과 상세 endpoint가 있지만 인터뷰 목록 endpoint는 없습니다.</p>
           </div>
           <span className="domain-page__badge domain-page__badge--connected">POST /interviews</span>
         </header>
@@ -2784,13 +2784,13 @@ function InterviewListApiPage() {
             <select id="interview-session-type" onChange={(event) => setSessionType(event.target.value as InterviewType)} value={sessionType}>
               {interviewTypeOptions.map((option) => (
                 <option key={option} value={option}>
-                  {option}
+                  {getDisplayLabel(option)}
                 </option>
               ))}
             </select>
           </div>
           <div className="target-form__field">
-            <label htmlFor="interview-title">title</label>
+            <label htmlFor="interview-title">제목</label>
             <input id="interview-title" maxLength={255} onChange={(event) => setTitle(event.target.value)} value={title} />
           </div>
           <div className="target-form__field">
@@ -2812,7 +2812,7 @@ function InterviewListApiPage() {
 
           <div className="target-form__actions">
             <button disabled={isSubmitting} type="submit">
-              {isSubmitting ? 'Creating...' : 'Create session'}
+              {isSubmitting ? '생성 중...' : '세션 생성'}
             </button>
           </div>
         </form>
@@ -2820,24 +2820,24 @@ function InterviewListApiPage() {
         {createdSession && <InterviewSessionCard session={createdSession} />}
 
         <section className="target-api-state">
-          <h2>StoryBook source selection</h2>
-          <p>Select a created interview session or a PhotoMemory as source for later StoryBook creation.</p>
-          {createdSession && <a href={`/storybooks/create?interview_session_id=${createdSession.id}`}>Use created interview session</a>}
+          <h2>스토리북 소스 선택</h2>
+          <p>나중에 스토리북을 만들 소스로 생성된 인터뷰 세션 또는 사진 기억을 선택하세요.</p>
+          {createdSession && <a href={`/storybooks/create?interview_session_id=${createdSession.id}`}>생성한 인터뷰 세션 사용</a>}
         </section>
 
-        {isLoadingPhotoMemories && <TargetStateMessage title="Loading PhotoMemory sources" message="Fetching available photo memories." />}
+        {isLoadingPhotoMemories && <TargetStateMessage title="사진 기억 소스를 불러오는 중" message="사용 가능한 사진 기억을 불러오고 있습니다." />}
         {photoMemoryErrorMessage && <p className="target-form__error" role="alert">{photoMemoryErrorMessage}</p>}
         {!isLoadingPhotoMemories && photoMemories.length > 0 && (
-          <section className="target-card-grid" aria-label="PhotoMemory StoryBook sources">
+          <section className="target-card-grid" aria-label="사진 기억 스토리북 소스">
             {photoMemories.map((photoMemory) => (
               <article className="target-card" key={photoMemory.id}>
                 <div className="target-card__body">
                   <div className="target-card__title-row">
                     <h2>{photoMemory.title}</h2>
-                    <span>PhotoMemory</span>
+                    <span>사진 기억</span>
                   </div>
-                  <p>{photoMemory.description ?? photoMemory.ai_caption ?? 'No description returned.'}</p>
-                  <a href={`/storybooks/create?photo_memory_id=${photoMemory.id}`}>Use for StoryBook</a>
+                  <p>{photoMemory.description ?? photoMemory.ai_caption ?? '설명이 없습니다.'}</p>
+                  <a href={`/storybooks/create?photo_memory_id=${photoMemory.id}`}>스토리북에 사용</a>
                 </div>
               </article>
             ))}
@@ -2961,12 +2961,12 @@ function InterviewSessionApiPage() {
   }
 
   return (
-    <AppShell title="Interview Session" subtitle="Reads session details and stores questions/answers." badge="API connected">
+    <AppShell title="인터뷰 세션" subtitle="세션 상세를 조회하고 질문/답변을 저장합니다." badge="API 연결됨">
       <main className="domain-page target-api-page">
         <header className="domain-page__hero">
           <div>
-            <span className="domain-page__eyebrow">InterviewSessionPage</span>
-            <h1>Interview session</h1>
+            <span className="domain-page__eyebrow">인터뷰 세션</span>
+            <h1>인터뷰 세션</h1>
             <p>Detail response includes questions and non-deleted answers.</p>
           </div>
           <span className="domain-page__badge domain-page__badge--connected">GET POST</span>
@@ -2986,10 +2986,10 @@ function InterviewSessionApiPage() {
           </div>
           <div className="target-form__actions">
             <button disabled={isLoading} type="submit">
-              {isLoading ? 'Loading...' : 'Load session'}
+              {isLoading ? '불러오는 중...' : '세션 불러오기'}
             </button>
             <button disabled={isCreatingQuestion} onClick={() => void handleCreateQuestion()} type="button">
-              {isCreatingQuestion ? 'Creating question...' : 'Create question'}
+              {isCreatingQuestion ? '질문 생성 중...' : '질문 생성'}
             </button>
           </div>
           <div className="target-form__field">
@@ -3018,22 +3018,22 @@ function InterviewSessionApiPage() {
           <div className="target-form__field">
             <label htmlFor="answer-audio-path">answer_audio_path</label>
             <input id="answer-audio-path" onChange={(event) => setAnswerAudioPath(event.target.value)} value={answerAudioPath} />
-            <p className="target-form__helper">No separate audio upload endpoint is documented for interview answers.</p>
+            <p className="target-form__helper">인터뷰 답변용 별도 오디오 업로드 endpoint는 문서에 없습니다.</p>
           </div>
           <button disabled={isSavingAnswer} type="submit">
-            {isSavingAnswer ? 'Saving...' : 'Save answer'}
+            {isSavingAnswer ? '저장 중...' : 'Save answer'}
           </button>
         </form>
 
         {notice && <p className="target-form__notice">{notice}</p>}
         {errorMessage && <p className="target-form__error" role="alert">{errorMessage}</p>}
-        {isLoading && <TargetStateMessage title="Loading session" message="Fetching interview session detail." />}
+        {isLoading && <TargetStateMessage title="세션을 불러오는 중" message="인터뷰 세션 상세를 불러오고 있습니다." />}
 
         {session && (
           <section className="target-detail-card">
             <div className="target-card__title-row">
               <h2>{session.title ?? `Interview ${session.id}`}</h2>
-              <span>{session.status}</span>
+              <span>{getDisplayLabel(session.status)}</span>
             </div>
             <dl>
               <div>
@@ -3053,12 +3053,12 @@ function InterviewSessionApiPage() {
                 <dd>{formatDateTime(session.created_at)}</dd>
               </div>
             </dl>
-            <a href={`/storybooks/create?interview_session_id=${session.id}`}>Use this session for StoryBook</a>
+            <a href={`/storybooks/create?interview_session_id=${session.id}`}>이 세션을 스토리북에 사용</a>
           </section>
         )}
 
         {session?.questions && (
-          <section className="target-card-grid" aria-label="Interview questions">
+          <section className="target-card-grid" aria-label="인터뷰 질문">
             {session.questions.map((question: AIInterviewQuestionResponse) => (
               <article className="target-card" key={question.id}>
                 <div className="target-card__body">
@@ -3160,30 +3160,30 @@ function PhotoMemoryListApiPage() {
   }
 
   return (
-    <AppShell title="Photo Memories" subtitle="Lists, reads, and deletes PhotoMemory records." badge="API connected">
+    <AppShell title="사진 기억" subtitle="PhotoMemory 기록을 조회하고 삭제합니다." badge="API 연결됨">
       <main className="domain-page target-api-page">
         <header className="domain-page__hero">
           <div>
-            <span className="domain-page__eyebrow">PhotoMemoryListPage</span>
-            <h1>Photo memories</h1>
-            <p>PhotoMemory records can be selected as StoryBook source.</p>
+            <span className="domain-page__eyebrow">사진 기억 목록</span>
+            <h1>사진 기억</h1>
+            <p>사진 기억 기록은 스토리북 소스로 선택할 수 있습니다.</p>
           </div>
           <span className="domain-page__badge domain-page__badge--connected">GET DELETE</span>
         </header>
 
         <div className="target-form__actions">
-          <a href="/photo-memories/upload">Upload PhotoMemory</a>
+          <a href="/photo-memories/upload">사진 기억 업로드</a>
           <button disabled={isLoading} onClick={() => void loadPhotoMemories()} type="button">
-            Refresh
+            새로고침
           </button>
         </div>
 
         {notice && <p className="target-form__notice">{notice}</p>}
         {errorMessage && <p className="target-form__error" role="alert">{errorMessage}</p>}
-        {isLoading && <TargetStateMessage title="Loading PhotoMemory" message="Fetching photo memories." />}
-        {!isLoading && photoMemories.length === 0 && <TargetStateMessage title="No PhotoMemory" message="Upload a photo memory to create StoryBooks from photos." />}
+        {isLoading && <TargetStateMessage title="사진 기억을 불러오는 중" message="사진 기억을 불러오고 있습니다." />}
+        {!isLoading && photoMemories.length === 0 && <TargetStateMessage title="사진 기억이 없습니다" message="사진으로 스토리북을 만들려면 사진 기억을 업로드하세요." />}
 
-        <section className="target-media-grid" aria-label="PhotoMemory list">
+        <section className="target-media-grid" aria-label="사진 기억 목록">
           {photoMemories.map((photoMemory) => (
             <article className="target-media-card" key={photoMemory.id}>
               <div className="target-media-card__preview">
@@ -3194,7 +3194,7 @@ function PhotoMemoryListApiPage() {
                   <h2>{photoMemory.title}</h2>
                   <span>{photoMemory.mime_type}</span>
                 </div>
-                <p>{photoMemory.description ?? photoMemory.ai_caption ?? 'No description returned.'}</p>
+                <p>{photoMemory.description ?? photoMemory.ai_caption ?? '설명이 없습니다.'}</p>
                 <dl>
                   <div>
                     <dt>id</dt>
@@ -3209,17 +3209,17 @@ function PhotoMemoryListApiPage() {
                     <dd>{photoMemory.taken_at ? formatDateTime(photoMemory.taken_at) : 'null'}</dd>
                   </div>
                   <div>
-                    <dt>location</dt>
+                    <dt>장소</dt>
                     <dd>{photoMemory.location ?? 'null'}</dd>
                   </div>
                 </dl>
                 <div className="target-form__actions">
                   <button onClick={() => void handleLoadDetail(photoMemory.id)} type="button">
-                    Load detail
+                    상세 불러오기
                   </button>
-                  <a href={`/storybooks/create?photo_memory_id=${photoMemory.id}`}>Use for StoryBook</a>
+                  <a href={`/storybooks/create?photo_memory_id=${photoMemory.id}`}>스토리북에 사용</a>
                   <button disabled={deletingId === photoMemory.id} onClick={() => void handleDelete(photoMemory.id)} type="button">
-                    {deletingId === photoMemory.id ? 'Deleting...' : 'Delete'}
+                    {deletingId === photoMemory.id ? '삭제 중...' : '삭제'}
                   </button>
                 </div>
               </div>
@@ -3229,7 +3229,7 @@ function PhotoMemoryListApiPage() {
 
         {selectedPhotoMemory && (
           <section className="target-detail-card">
-            <h2>PhotoMemory detail #{selectedPhotoMemory.id}</h2>
+            <h2>사진 기억 상세 #{selectedPhotoMemory.id}</h2>
             <dl>
               <div>
                 <dt>original_filename</dt>
@@ -3315,12 +3315,12 @@ function PhotoMemoryUploadApiPage() {
   }
 
   return (
-    <AppShell title="Upload PhotoMemory" subtitle="Uploads a PhotoMemory with documented multipart fields." badge="API connected">
+    <AppShell title="사진 기억 업로드" subtitle="문서화된 multipart 필드로 PhotoMemory를 업로드합니다." badge="API 연결됨">
       <main className="domain-page target-api-page">
         <header className="domain-page__hero">
           <div>
-            <span className="domain-page__eyebrow">PhotoMemoryUploadPage</span>
-            <h1>Upload photo memory</h1>
+            <span className="domain-page__eyebrow">사진 기억 업로드</span>
+            <h1>사진 기억 업로드</h1>
             <p>Multipart fields: title, description, taken_at, location, file.</p>
           </div>
           <span className="domain-page__badge domain-page__badge--connected">POST /photo-memories</span>
@@ -3328,11 +3328,11 @@ function PhotoMemoryUploadApiPage() {
 
         <form className="target-form" onSubmit={handleSubmit}>
           <div className="target-form__field">
-            <label htmlFor="photo-memory-title">title</label>
+            <label htmlFor="photo-memory-title">제목</label>
             <input id="photo-memory-title" onChange={(event) => setTitle(event.target.value)} required value={title} />
           </div>
           <div className="target-form__field">
-            <label htmlFor="photo-memory-description">description</label>
+            <label htmlFor="photo-memory-description">설명</label>
             <textarea id="photo-memory-description" onChange={(event) => setDescription(event.target.value)} rows={4} value={description} />
           </div>
           <div className="target-form__field">
@@ -3340,11 +3340,11 @@ function PhotoMemoryUploadApiPage() {
             <input id="photo-memory-taken-at" onChange={(event) => setTakenAt(event.target.value)} type="datetime-local" value={takenAt} />
           </div>
           <div className="target-form__field">
-            <label htmlFor="photo-memory-location">location</label>
+            <label htmlFor="photo-memory-location">장소</label>
             <input id="photo-memory-location" onChange={(event) => setLocation(event.target.value)} value={location} />
           </div>
           <div className="target-form__field">
-            <label htmlFor="photo-memory-file">file</label>
+            <label htmlFor="photo-memory-file">파일</label>
             <input accept="image/*" id="photo-memory-file" onChange={(event) => handleFileChange(event.target.files?.[0] ?? null)} required type="file" />
           </div>
 
@@ -3357,20 +3357,20 @@ function PhotoMemoryUploadApiPage() {
           {errorMessage && <p className="target-form__error" role="alert">{errorMessage}</p>}
 
           <div className="target-form__actions">
-            <a href="/photo-memories">Back to list</a>
+            <a href="/photo-memories">목록으로 돌아가기</a>
             <button disabled={isSubmitting} type="submit">
-              {isSubmitting ? 'Uploading...' : 'Upload'}
+              {isSubmitting ? '업로드 중...' : 'Upload'}
             </button>
           </div>
         </form>
 
         {createdPhotoMemory && (
           <section className="target-detail-card">
-            <h2>Uploaded PhotoMemory #{createdPhotoMemory.id}</h2>
+            <h2>업로드된 사진 기억 #{createdPhotoMemory.id}</h2>
             <p>{createdPhotoMemory.title}</p>
             <div className="target-form__actions">
-              <a href={`/storybooks/create?photo_memory_id=${createdPhotoMemory.id}`}>Use for StoryBook</a>
-              <a href="/photo-memories">Open list</a>
+              <a href={`/storybooks/create?photo_memory_id=${createdPhotoMemory.id}`}>스토리북에 사용</a>
+              <a href="/photo-memories">목록 열기</a>
             </div>
           </section>
         )}
@@ -3406,9 +3406,9 @@ function StorybookSummaryCard({ storybook }: { storybook: StoryBookResponse }) {
       <div className="target-card__body">
         <div className="target-card__title-row">
           <h2>{storybook.title}</h2>
-          <span>{storybook.status}</span>
+          <span>{getDisplayLabel(storybook.status)}</span>
         </div>
-        <p>{storybook.summary ?? 'No summary returned.'}</p>
+        <p>{storybook.summary ?? '요약이 없습니다.'}</p>
         <dl>
           <div>
             <dt>id</dt>
@@ -3419,8 +3419,8 @@ function StorybookSummaryCard({ storybook }: { storybook: StoryBookResponse }) {
             <dd>{storybook.source_type}</dd>
           </div>
           <div>
-            <dt>visibility</dt>
-            <dd>{storybook.visibility}</dd>
+            <dt>공개 범위</dt>
+            <dd>{getDisplayLabel(storybook.visibility)}</dd>
           </div>
           <div>
             <dt>interview_session_id</dt>
@@ -3432,8 +3432,8 @@ function StorybookSummaryCard({ storybook }: { storybook: StoryBookResponse }) {
           </div>
         </dl>
         <div className="target-form__actions">
-          <a href={`/storybooks/detail?storybook_id=${storybook.id}`}>Open detail</a>
-          <a href={`/storybooks/share?storybook_id=${storybook.id}`}>Share links</a>
+          <a href={`/storybooks/detail?storybook_id=${storybook.id}`}>상세 보기</a>
+          <a href={`/storybooks/share?storybook_id=${storybook.id}`}>공유 링크</a>
         </div>
       </div>
     </article>
@@ -3470,27 +3470,27 @@ function StorybookListApiPage() {
   }, [loadStorybooks])
 
   return (
-    <AppShell title="StoryBooks" subtitle="Lists backend StoryBook records." badge="API connected">
+    <AppShell title="스토리북" subtitle="백엔드 StoryBook 기록을 조회합니다." badge="API 연결됨">
       <main className="domain-page target-api-page">
         <header className="domain-page__hero">
           <div>
-            <span className="domain-page__eyebrow">StorybookListPage</span>
-            <h1>StoryBooks</h1>
-            <p>GET /storybooks returns the current user&apos;s non-deleted storybooks.</p>
+            <span className="domain-page__eyebrow">스토리북 목록</span>
+            <h1>스토리북</h1>
+            <p>GET /storybooks는 현재 사용자의 삭제되지 않은 스토리북을 반환합니다.</p>
           </div>
           <span className="domain-page__badge domain-page__badge--connected">GET /storybooks</span>
         </header>
 
         <div className="target-form__actions">
-          <a href="/storybooks/create">Create StoryBook</a>
-          <button disabled={isLoading} onClick={() => void loadStorybooks()} type="button">Refresh</button>
+          <a href="/storybooks/create">스토리북 만들기</a>
+          <button disabled={isLoading} onClick={() => void loadStorybooks()} type="button">새로고침</button>
         </div>
 
         {errorMessage && <p className="target-form__error" role="alert">{errorMessage}</p>}
-        {isLoading && <TargetStateMessage title="Loading StoryBooks" message="Fetching StoryBook list from the backend." />}
-        {!isLoading && storybooks.length === 0 && <TargetStateMessage title="No StoryBooks" message="Create a StoryBook from an interview session or PhotoMemory source." />}
+        {isLoading && <TargetStateMessage title="스토리북을 불러오는 중" message="백엔드에서 스토리북 목록을 불러오고 있습니다." />}
+        {!isLoading && storybooks.length === 0 && <TargetStateMessage title="스토리북이 없습니다" message="인터뷰 세션 또는 사진 기억 소스로 스토리북을 만들어 주세요." />}
 
-        <section className="target-card-grid" aria-label="StoryBook list">
+        <section className="target-card-grid" aria-label="스토리북 목록">
           {storybooks.map((storybook) => (
             <StorybookSummaryCard key={storybook.id} storybook={storybook} />
           ))}
@@ -3534,12 +3534,12 @@ function StorybookCreateApiPage() {
   }
 
   return (
-    <AppShell title="Create StoryBook" subtitle="Creates StoryBook from documented source ids." badge="API connected">
+    <AppShell title="스토리북 만들기" subtitle="문서화된 source id로 StoryBook을 생성합니다." badge="API 연결됨">
       <main className="domain-page target-api-page">
         <header className="domain-page__hero">
           <div>
-            <span className="domain-page__eyebrow">StorybookCreatePage</span>
-            <h1>Create StoryBook</h1>
+            <span className="domain-page__eyebrow">스토리북 생성</span>
+            <h1>스토리북 만들기</h1>
             <p>Request body follows StoryBookCreateRequest.</p>
           </div>
           <span className="domain-page__badge domain-page__badge--connected">POST /storybooks</span>
@@ -3547,7 +3547,7 @@ function StorybookCreateApiPage() {
 
         <form className="target-form" onSubmit={handleCreate}>
           <div className="target-form__field">
-            <label htmlFor="storybook-title">title</label>
+            <label htmlFor="storybook-title">제목</label>
             <input id="storybook-title" maxLength={255} minLength={1} onChange={(event) => setTitle(event.target.value)} required value={title} />
           </div>
           <div className="target-form__field">
@@ -3559,18 +3559,18 @@ function StorybookCreateApiPage() {
             <input id="storybook-photo-memory-id" inputMode="numeric" onChange={(event) => setPhotoMemoryId(event.target.value)} type="number" value={photoMemoryId} />
           </div>
           <div className="target-form__field">
-            <label htmlFor="storybook-visibility">visibility</label>
+            <label htmlFor="storybook-visibility">공개 범위</label>
             <select id="storybook-visibility" onChange={(event) => setVisibility(event.target.value as StoryBookVisibility)} value={visibility}>
               {storyBookVisibilityOptions.map((option) => (
-                <option key={option} value={option}>{option}</option>
+                <option key={option} value={option}>{getDisplayLabel(option)}</option>
               ))}
             </select>
           </div>
 
           {errorMessage && <p className="target-form__error" role="alert">{errorMessage}</p>}
           <div className="target-form__actions">
-            <a href="/storybooks">Back to list</a>
-            <button disabled={isSubmitting} type="submit">{isSubmitting ? 'Creating...' : 'Create StoryBook'}</button>
+            <a href="/storybooks">목록으로 돌아가기</a>
+            <button disabled={isSubmitting} type="submit">{isSubmitting ? '생성 중...' : '스토리북 만들기'}</button>
           </div>
         </form>
 
@@ -3579,8 +3579,8 @@ function StorybookCreateApiPage() {
             <h2>Created StoryBook #{createdStorybook.id}</h2>
             <p>{createdStorybook.summary ?? createdStorybook.title}</p>
             <div className="target-form__actions">
-              <a href={`/storybooks/detail?storybook_id=${createdStorybook.id}`}>Open detail</a>
-              <a href={`/storybooks/share?storybook_id=${createdStorybook.id}`}>Create share link</a>
+              <a href={`/storybooks/detail?storybook_id=${createdStorybook.id}`}>상세 보기</a>
+              <a href={`/storybooks/share?storybook_id=${createdStorybook.id}`}>공유 링크 생성</a>
             </div>
           </section>
         )}
@@ -3591,7 +3591,7 @@ function StorybookCreateApiPage() {
 
 function StoryChapterList({ chapters }: { chapters: StoryChapterResponse[] }) {
   return (
-    <section className="target-card-grid" aria-label="Story chapters">
+    <section className="target-card-grid" aria-label="스토리 챕터">
       {chapters.map((chapter) => (
         <article className="target-card" key={chapter.id}>
           <div className="target-card__body">
@@ -3701,12 +3701,12 @@ function StorybookDetailApiPage() {
   }
 
   return (
-    <AppShell title="StoryBook Detail" subtitle="Reads StoryBook detail and chapter list." badge="API connected">
+    <AppShell title="스토리북 상세" subtitle="StoryBook 상세와 챕터 목록을 조회합니다." badge="API 연결됨">
       <main className="domain-page target-api-page">
         <header className="domain-page__hero">
           <div>
-            <span className="domain-page__eyebrow">StorybookDetailPage</span>
-            <h1>StoryBook detail</h1>
+            <span className="domain-page__eyebrow">스토리북 상세</span>
+            <h1>스토리북 상세</h1>
             <p>Renders StoryBookDetailResponse and StoryChapterResponse fields.</p>
           </div>
           <span className="domain-page__badge domain-page__badge--connected">GET chapters</span>
@@ -3718,20 +3718,20 @@ function StorybookDetailApiPage() {
             <input id="storybook-detail-id" inputMode="numeric" onChange={(event) => setStorybookIdInput(event.target.value)} required type="number" value={storybookIdInput} />
           </div>
           <div className="target-form__actions">
-            <button disabled={isLoading} type="submit">{isLoading ? 'Loading...' : 'Load StoryBook'}</button>
-            <button disabled={isRegenerating} onClick={() => void handleRegenerate()} type="button">{isRegenerating ? 'Regenerating...' : 'Regenerate'}</button>
+            <button disabled={isLoading} type="submit">{isLoading ? 'Loading...' : '스토리북 불러오기'}</button>
+            <button disabled={isRegenerating} onClick={() => void handleRegenerate()} type="button">{isRegenerating ? '재생성 중...' : '재생성'}</button>
           </div>
         </form>
 
         {notice && <p className="target-form__notice">{notice}</p>}
         {errorMessage && <p className="target-form__error" role="alert">{errorMessage}</p>}
-        {isLoading && <TargetStateMessage title="Loading StoryBook" message="Fetching StoryBook and chapters." />}
+        {isLoading && <TargetStateMessage title="스토리북을 불러오는 중" message="스토리북과 챕터를 불러오고 있습니다." />}
 
         {storybook && (
           <section className="target-detail-card">
             <div className="target-card__title-row">
               <h2>{storybook.title}</h2>
-              <span>{storybook.status}</span>
+              <span>{getDisplayLabel(storybook.status)}</span>
             </div>
             <p>{storybook.summary ?? 'No summary returned.'}</p>
             <dl>
@@ -3740,8 +3740,8 @@ function StorybookDetailApiPage() {
                 <dd>{storybook.source_type}</dd>
               </div>
               <div>
-                <dt>visibility</dt>
-                <dd>{storybook.visibility}</dd>
+                <dt>공개 범위</dt>
+                <dd>{getDisplayLabel(storybook.visibility)}</dd>
               </div>
               <div>
                 <dt>created_at</dt>
@@ -3749,7 +3749,7 @@ function StorybookDetailApiPage() {
               </div>
             </dl>
             <div className="target-form__actions">
-              <a href={`/storybooks/share?storybook_id=${storybook.id}`}>Share links</a>
+              <a href={`/storybooks/share?storybook_id=${storybook.id}`}>공유 링크</a>
             </div>
           </section>
         )}
@@ -3857,12 +3857,12 @@ function StorybookShareApiPage() {
   }
 
   return (
-    <AppShell title="StoryBook Share" subtitle="Creates and manages StoryBook share links." badge="API connected">
+    <AppShell title="스토리북 공유" subtitle="스토리북 공유 링크를 생성하고 관리합니다." badge="API 연결됨">
       <main className="domain-page target-api-page">
         <header className="domain-page__hero">
           <div>
-            <span className="domain-page__eyebrow">StorybookSharePage</span>
-            <h1>Share links</h1>
+            <span className="domain-page__eyebrow">스토리북 공유</span>
+            <h1>공유 링크</h1>
             <p>Create, list, and disable ShareLink records for a StoryBook.</p>
           </div>
           <span className="domain-page__badge domain-page__badge--connected">ShareLink</span>
@@ -3878,15 +3878,15 @@ function StorybookShareApiPage() {
             <input id="share-expires-at" onChange={(event) => setExpiresAt(event.target.value)} type="datetime-local" value={expiresAt} />
           </div>
           <div className="target-form__actions">
-            <button disabled={isLoading} type="submit">{isLoading ? 'Loading...' : 'Load share links'}</button>
-            <button disabled={isCreating} onClick={() => void handleCreateShareLink()} type="button">{isCreating ? 'Creating...' : 'Create share link'}</button>
+            <button disabled={isLoading} type="submit">{isLoading ? 'Loading...' : '공유 링크 불러오기'}</button>
+            <button disabled={isCreating} onClick={() => void handleCreateShareLink()} type="button">{isCreating ? '생성 중...' : '공유 링크 생성'}</button>
           </div>
         </form>
 
         {notice && <p className="target-form__notice">{notice}</p>}
         {errorMessage && <p className="target-form__error" role="alert">{errorMessage}</p>}
 
-        <section className="target-card-grid" aria-label="Share links">
+        <section className="target-card-grid" aria-label="공유 링크">
           {shareLinks.map((shareLink) => (
             <article className="target-card" key={shareLink.id}>
               <div className="target-card__body">
@@ -3909,7 +3909,7 @@ function StorybookShareApiPage() {
                   </div>
                 </dl>
                 <div className="target-form__actions">
-                  <a href={`/share/${shareLink.token}`}>Open public page</a>
+                  <a href={`/share/${shareLink.token}`}>공개 페이지 열기</a>
                   <button disabled={!shareLink.is_active || disablingId === shareLink.id} onClick={() => void handleDisableShareLink(shareLink.id)} type="button">
                     {disablingId === shareLink.id ? 'Disabling...' : 'Disable'}
                   </button>
@@ -3963,14 +3963,14 @@ function PublicShareApiPage() {
     <main className="domain-page target-api-page">
       <header className="domain-page__hero">
         <div>
-          <span className="domain-page__eyebrow">Public Share</span>
+          <span className="domain-page__eyebrow">공개 공유</span>
           <h1>{sharedStorybook?.title ?? 'Shared StoryBook'}</h1>
           <p>{sharedStorybook?.summary ?? 'Public shared StoryBook token page.'}</p>
         </div>
-        <span className="domain-page__badge domain-page__badge--connected">No auth</span>
+        <span className="domain-page__badge domain-page__badge--connected">인증 없음</span>
       </header>
 
-      {isLoading && <TargetStateMessage title="Loading shared StoryBook" message="Fetching public StoryBook by share token." />}
+      {isLoading && <TargetStateMessage title="공유 스토리북을 불러오는 중" message="공유 토큰으로 공개 스토리북을 불러오고 있습니다." />}
       {errorMessage && <p className="target-form__error" role="alert">{errorMessage}</p>}
 
       {sharedStorybook && (
@@ -3980,13 +3980,13 @@ function PublicShareApiPage() {
             <p>{sharedStorybook.summary ?? 'No summary returned.'}</p>
             <dl>
               <div>
-                <dt>visibility</dt>
-                <dd>{sharedStorybook.visibility}</dd>
+                <dt>공개 범위</dt>
+                <dd>{getDisplayLabel(sharedStorybook.visibility)}</dd>
               </div>
             </dl>
           </section>
 
-          <section className="target-card-grid" aria-label="Public story chapters">
+          <section className="target-card-grid" aria-label="공개 스토리 챕터">
             {sharedStorybook.chapters.map((chapter) => (
               <article className="target-card" key={`${chapter.order_index}-${chapter.title}`}>
                 <div className="target-card__body">
@@ -4007,7 +4007,7 @@ function PublicShareApiPage() {
 }
 
 function GroupRoleBadge({ role }: { role: GroupMemberRole }) {
-  return <span className={`persona-status-badge persona-status-badge--${role.toLowerCase()}`}>{role}</span>
+  return <span className={`persona-status-badge persona-status-badge--${role.toLowerCase()}`}>{getDisplayLabel(role)}</span>
 }
 
 function MemoryGroupCard({ group }: { group: MemoryGroupResponse }) {
@@ -4034,7 +4034,7 @@ function MemoryGroupCard({ group }: { group: MemoryGroupResponse }) {
           </div>
         </dl>
         <div className="target-form__actions">
-          <a href={`/groups/detail?group_id=${group.id}`}>Open group</a>
+          <a href={`/groups/detail?group_id=${group.id}`}>그룹 열기</a>
         </div>
       </div>
     </article>
@@ -4095,12 +4095,12 @@ function MemoryGroupListApiPage() {
   }
 
   return (
-    <AppShell title="Memory Groups" subtitle="Creates and lists backend MemoryGroup records." badge="API connected">
+    <AppShell title="기억 그룹" subtitle="백엔드 MemoryGroup 기록을 생성하고 조회합니다." badge="API 연결됨">
       <main className="domain-page target-api-page">
         <header className="domain-page__hero">
           <div>
-            <span className="domain-page__eyebrow">MemoryGroupListPage</span>
-            <h1>Memory groups</h1>
+            <span className="domain-page__eyebrow">기억 그룹 목록</span>
+            <h1>기억 그룹</h1>
             <p>GET /groups returns groups where the current user is an active member.</p>
           </div>
           <span className="domain-page__badge domain-page__badge--connected">GET POST /groups</span>
@@ -4108,27 +4108,27 @@ function MemoryGroupListApiPage() {
 
         <form className="target-form" onSubmit={handleCreateGroup}>
           <div className="target-form__field">
-            <label htmlFor="group-name">name</label>
+            <label htmlFor="group-name">이름</label>
             <input id="group-name" maxLength={255} minLength={1} onChange={(event) => setName(event.target.value)} required value={name} />
             <p className="target-form__helper">MemoryGroupCreateRequest.name</p>
           </div>
           <div className="target-form__field">
-            <label htmlFor="group-description">description</label>
+            <label htmlFor="group-description">설명</label>
             <textarea id="group-description" onChange={(event) => setDescription(event.target.value)} value={description} />
             <p className="target-form__helper">Optional MemoryGroupCreateRequest.description</p>
           </div>
           <div className="target-form__actions">
-            <button disabled={isCreating} type="submit">{isCreating ? 'Creating...' : 'Create group'}</button>
-            <button disabled={isLoading} onClick={() => void loadGroups()} type="button">{isLoading ? 'Loading...' : 'Refresh'}</button>
+            <button disabled={isCreating} type="submit">{isCreating ? '생성 중...' : '그룹 만들기'}</button>
+            <button disabled={isLoading} onClick={() => void loadGroups()} type="button">{isLoading ? 'Loading...' : '새로고침'}</button>
           </div>
         </form>
 
         {notice && <p className="target-form__notice">{notice}</p>}
         {errorMessage && <p className="target-form__error" role="alert">{errorMessage}</p>}
-        {isLoading && <TargetStateMessage title="Loading groups" message="Fetching MemoryGroup list from the backend." />}
-        {!isLoading && groups.length === 0 && <TargetStateMessage title="No groups" message="Create a MemoryGroup to share StoryBooks with members." />}
+        {isLoading && <TargetStateMessage title="그룹을 불러오는 중" message="백엔드에서 MemoryGroup 목록을 불러오고 있습니다." />}
+        {!isLoading && groups.length === 0 && <TargetStateMessage title="그룹이 없습니다" message="멤버와 스토리북을 공유하려면 기억 그룹을 만들어 주세요." />}
 
-        <section className="target-card-grid" aria-label="MemoryGroup list">
+        <section className="target-card-grid" aria-label="기억 그룹 목록">
           {groups.map((group) => (
             <MemoryGroupCard group={group} key={group.id} />
           ))}
@@ -4268,13 +4268,13 @@ function MemoryGroupDetailApiPage() {
   }
 
   return (
-    <AppShell title="Memory Group Detail" subtitle="Reads group detail, members, and shared StoryBooks." badge="API connected">
+    <AppShell title="기억 그룹 상세" subtitle="그룹 상세, 멤버, 공유된 스토리북을 조회합니다." badge="API 연결됨">
       <main className="domain-page target-api-page">
         <header className="domain-page__hero">
           <div>
-            <span className="domain-page__eyebrow">MemoryGroupDetailPage</span>
-            <h1>Memory group detail</h1>
-            <p>Uses MemoryGroupDetailResponse.my_role and GroupMemberRole values returned by the backend.</p>
+            <span className="domain-page__eyebrow">기억 그룹 상세</span>
+            <h1>기억 그룹 상세</h1>
+            <p>백엔드가 반환한 MemoryGroupDetailResponse.my_role과 GroupMemberRole 값을 사용합니다.</p>
           </div>
           <span className="domain-page__badge domain-page__badge--connected">GroupMemberRole</span>
         </header>
@@ -4285,14 +4285,14 @@ function MemoryGroupDetailApiPage() {
             <input id="group-detail-id" inputMode="numeric" onChange={(event) => setGroupIdInput(event.target.value)} required type="number" value={groupIdInput} />
           </div>
           <div className="target-form__actions">
-            <a href="/groups">Back to groups</a>
+            <a href="/groups">그룹 목록으로 돌아가기</a>
             <button disabled={isLoading} type="submit">{isLoading ? 'Loading...' : 'Load group'}</button>
           </div>
         </form>
 
         {notice && <p className="target-form__notice">{notice}</p>}
         {errorMessage && <p className="target-form__error" role="alert">{errorMessage}</p>}
-        {isLoading && <TargetStateMessage title="Loading group" message="Fetching group detail, members, and group StoryBooks." />}
+        {isLoading && <TargetStateMessage title="그룹을 불러오는 중" message="그룹 상세, 멤버, 그룹 스토리북을 불러오고 있습니다." />}
 
         {group && (
           <section className="target-detail-card">
@@ -4300,7 +4300,7 @@ function MemoryGroupDetailApiPage() {
               <h2>{group.name}</h2>
               <GroupRoleBadge role={group.my_role} />
             </div>
-            <p>{group.description ?? 'No description returned.'}</p>
+            <p>{group.description ?? '설명이 없습니다.'}</p>
             <dl>
               <div>
                 <dt>id</dt>
@@ -4324,47 +4324,47 @@ function MemoryGroupDetailApiPage() {
 
         <section className="mock-feature-layout">
           <form className="target-form" onSubmit={handleAddMember}>
-            <h2>Add member</h2>
-            <p className="target-form__helper">OpenAPI describes this action as OWNER-only.</p>
+            <h2>멤버 추가</h2>
+            <p className="target-form__helper">OpenAPI 기준으로 OWNER만 수행할 수 있는 작업입니다.</p>
             <div className="target-form__field">
               <label htmlFor="group-member-user-id">user_id</label>
               <input id="group-member-user-id" inputMode="numeric" onChange={(event) => setMemberUserId(event.target.value)} required type="number" value={memberUserId} />
             </div>
             <div className="target-form__field">
-              <label htmlFor="group-member-role">role</label>
+              <label htmlFor="group-member-role">역할</label>
               <select id="group-member-role" onChange={(event) => setMemberRole(event.target.value as GroupMemberRole)} value={memberRole}>
                 {groupMemberRoleOptions.map((role) => (
-                  <option key={role} value={role}>{role}</option>
+                  <option key={role} value={role}>{getDisplayLabel(role)}</option>
                 ))}
               </select>
             </div>
             <div className="target-form__actions">
               <button disabled={!group || !canAddMember || isAddingMember} type="submit">
-                {isAddingMember ? 'Adding...' : 'Add member'}
+                {isAddingMember ? '추가 중...' : '멤버 추가'}
               </button>
             </div>
-            {group && !canAddMember && <p className="target-form__helper">Only backend-returned my_role OWNER can add members.</p>}
+            {group && !canAddMember && <p className="target-form__helper">백엔드가 반환한 my_role이 OWNER일 때만 멤버를 추가할 수 있습니다.</p>}
           </form>
 
           <form className="target-form" onSubmit={handleShareStorybook}>
-            <h2>Share StoryBook</h2>
-            <p className="target-form__helper">POST /groups/{'{group_id}'}/storybooks/{'{storybook_id}'} has no request body.</p>
+            <h2>스토리북 공유</h2>
+            <p className="target-form__helper">POST /groups/{'{group_id}'}/storybooks/{'{storybook_id}'}는 request body가 없습니다.</p>
             <div className="target-form__field">
               <label htmlFor="group-storybook-id">storybook_id</label>
               <input id="group-storybook-id" inputMode="numeric" onChange={(event) => setStorybookId(event.target.value)} required type="number" value={storybookId} />
             </div>
             <div className="target-form__actions">
-              <button disabled={!group || isSharingStorybook} type="submit">{isSharingStorybook ? 'Sharing...' : 'Share to group'}</button>
+              <button disabled={!group || isSharingStorybook} type="submit">{isSharingStorybook ? '공유 중...' : '그룹에 공유'}</button>
             </div>
           </form>
         </section>
 
-        <section className="target-card-grid" aria-label="Group members">
+        <section className="target-card-grid" aria-label="그룹 멤버">
           {members.map((member) => (
             <article className="target-card" key={member.id}>
               <div className="target-card__body">
                 <div className="target-card__title-row">
-                  <h2>User #{member.user_id}</h2>
+                  <h2>사용자 #{member.user_id}</h2>
                   <GroupRoleBadge role={member.role} />
                 </div>
                 <dl>
@@ -4390,17 +4390,17 @@ function MemoryGroupDetailApiPage() {
           ))}
         </section>
 
-        {group && members.length === 0 && <TargetStateMessage title="No members returned" message="The group member list endpoint returned an empty array." />}
+        {group && members.length === 0 && <TargetStateMessage title="멤버가 없습니다" message="그룹 멤버 목록 endpoint가 빈 배열을 반환했습니다." />}
 
-        <section className="target-card-grid" aria-label="Group StoryBooks">
+        <section className="target-card-grid" aria-label="그룹 스토리북">
           {groupStorybooks.map((storybook) => (
             <article className="target-card" key={storybook.id}>
               <div className="target-card__body">
                 <div className="target-card__title-row">
                   <h2>{storybook.title}</h2>
-                  <span>{storybook.visibility}</span>
+                  <span>{getDisplayLabel(storybook.visibility)}</span>
                 </div>
-                <p>{storybook.summary ?? 'No summary returned.'}</p>
+                <p>{storybook.summary ?? '요약이 없습니다.'}</p>
                 <dl>
                   <div>
                     <dt>id</dt>
@@ -4412,14 +4412,14 @@ function MemoryGroupDetailApiPage() {
                   </div>
                 </dl>
                 <div className="target-form__actions">
-                  <a href={`/storybooks/detail?storybook_id=${storybook.id}`}>Open StoryBook</a>
+                  <a href={`/storybooks/detail?storybook_id=${storybook.id}`}>스토리북 열기</a>
                 </div>
               </div>
             </article>
           ))}
         </section>
 
-        {group && groupStorybooks.length === 0 && <TargetStateMessage title="No group StoryBooks" message="Share one of your StoryBooks to this group." />}
+        {group && groupStorybooks.length === 0 && <TargetStateMessage title="그룹 스토리북이 없습니다" message="내 스토리북 중 하나를 이 그룹에 공유하세요." />}
       </main>
     </AppShell>
   )
@@ -4595,15 +4595,15 @@ function DeletionRequestApiPage() {
   }
 
   return (
-    <AppShell title="Deletion Requests" subtitle="Creates, lists, reads, and cancels user deletion requests." badge="API connected">
+    <AppShell title="삭제 요청" subtitle="사용자 삭제 요청을 생성, 조회, 상세 확인, 취소합니다." badge="API 연결됨">
       <main className="domain-page target-api-page">
         <header className="domain-page__hero">
           <div>
-            <span className="domain-page__eyebrow">DeletionRequestPage</span>
-            <h1>Deletion requests</h1>
+            <span className="domain-page__eyebrow">삭제 요청</span>
+            <h1>삭제 요청</h1>
             <p>Deletion requests use backend DeletionTargetType and DeletionStatus values only.</p>
           </div>
-          <span className="domain-page__badge domain-page__badge--connected">Deletion API</span>
+          <span className="domain-page__badge domain-page__badge--connected">삭제 API</span>
         </header>
 
         <form className="target-form" onSubmit={handleCreateDeletionRequest}>
@@ -4611,7 +4611,7 @@ function DeletionRequestApiPage() {
             <label htmlFor="deletion-target-type">target_type</label>
             <select id="deletion-target-type" onChange={(event) => setTargetType(event.target.value as DeletionTargetType)} value={targetType}>
               {deletionTargetTypeOptions.map((option) => (
-                <option key={option} value={option}>{option}</option>
+                <option key={option} value={option}>{getDisplayLabel(option)}</option>
               ))}
             </select>
           </div>
@@ -4621,12 +4621,12 @@ function DeletionRequestApiPage() {
             <p className="target-form__helper">Optional in DeletionRequestCreateRequest; leave empty only when the backend accepts null for the selected target_type.</p>
           </div>
           <div className="target-form__field">
-            <label htmlFor="deletion-reason">reason</label>
+            <label htmlFor="deletion-reason">사유</label>
             <textarea id="deletion-reason" onChange={(event) => setReason(event.target.value)} value={reason} />
           </div>
           <div className="target-form__actions">
-            <button disabled={isCreating} type="submit">{isCreating ? 'Creating...' : 'Create deletion request'}</button>
-            <button disabled={isLoading} onClick={() => void loadDeletionRequests()} type="button">{isLoading ? 'Loading...' : 'Refresh'}</button>
+            <button disabled={isCreating} type="submit">{isCreating ? '생성 중...' : 'Create deletion request'}</button>
+            <button disabled={isLoading} onClick={() => void loadDeletionRequests()} type="button">{isLoading ? 'Loading...' : '새로고침'}</button>
           </div>
         </form>
 
@@ -4636,13 +4636,13 @@ function DeletionRequestApiPage() {
             <input id="deletion-detail-id" inputMode="numeric" onChange={(event) => setDetailId(event.target.value)} required type="number" value={detailId} />
           </div>
           <div className="target-form__actions">
-            <button type="submit">Load detail</button>
+            <button type="submit">상세 불러오기</button>
           </div>
         </form>
 
         {notice && <p className="target-form__notice">{notice}</p>}
         {errorMessage && <p className="target-form__error" role="alert">{errorMessage}</p>}
-        {isLoading && <TargetStateMessage title="Loading deletion requests" message="Fetching current user's deletion requests." />}
+        {isLoading && <TargetStateMessage title="삭제 요청을 불러오는 중" message="현재 사용자의 삭제 요청을 불러오고 있습니다." />}
 
         {selectedRequest && (
           <section className="target-detail-card">
@@ -4668,9 +4668,9 @@ function DeletionRequestApiPage() {
           </section>
         )}
 
-        {!isLoading && requests.length === 0 && <TargetStateMessage title="No deletion requests" message="No deletion requests have been returned by the backend." />}
+        {!isLoading && requests.length === 0 && <TargetStateMessage title="삭제 요청이 없습니다" message="백엔드가 반환한 삭제 요청이 없습니다." />}
 
-        <section className="target-card-grid" aria-label="Deletion requests">
+        <section className="target-card-grid" aria-label="삭제 요청">
           {requests.map((request) => (
             <DeletionRequestCard
               isCancelling={cancellingId === request.id}
@@ -4829,15 +4829,15 @@ function ReportApiPage() {
   }
 
   return (
-    <AppShell title="Reports" subtitle="Creates, lists, and reads user reports." badge="API connected">
+    <AppShell title="신고" subtitle="사용자 신고를 생성하고 목록과 상세를 조회합니다." badge="API 연결됨">
       <main className="domain-page target-api-page">
         <header className="domain-page__hero">
           <div>
-            <span className="domain-page__eyebrow">ReportPage</span>
-            <h1>Reports</h1>
+            <span className="domain-page__eyebrow">신고</span>
+            <h1>신고</h1>
             <p>Report target and reason enums are rendered directly from OpenAPI values.</p>
           </div>
-          <span className="domain-page__badge domain-page__badge--connected">Report API</span>
+          <span className="domain-page__badge domain-page__badge--connected">신고 API</span>
         </header>
 
         <form className="target-form" onSubmit={handleCreateReport}>
@@ -4845,7 +4845,7 @@ function ReportApiPage() {
             <label htmlFor="report-target-type">target_type</label>
             <select id="report-target-type" onChange={(event) => setTargetType(event.target.value as ReportTargetType)} value={targetType}>
               {reportTargetTypeOptions.map((option) => (
-                <option key={option} value={option}>{option}</option>
+                <option key={option} value={option}>{getDisplayLabel(option)}</option>
               ))}
             </select>
           </div>
@@ -4857,7 +4857,7 @@ function ReportApiPage() {
             <label htmlFor="report-reason-type">reason_type</label>
             <select id="report-reason-type" onChange={(event) => setReasonType(event.target.value as ReportReasonType)} value={reasonType}>
               {reportReasonTypeOptions.map((option) => (
-                <option key={option} value={option}>{option}</option>
+                <option key={option} value={option}>{getDisplayLabel(option)}</option>
               ))}
             </select>
           </div>
@@ -4872,15 +4872,15 @@ function ReportApiPage() {
 
         <form className="target-form target-media-target-form" onSubmit={handlePageSubmit}>
           <div className="target-form__field">
-            <label htmlFor="report-page">page</label>
+            <label htmlFor="report-page">페이지</label>
             <input id="report-page" min={1} onChange={(event) => setPage(Number(event.target.value))} required type="number" value={page} />
           </div>
           <div className="target-form__field">
-            <label htmlFor="report-size">size</label>
+            <label htmlFor="report-size">표시 개수</label>
             <input id="report-size" max={100} min={1} onChange={(event) => setSize(Number(event.target.value))} required type="number" value={size} />
           </div>
           <div className="target-form__actions">
-            <button disabled={isLoading} type="submit">{isLoading ? 'Loading...' : 'Load reports'}</button>
+            <button disabled={isLoading} type="submit">{isLoading ? 'Loading...' : '신고 불러오기'}</button>
           </div>
         </form>
 
@@ -4890,25 +4890,25 @@ function ReportApiPage() {
             <input id="report-detail-id" inputMode="numeric" onChange={(event) => setDetailId(event.target.value)} required type="number" value={detailId} />
           </div>
           <div className="target-form__actions">
-            <button type="submit">Load report detail</button>
+            <button type="submit">신고 상세 불러오기</button>
           </div>
         </form>
 
         {notice && <p className="target-form__notice">{notice}</p>}
         {errorMessage && <p className="target-form__error" role="alert">{errorMessage}</p>}
-        {isLoading && <TargetStateMessage title="Loading reports" message="Fetching user reports from the backend." />}
+        {isLoading && <TargetStateMessage title="신고를 불러오는 중" message="백엔드에서 사용자 신고를 불러오고 있습니다." />}
 
-        <section className="domain-page__metrics" aria-label="Report pagination">
+        <section className="domain-page__metrics" aria-label="신고 페이지 정보">
           <article>
-            <span>total</span>
+            <span>전체</span>
             <strong>{total}</strong>
           </article>
           <article>
-            <span>page</span>
+            <span>페이지</span>
             <strong>{page}</strong>
           </article>
           <article>
-            <span>size</span>
+            <span>표시 개수</span>
             <strong>{size}</strong>
           </article>
         </section>
@@ -4937,9 +4937,9 @@ function ReportApiPage() {
           </section>
         )}
 
-        {!isLoading && reports.length === 0 && <TargetStateMessage title="No reports" message="No reports have been returned by the backend." />}
+        {!isLoading && reports.length === 0 && <TargetStateMessage title="신고가 없습니다" message="백엔드가 반환한 신고가 없습니다." />}
 
-        <section className="target-card-grid" aria-label="Reports">
+        <section className="target-card-grid" aria-label="신고">
           {reports.map((report) => (
             <ReportCard key={report.id} report={report} />
           ))}
@@ -4966,7 +4966,7 @@ function VoiceCallBubble({ message }: { message: VoiceCallMessage }) {
     <article className={`voice-call-message voice-call-message--${message.sender.toLowerCase()}`}>
       <header>
         <strong>{message.sender}</strong>
-        <span>{message.message_type}</span>
+        <span>{getDisplayLabel(message.message_type)}</span>
       </header>
       {message.text && <p>{message.text}</p>}
       {audioUrl && <audio controls preload="metadata" src={audioUrl} />}
@@ -5008,7 +5008,7 @@ function PersonaVoiceCallApiPage() {
       setVoiceProfileGate(profile)
 
       if (!isVoiceProfileReadyForCall(profile)) {
-        setVoiceProfileGateError('Voice call requires voice profile status READY and review_status USER_CONFIRMED or ADMIN_APPROVED.')
+        setVoiceProfileGateError('음성 통화에는 음성 프로필 상태 READY와 review_status USER_CONFIRMED 또는 ADMIN_APPROVED가 필요합니다.')
         return
       }
 
@@ -5022,15 +5022,15 @@ function PersonaVoiceCallApiPage() {
   }
 
   return (
-    <AppShell title="Persona Voice Call" subtitle="Realtime voice conversation over the documented WebSocket endpoint." badge="WebSocket connected">
+    <AppShell title="페르소나 음성 통화" subtitle="문서화된 WebSocket endpoint로 실시간 음성 대화를 진행합니다." badge="WebSocket 연결됨">
       <main className="domain-page target-api-page voice-call-page">
         <header className="domain-page__hero">
           <div>
-            <span className="domain-page__eyebrow">PersonaVoiceCallPage</span>
-            <h1>Persona voice call</h1>
-            <p>Uses /ws/personas/{'{persona_id}'}/voice with access token query authentication.</p>
+            <span className="domain-page__eyebrow">페르소나 음성 통화</span>
+            <h1>페르소나 음성 통화</h1>
+            <p>/ws/personas/{'{persona_id}'}/voice endpoint와 access token query 인증을 사용합니다.</p>
           </div>
-          <span className="domain-page__badge domain-page__badge--connected">Voice WebSocket</span>
+          <span className="domain-page__badge domain-page__badge--connected">음성 WebSocket</span>
         </header>
 
         <section className="voice-call-layout">
@@ -5047,7 +5047,7 @@ function PersonaVoiceCallApiPage() {
                   type="number"
                   value={personaIdInput}
                 />
-                <p className="target-form__helper">Path param for the voice WebSocket endpoint.</p>
+                <p className="target-form__helper">음성 WebSocket endpoint의 path param입니다.</p>
               </div>
 
               <div className="target-form__field">
@@ -5061,11 +5061,11 @@ function PersonaVoiceCallApiPage() {
                   type="number"
                   value={chatIdInput}
                 />
-                <p className="target-form__helper">Sent in the documented start message body.</p>
+                <p className="target-form__helper">문서화된 start 메시지 본문으로 전송됩니다.</p>
               </div>
 
               <button disabled={!canConnect || voiceCall.status === 'connecting' || isCheckingVoiceProfile} type="submit">
-                {isCheckingVoiceProfile ? 'Checking voice profile...' : voiceCall.status === 'connecting' ? 'Connecting...' : 'Connect'}
+                {isCheckingVoiceProfile ? '음성 프로필 확인 중...' : voiceCall.status === 'connecting' ? '연결 중...' : '연결'}
               </button>
             </form>
 
@@ -5074,7 +5074,7 @@ function PersonaVoiceCallApiPage() {
               <dl>
                 <div>
                   <dt>session_id</dt>
-                  <dd>{voiceCall.sessionId ?? 'Not started'}</dd>
+                  <dd>{voiceCall.sessionId ?? '시작 전'}</dd>
                 </div>
                 <div>
                   <dt>mime_type</dt>
@@ -5082,11 +5082,11 @@ function PersonaVoiceCallApiPage() {
                 </div>
                 <div>
                   <dt>voice_profile.status</dt>
-                  <dd>{voiceProfileGate?.status ?? 'Not checked'}</dd>
+                  <dd>{getDisplayLabel(voiceProfileGate?.status)}</dd>
                 </div>
                 <div>
                   <dt>review_status</dt>
-                  <dd>{voiceProfileGate?.review_status ?? 'Not checked'}</dd>
+                  <dd>{getDisplayLabel(voiceProfileGate?.review_status)}</dd>
                 </div>
               </dl>
             </div>
@@ -5105,32 +5105,32 @@ function PersonaVoiceCallApiPage() {
 
             {voiceCall.isMicPermissionDenied && (
               <p className="target-form__helper" role="status">
-                Browser microphone permission is required before recording audio chunks.
+                음성 조각을 녹음하려면 브라우저 마이크 권한이 필요합니다.
               </p>
             )}
 
-            <div className="voice-call-actions" aria-label="Voice call controls">
+            <div className="voice-call-actions" aria-label="음성 통화 컨트롤">
               <button disabled={!canRecord} onClick={() => void voiceCall.startRecording()} type="button">
-                Start speaking
+                말하기 시작
               </button>
               <button disabled={!canEndUtterance} onClick={voiceCall.endUtterance} type="button">
-                End utterance
+                발화 종료
               </button>
               <button disabled={!canStop} onClick={voiceCall.stopCall} type="button">
-                End call
+                통화 종료
               </button>
             </div>
           </div>
 
-          <section className="voice-call-panel voice-call-panel--conversation" aria-label="Voice conversation">
+          <section className="voice-call-panel voice-call-panel--conversation" aria-label="음성 대화">
             <div className="voice-call-live-caption">
               <span>partial_transcript</span>
-              <p>{voiceCall.partialTranscript || 'Waiting for live transcript...'}</p>
+              <p>{voiceCall.partialTranscript || '실시간 자막을 기다리는 중...'}</p>
             </div>
 
             {voiceCall.messages.length === 0 && (
               <p className="persona-chat-empty">
-                Connect, start speaking, and press End utterance to receive final transcript and persona response events.
+                연결 후 말하기를 시작하고 발화 종료를 누르면 최종 자막과 페르소나 응답 이벤트를 받을 수 있습니다.
               </p>
             )}
 
@@ -5213,34 +5213,34 @@ function AdminDashboardApiPage() {
   }, [loadDashboard])
 
   return (
-    <AppShell title="Admin" subtitle="Admin APIs are protected by backend get_admin_user." badge="API connected">
+    <AppShell title="관리자" subtitle="관리자 API는 백엔드 get_admin_user로 보호됩니다." badge="API 연결됨">
       <main className="domain-page target-api-page">
         <header className="domain-page__hero">
           <div>
-            <span className="domain-page__eyebrow">AdminDashboardPage</span>
-            <h1>Admin dashboard</h1>
+            <span className="domain-page__eyebrow">관리자 대시보드</span>
+            <h1>관리자 대시보드</h1>
             <p>Client role gating is not inferred because OpenAPI UserResponse has no role field; backend 403 is displayed here.</p>
           </div>
           <span className="domain-page__badge domain-page__badge--connected">/admin/*</span>
         </header>
 
         <div className="target-form__actions">
-          <a href="/admin/verification">Verification review</a>
-          <a href="/admin/reports">Reports</a>
-          <a href="/admin/audit-logs">Audit logs</a>
-          <a href="/admin/voice-profiles">Voice profiles</a>
-          <button disabled={isLoading} onClick={() => void loadDashboard()} type="button">{isLoading ? 'Loading...' : 'Refresh'}</button>
+          <a href="/admin/verification">입증 검토</a>
+          <a href="/admin/reports">신고</a>
+          <a href="/admin/audit-logs">감사 로그</a>
+          <a href="/admin/voice-profiles">음성 프로필</a>
+          <button disabled={isLoading} onClick={() => void loadDashboard()} type="button">{isLoading ? 'Loading...' : '새로고침'}</button>
         </div>
 
         <AdminPermissionMessage message={errorMessage} />
-        {isLoading && <TargetStateMessage title="Loading admin summary" message="Fetching admin API totals." />}
+        {isLoading && <TargetStateMessage title="관리자 요약을 불러오는 중" message="관리자 API 합계를 불러오고 있습니다." />}
 
-        <section className="domain-page__metrics" aria-label="Admin totals">
-          <article><span>verification</span><strong>{counts.verifications}</strong></article>
-          <article><span>reports</span><strong>{counts.reports}</strong></article>
-          <article><span>audit logs</span><strong>{counts.auditLogs}</strong></article>
-          <article><span>usage limits</span><strong>{counts.usageLimits}</strong></article>
-          <article><span>rate limit events</span><strong>{counts.rateLimitEvents}</strong></article>
+        <section className="domain-page__metrics" aria-label="관리자 합계">
+          <article><span>입증</span><strong>{counts.verifications}</strong></article>
+          <article><span>신고</span><strong>{counts.reports}</strong></article>
+          <article><span>감사 로그</span><strong>{counts.auditLogs}</strong></article>
+          <article><span>사용량 제한</span><strong>{counts.usageLimits}</strong></article>
+          <article><span>Rate limit 이벤트</span><strong>{counts.rateLimitEvents}</strong></article>
         </section>
 
         <AdminUsageLimitPanel />
@@ -5261,7 +5261,7 @@ function AdminVerificationCard({ request }: { request: VerificationRequestAdminR
         <dl>
           <div><dt>user_id</dt><dd>{request.user_id}</dd></div>
           <div><dt>target_id</dt><dd>{request.target_id}</dd></div>
-          <div><dt>verification_type</dt><dd>{request.verification_type}</dd></div>
+          <div><dt>verification_type</dt><dd>{getDisplayLabel(request.verification_type)}</dd></div>
           <div><dt>mime_type</dt><dd>{request.mime_type}</dd></div>
           <div><dt>file_size</dt><dd>{formatFileSize(request.file_size)}</dd></div>
           <div><dt>admin_note</dt><dd>{request.admin_note ?? 'null'}</dd></div>
@@ -5378,23 +5378,23 @@ function AdminVerificationReviewApiPage() {
   }
 
   return (
-    <AppShell title="Admin Verification" subtitle="Reviews TargetVerificationRequest records." badge="API connected">
+    <AppShell title="관리자 입증 검토" subtitle="TargetVerificationRequest 기록을 검토합니다." badge="API 연결됨">
       <main className="domain-page target-api-page">
         <header className="domain-page__hero">
           <div>
-            <span className="domain-page__eyebrow">AdminVerificationReviewPage</span>
-            <h1>Verification review</h1>
+            <span className="domain-page__eyebrow">관리자 입증 검토</span>
+            <h1>입증 검토</h1>
             <p>List, detail, file view, approve, reject, need-more-info, and revoke actions are connected.</p>
           </div>
-          <span className="domain-page__badge domain-page__badge--connected">Verification admin</span>
+          <span className="domain-page__badge domain-page__badge--connected">입증 관리자</span>
         </header>
 
         <form className="target-form target-media-target-form" onSubmit={(event) => { event.preventDefault(); void loadRequests() }}>
           <div className="target-form__field">
-            <label htmlFor="admin-verification-status">status</label>
+            <label htmlFor="admin-verification-status">상태</label>
             <select id="admin-verification-status" onChange={(event) => setStatus(event.target.value as VerificationStatus | '')} value={status}>
-              <option value="">all</option>
-              {verificationStatusOptions.map((option) => <option key={option} value={option}>{option}</option>)}
+              <option value="">전체</option>
+              {verificationStatusOptions.map((option) => <option key={option} value={option}>{getDisplayLabel(option)}</option>)}
             </select>
           </div>
           <button disabled={isLoading} type="submit">{isLoading ? 'Loading...' : 'Load'}</button>
@@ -5418,12 +5418,12 @@ function AdminVerificationReviewApiPage() {
             <input id="admin-verification-expires" onChange={(event) => setExpiresAt(event.target.value)} type="datetime-local" value={expiresAt} />
           </div>
           <div className="target-form__actions">
-            <button type="submit">Load detail</button>
-            <button onClick={() => void handleDownloadFile()} type="button">Open file</button>
-            <button onClick={() => void handleVerificationAction('approve')} type="button">Approve</button>
-            <button disabled={rejectionReason.length < 5} onClick={() => void handleVerificationAction('reject')} type="button">Reject</button>
-            <button disabled={adminNote.length < 5} onClick={() => void handleVerificationAction('need-more-info')} type="button">Need more info</button>
-            <button onClick={() => void handleVerificationAction('revoke')} type="button">Revoke</button>
+            <button type="submit">상세 불러오기</button>
+            <button onClick={() => void handleDownloadFile()} type="button">파일 열기</button>
+            <button onClick={() => void handleVerificationAction('approve')} type="button">승인</button>
+            <button disabled={rejectionReason.length < 5} onClick={() => void handleVerificationAction('reject')} type="button">거절</button>
+            <button disabled={adminNote.length < 5} onClick={() => void handleVerificationAction('need-more-info')} type="button">추가 정보 요청</button>
+            <button onClick={() => void handleVerificationAction('revoke')} type="button">승인 철회</button>
           </div>
         </form>
 
@@ -5533,26 +5533,26 @@ function AdminReportsApiPage() {
   }
 
   return (
-    <AppShell title="Admin Reports" subtitle="Reviews user reports with backend admin report APIs." badge="API connected">
+    <AppShell title="관리자 신고" subtitle="백엔드 관리자 신고 API로 사용자 신고를 검토합니다." badge="API 연결됨">
       <main className="domain-page target-api-page">
         <header className="domain-page__hero">
           <div>
-            <span className="domain-page__eyebrow">AdminReportsPage</span>
-            <h1>Admin reports</h1>
+            <span className="domain-page__eyebrow">관리자 신고</span>
+            <h1>관리자 신고</h1>
             <p>OpenAPI admin report response is untyped, so returned fields are rendered generically.</p>
           </div>
-          <span className="domain-page__badge domain-page__badge--connected">Report admin</span>
+          <span className="domain-page__badge domain-page__badge--connected">신고 관리자</span>
         </header>
 
         <form className="target-form target-media-target-form" onSubmit={(event) => { event.preventDefault(); void loadReports() }}>
           <div className="target-form__field">
-            <label htmlFor="admin-report-status">status</label>
+            <label htmlFor="admin-report-status">상태</label>
             <select id="admin-report-status" onChange={(event) => setStatus(event.target.value as ReportStatus | '')} value={status}>
-              <option value="">all</option>
-              {reportStatusOptions.map((option) => <option key={option} value={option}>{option}</option>)}
+              <option value="">전체</option>
+              {reportStatusOptions.map((option) => <option key={option} value={option}>{getDisplayLabel(option)}</option>)}
             </select>
           </div>
-          <button type="submit">Load reports</button>
+          <button type="submit">신고 불러오기</button>
         </form>
 
         <form className="target-form" onSubmit={handleDetail}>
@@ -5565,7 +5565,7 @@ function AdminReportsApiPage() {
             <textarea id="admin-report-note" onChange={(event) => setAdminNote(event.target.value)} value={adminNote} />
           </div>
           <div className="target-form__actions">
-            <button type="submit">Load detail</button>
+            <button type="submit">상세 불러오기</button>
             {adminReportActionOptions.map((action) => (
               <button key={action} onClick={() => void handleAction(action)} type="button">{action}</button>
             ))}
@@ -5574,9 +5574,9 @@ function AdminReportsApiPage() {
 
         {notice && <p className="target-form__notice">{notice}</p>}
         <AdminPermissionMessage message={errorMessage} />
-        <section className="domain-page__metrics"><article><span>total</span><strong>{total}</strong></article></section>
+        <section className="domain-page__metrics"><article><span>전체</span><strong>{total}</strong></article></section>
         {selected && <AdminReportCard report={selected} />}
-        <section className="target-card-grid" aria-label="Admin reports">
+        <section className="target-card-grid" aria-label="관리자 신고">
           {reports.map((report, index) => <AdminReportCard key={`${getRecordId(report) ?? index}`} report={report} />)}
         </section>
       </main>
@@ -5614,12 +5614,12 @@ function AdminAuditLogsApiPage() {
   }, [loadLogs])
 
   return (
-    <AppShell title="Admin Audit Logs" subtitle="Lists audit logs and rate limit events." badge="API connected">
+    <AppShell title="관리자 감사 로그" subtitle="감사 로그와 rate limit 이벤트를 조회합니다." badge="API 연결됨">
       <main className="domain-page target-api-page">
         <header className="domain-page__hero">
           <div>
-            <span className="domain-page__eyebrow">AdminAuditLogsPage</span>
-            <h1>Audit logs</h1>
+            <span className="domain-page__eyebrow">관리자 감사 로그</span>
+            <h1>감사 로그</h1>
             <p>Audit filters use backend AuditAction and AuditTargetType enum values.</p>
           </div>
           <span className="domain-page__badge domain-page__badge--connected">Audit + RateLimit</span>
@@ -5627,24 +5627,24 @@ function AdminAuditLogsApiPage() {
 
         <form className="target-form target-media-target-form" onSubmit={(event) => { event.preventDefault(); void loadLogs() }}>
           <div className="target-form__field">
-            <label htmlFor="audit-action">action</label>
+            <label htmlFor="audit-action">작업</label>
             <select id="audit-action" onChange={(event) => setAction(event.target.value as AuditAction | '')} value={action}>
-              <option value="">all</option>
-              {auditActionOptions.map((option) => <option key={option} value={option}>{option}</option>)}
+              <option value="">전체</option>
+              {auditActionOptions.map((option) => <option key={option} value={option}>{getDisplayLabel(option)}</option>)}
             </select>
           </div>
           <div className="target-form__field">
             <label htmlFor="audit-target-type">target_type</label>
             <select id="audit-target-type" onChange={(event) => setTargetType(event.target.value as AuditTargetType | '')} value={targetType}>
-              <option value="">all</option>
-              {auditTargetTypeOptions.map((option) => <option key={option} value={option}>{option}</option>)}
+              <option value="">전체</option>
+              {auditTargetTypeOptions.map((option) => <option key={option} value={option}>{getDisplayLabel(option)}</option>)}
             </select>
           </div>
-          <button type="submit">Load logs</button>
+          <button type="submit">로그 불러오기</button>
         </form>
 
         <AdminPermissionMessage message={errorMessage} />
-        <section className="target-card-grid" aria-label="Audit logs">
+        <section className="target-card-grid" aria-label="감사 로그">
           {auditLogs.map((log) => (
             <article className="target-card" key={log.id}>
               <div className="target-card__body">
@@ -5661,7 +5661,7 @@ function AdminAuditLogsApiPage() {
           ))}
         </section>
 
-        <section className="target-card-grid" aria-label="Rate limit events">
+        <section className="target-card-grid" aria-label="Rate limit 이벤트">
           {rateLimitEvents.map((event) => (
             <article className="target-card" key={event.id}>
               <div className="target-card__body">
@@ -5669,7 +5669,7 @@ function AdminAuditLogsApiPage() {
                 <p>{event.reason ?? event.event_type}</p>
                 <dl>
                   <div><dt>user_id</dt><dd>{event.user_id ?? 'null'}</dd></div>
-                  <div><dt>count</dt><dd>{event.count}</dd></div>
+                  <div><dt>횟수</dt><dd>{event.count}</dd></div>
                   <div><dt>window_seconds</dt><dd>{event.window_seconds ?? 'null'}</dd></div>
                   <div><dt>created_at</dt><dd>{formatDateTime(event.created_at)}</dd></div>
                 </dl>
@@ -5736,15 +5736,15 @@ function AdminVoiceProfileReviewApiPage() {
   }
 
   return (
-    <AppShell title="Admin Voice Profile" subtitle="Reviews PersonaVoiceProfile records." badge="API connected">
+    <AppShell title="관리자 음성 프로필" subtitle="PersonaVoiceProfile 기록을 검토합니다." badge="API 연결됨">
       <main className="domain-page target-api-page">
         <header className="domain-page__hero">
           <div>
-            <span className="domain-page__eyebrow">AdminVoiceProfileReviewPage</span>
-            <h1>Voice profile review</h1>
+            <span className="domain-page__eyebrow">관리자 음성 프로필 검토</span>
+            <h1>음성 프로필 검토</h1>
             <p>Admin voice profile detail, approve, reject, and revoke APIs are connected.</p>
           </div>
-          <span className="domain-page__badge domain-page__badge--connected">Voice profile admin</span>
+          <span className="domain-page__badge domain-page__badge--connected">음성 프로필 관리자</span>
         </header>
 
         <form className="target-form" onSubmit={handleLoad}>
@@ -5757,10 +5757,10 @@ function AdminVoiceProfileReviewApiPage() {
             <textarea id="admin-voice-profile-note" onChange={(event) => setReviewNote(event.target.value)} value={reviewNote} />
           </div>
           <div className="target-form__actions">
-            <button type="submit">Load profile</button>
-            <button onClick={() => void handleAction('approve')} type="button">Approve</button>
-            <button onClick={() => void handleAction('reject')} type="button">Reject</button>
-            <button onClick={() => void handleAction('revoke')} type="button">Revoke</button>
+            <button type="submit">프로필 불러오기</button>
+            <button onClick={() => void handleAction('approve')} type="button">승인</button>
+            <button onClick={() => void handleAction('reject')} type="button">거절</button>
+            <button onClick={() => void handleAction('revoke')} type="button">승인 철회</button>
           </div>
         </form>
 
@@ -5839,7 +5839,7 @@ function AdminUsageLimitPanel() {
 
   return (
     <section className="target-detail-card">
-      <h2>Usage limits</h2>
+      <h2>사용량 제한</h2>
       <form className="target-form target-media-target-form" onSubmit={(event) => { event.preventDefault(); void updateUserLimit() }}>
         <div className="target-form__field"><label htmlFor="usage-user-id">user_id</label><input id="usage-user-id" onChange={(event) => setUserId(event.target.value)} type="number" value={userId} /></div>
         <div className="target-form__field"><label htmlFor="usage-persona-id">persona_id</label><input id="usage-persona-id" onChange={(event) => setPersonaId(event.target.value)} type="number" value={personaId} /></div>
@@ -5847,13 +5847,13 @@ function AdminUsageLimitPanel() {
         <div className="target-form__field"><label htmlFor="usage-stt-limit">stt_request_limit</label><input id="usage-stt-limit" onChange={(event) => setSttLimit(event.target.value)} type="number" value={sttLimit} /></div>
         <div className="target-form__field"><label htmlFor="usage-call-limit">voice_call_seconds_limit</label><input id="usage-call-limit" onChange={(event) => setCallLimit(event.target.value)} type="number" value={callLimit} /></div>
         <div className="target-form__actions">
-          <button type="submit">Update user limit</button>
-          <button onClick={() => void updatePersonaLimit()} type="button">Update persona limit</button>
-          <button onClick={() => void loadUsageLimits()} type="button">Refresh</button>
+          <button type="submit">사용자 제한 수정</button>
+          <button onClick={() => void updatePersonaLimit()} type="button">페르소나 제한 수정</button>
+          <button onClick={() => void loadUsageLimits()} type="button">새로고침</button>
         </div>
       </form>
       <AdminPermissionMessage message={errorMessage} />
-      <section className="target-card-grid" aria-label="Usage limits">
+      <section className="target-card-grid" aria-label="사용량 제한">
         {usageLimits.map((limit) => (
           <article className="target-card" key={limit.id}>
             <div className="target-card__body">
@@ -5930,7 +5930,7 @@ export function MockFeaturePage({ pageKey }: { pageKey: MockFeaturePageKey }) {
 
           <aside className="mock-feature-panel mock-feature-panel--side">
             <section>
-              <h2>Available later</h2>
+              <h2>나중에 제공</h2>
               <div className="mock-feature-actions">
                 {page.actions.map((action) => (
                   <button disabled key={action.label} title={action.disabledReason} type="button">
@@ -5943,8 +5943,8 @@ export function MockFeaturePage({ pageKey }: { pageKey: MockFeaturePageKey }) {
               </p>
             </section>
 
-            <section className="mock-feature-endpoints" aria-label="Planned API endpoints">
-              <h2>Planned API paths</h2>
+            <section className="mock-feature-endpoints" aria-label="연결 예정 API endpoint">
+              <h2>연결 예정 API 경로</h2>
               <ul>
                 {page.endpoints.map((endpoint) => (
                   <li key={`${endpoint.method}-${endpoint.path}`}>

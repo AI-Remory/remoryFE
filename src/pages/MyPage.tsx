@@ -260,7 +260,7 @@ function MyPage() {
 
   return (
     <main className="my-page">
-      <section className="my-page__container" aria-label="Remory my page">
+      <section className="my-page__container" aria-label="Remory 내 페이지">
         <header className="my-page__header">
           <div>
             <h1>마이</h1>

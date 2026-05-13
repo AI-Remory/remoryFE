@@ -20,7 +20,7 @@ type AppShellProps = {
 
 function getGroupedNav(items: NavItem[]) {
   return items.reduce<Record<string, NavItem[]>>((groups, item) => {
-    const groupName = item.group ?? 'Navigation'
+    const groupName = item.group ?? '탐색'
     groups[groupName] = [...(groups[groupName] ?? []), item]
     return groups
   }, {})
@@ -44,7 +44,7 @@ export function DesktopNav({ items = defaultNavItems }: { items?: NavItem[] }) {
   const pathname = typeof window === 'undefined' ? '' : window.location.pathname
 
   return (
-    <aside className="app-shell__desktop-nav" aria-label="Desktop navigation">
+    <aside className="app-shell__desktop-nav" aria-label="데스크톱 메뉴">
       <a className="app-shell__desktop-brand" href="/home">Remory</a>
       {Object.entries(groups).map(([group, groupItems]) => (
         <section key={group}>
@@ -68,7 +68,7 @@ export function BottomNav({ items = defaultNavItems.filter((item) => item.mobile
   const pathname = typeof window === 'undefined' ? '' : window.location.pathname
 
   return (
-    <nav className="app-shell__bottom-nav" aria-label="Mobile navigation">
+    <nav className="app-shell__bottom-nav" aria-label="모바일 메뉴">
       {items.map((item) => (
         <a aria-current={pathname.startsWith(item.href) ? 'page' : undefined} href={item.href} key={item.href}>
           <span aria-hidden="true">{item.label.slice(0, 1)}</span>

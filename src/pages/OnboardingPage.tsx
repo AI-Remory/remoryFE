@@ -9,16 +9,16 @@ type OnboardingAction = {
 
 const onboardingActions: OnboardingAction[] = [
   {
-    title: 'Target 만들기',
+    title: '기억 대상 만들기',
     description: '기억을 남길 대상의 이름과 관계 정보를 직접 입력합니다.',
     href: '/targets/new',
-    status: 'required first',
+    status: '먼저 필요',
   },
   {
     title: '관계 입증 요청하기',
     description: 'Target 생성 후 필요한 관계 입증 자료를 사용자가 직접 제출합니다.',
     href: '/verification',
-    status: 'manual',
+    status: '직접 진행',
   },
   {
     title: '동의 관리하기',
@@ -30,16 +30,16 @@ const onboardingActions: OnboardingAction[] = [
     title: '사진/음성 업로드하기',
     description: 'Target을 선택한 뒤 사진 또는 음성 파일을 명시적으로 업로드합니다.',
     href: '/target-media',
-    status: 'manual upload',
+    status: '직접 업로드',
   },
 ]
 
 function OnboardingPage() {
   return (
     <main className="setup-page">
-      <section className="setup-page__container setup-page__container--guide" aria-label="Remory onboarding guide">
+      <section className="setup-page__container setup-page__container--guide" aria-label="Remory 온보딩 안내">
         <div className="setup-page__guide-hero">
-          <span className="setup-page__guide-eyebrow">Onboarding</span>
+          <span className="setup-page__guide-eyebrow">온보딩</span>
           <h1>처음 설정은 사용자가 직접 시작합니다</h1>
           <p>
             회원가입 직후 프론트가 Target, ConsentLog, VerificationRequest, Persona, StoryBook을 자동 생성하지
@@ -47,7 +47,7 @@ function OnboardingPage() {
           </p>
         </div>
 
-        <section className="setup-page__guide-grid" aria-label="Onboarding actions">
+        <section className="setup-page__guide-grid" aria-label="온보딩 작업">
           {onboardingActions.map((action) => (
             <article className="setup-page__guide-card" key={action.title}>
               <span>{action.status}</span>
@@ -58,7 +58,7 @@ function OnboardingPage() {
           ))}
         </section>
 
-        <section className="setup-page__guide-note" aria-label="Automatic creation policy">
+        <section className="setup-page__guide-note" aria-label="자동 생성 방지 정책">
           <h2>자동 생성 제거 정책</h2>
           <ul>
             <li>회원가입 성공 후 access token과 실제 refresh token만 저장합니다.</li>
@@ -69,7 +69,7 @@ function OnboardingPage() {
         </section>
 
         <div className="setup-page__guide-actions">
-          <a href="/targets/new">Target 만들기</a>
+          <a href="/targets/new">기억 대상 만들기</a>
           <a href="/home">나중에 하기</a>
         </div>
       </section>

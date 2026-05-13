@@ -8,17 +8,17 @@ function App() {
   const route = matchRoute(pathname)
 
   if (isLoading) {
-    return <main className="app-loading">Loading...</main>
+    return <main className="app-loading">불러오는 중...</main>
   }
 
   if (pathname.startsWith('/auth') && isAuthenticated) {
     window.location.replace('/dashboard')
-    return <main className="app-loading">Loading...</main>
+    return <main className="app-loading">이동하는 중...</main>
   }
 
   if (route?.protected && !isAuthenticated) {
     window.location.replace('/auth')
-    return <main className="app-loading">Loading...</main>
+    return <main className="app-loading">로그인 화면으로 이동하는 중...</main>
   }
 
   // TODO: Backend docs say admin APIs require User.role == "admin", but OpenAPI UserResponse has no role field.
@@ -31,7 +31,7 @@ function App() {
   }
 
   window.location.replace(isAuthenticated ? '/dashboard' : '/')
-  return <main className="app-loading">Loading...</main>
+  return <main className="app-loading">이동하는 중...</main>
 }
 
 export default App

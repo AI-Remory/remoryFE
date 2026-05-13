@@ -1,814 +1,179 @@
-@import url("https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700;800&display=swap");
+.account-page {
+  display: grid;
+  width: min(100%, 920px);
+  gap: 18px;
+  margin: 0 auto;
+}
 
-.my-page {
-  --my-bg: #fff9f1;
-  --my-card: rgba(255, 251, 246, 0.78);
-  --my-border: #efdecf;
-  --my-border-strong: #efd6c4;
-  --my-text: #332b28;
-  --my-muted: #6d625d;
-  --my-peach: #cf7b5c;
-  --my-purple: #775682;
-
-  display: flex;
-  justify-content: center;
-  width: 100%;
-  min-height: 100dvh;
-  overflow-y: auto;
+.account-page__profile,
+.account-page__section {
+  border: 1px solid var(--border);
+  border-radius: 22px;
   background:
-    radial-gradient(circle at top left, rgba(255, 235, 212, 0.72), transparent 32%),
-    radial-gradient(circle at bottom right, rgba(255, 238, 218, 0.7), transparent 36%),
-    linear-gradient(180deg, var(--my-bg) 0%, #fffdf9 44%, #fff7ed 100%);
-  color: var(--my-text);
-  font-family: "Noto Sans KR", var(--sans);
+    radial-gradient(circle at top left, rgba(255, 228, 216, 0.62), transparent 34%),
+    linear-gradient(135deg, rgba(255, 252, 248, 0.96), rgba(248, 246, 255, 0.9));
+  box-shadow: var(--shadow-soft);
 }
 
-.my-page__container {
-  width: 100%;
-  max-width: 480px;
-  min-height: 100dvh;
-  padding: 30px 14px 108px;
+.account-page__profile {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 22px;
 }
 
-.my-page h1,
-.my-page h2,
-.my-page p {
+.account-page__avatar {
+  display: grid;
+  width: 76px;
+  height: 76px;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 24px;
+  background: linear-gradient(135deg, var(--coral), var(--lavender));
+  color: #fff;
+  font-size: 2rem;
+  font-weight: 800;
+}
+
+.account-page__eyebrow {
+  margin: 0 0 6px;
+  color: var(--muted);
+  font-size: 0.92rem;
+  font-weight: 700;
+}
+
+.account-page h1,
+.account-page h2,
+.account-page p {
   margin: 0;
 }
 
-.my-page button {
-  font-family: inherit;
+.account-page h1 {
+  color: var(--text);
+  font-size: clamp(1.8rem, 3vw, 2.5rem);
+  line-height: 1.15;
 }
 
-.my-page__header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 18px;
-  padding: 4px 4px 21px;
-}
-
-.my-page__header h1 {
-  color: #2f2b29;
-  font-size: 31px;
-  font-weight: 800;
-  letter-spacing: -1px;
-  line-height: 1.1;
-}
-
-.my-page__header p {
+.account-page__profile p:last-child {
   margin-top: 8px;
-  color: #48403c;
-  font-size: 15px;
-  font-weight: 500;
-  letter-spacing: -0.3px;
-  line-height: 1.35;
+  color: var(--muted);
 }
 
-.my-page__notification {
-  position: relative;
+.account-page__section {
+  padding: 22px;
+}
+
+.account-page__section-heading {
   display: flex;
   align-items: center;
-  justify-content: center;
-  width: 43px;
-  height: 43px;
-  flex: 0 0 auto;
-  border: none;
-  background: transparent;
-  color: #746b65;
-  cursor: pointer;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
 }
 
-.my-page__notification svg {
-  width: 34px;
-  height: 34px;
+.account-page__section-heading h2 {
+  color: var(--text);
+  font-size: 1.18rem;
 }
 
-.my-page__notification span {
-  position: absolute;
-  top: 8px;
-  right: 6px;
-  width: 10px;
-  height: 10px;
-  border: 2px solid var(--my-bg);
-  border-radius: 50%;
-  background: #f08069;
+.account-page__section-heading span {
+  border: 1px solid rgba(207, 123, 92, 0.2);
+  border-radius: 999px;
+  padding: 7px 10px;
+  background: rgba(255, 244, 238, 0.86);
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 700;
 }
 
-.my-page__profile-card {
-  width: 100%;
-  padding: 25px 19px 21px;
-  border: 1px solid var(--my-border-strong);
-  border-radius: 20px;
-  background:
-    radial-gradient(circle at left top, rgba(255, 240, 224, 0.9), transparent 45%),
-    linear-gradient(135deg, rgba(255, 247, 238, 0.95), rgba(255, 253, 248, 0.95));
-  box-shadow: 0 8px 20px rgba(120, 75, 49, 0.07);
+.account-page__details {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin: 0;
 }
 
-.my-page__profile-top {
+.account-page__details div {
+  min-width: 0;
+  border: 1px solid rgba(221, 205, 194, 0.8);
+  border-radius: 16px;
+  padding: 14px;
+  background: rgba(255, 255, 255, 0.62);
+}
+
+.account-page__details dt {
+  color: var(--muted);
+  font-size: 0.86rem;
+  font-weight: 700;
+}
+
+.account-page__details dd {
+  margin: 7px 0 0;
+  color: var(--text);
+  font-size: 1rem;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.account-page__actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 23px;
+  gap: 10px;
 }
 
-.my-page__avatar-wrap {
-  position: relative;
-  width: 120px;
-  height: 120px;
-  flex: 0 0 auto;
-}
-
-.my-page__avatar {
-  position: relative;
-  width: 120px;
-  height: 120px;
-  overflow: hidden;
-  border: 3px solid #fff;
-  border-radius: 50%;
-  background: radial-gradient(circle at 34% 26%, #fff5ec 0, #e9c7ae 38%, #b98265 100%);
-  box-shadow: 0 4px 14px rgba(82, 44, 33, 0.13);
-}
-
-.my-page__avatar img,
-.my-page__persona-avatar img {
-  display: block;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.my-page__camera-button {
-  position: absolute;
-  right: -2px;
-  bottom: 4px;
-  display: flex;
+.account-page__actions a,
+.account-page__actions button {
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 40px;
-  height: 40px;
-  border: 3px solid var(--my-bg);
-  border-radius: 50%;
-  background: linear-gradient(180deg, #d99a78, #c78260);
+  min-height: 44px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  padding: 0 18px;
+  font: inherit;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.account-page__actions a {
+  background: linear-gradient(135deg, var(--coral), var(--lavender));
   color: #fff;
+}
+
+.account-page__actions button {
+  border-color: var(--border);
+  background: rgba(255, 255, 255, 0.74);
+  color: var(--text);
   cursor: pointer;
-  box-shadow: 0 5px 12px rgba(142, 91, 67, 0.24);
 }
 
-.my-page__camera-button svg {
-  width: 22px;
-  height: 22px;
-}
-
-.my-page__profile-copy {
-  flex: 1 1 160px;
-  min-width: 0;
-}
-
-.my-page__profile-copy h2 {
-  margin: 4px 0 10px;
-  color: #2e2927;
-  font-size: 26px;
-  font-weight: 800;
-  letter-spacing: -0.8px;
-  line-height: 1.1;
-}
-
-.my-page__profile-copy p {
-  color: #3d3633;
-  font-size: 16px;
-  font-weight: 500;
-  letter-spacing: -0.4px;
-  line-height: 1.62;
-}
-
-.my-page__profile-link {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 100px;
-  height: 40px;
-  flex: 0 0 auto;
-  gap: 2px;
-  border: 1px solid #edcdae;
-  border-radius: 999px;
-  background: rgba(255, 246, 235, 0.8);
-  color: #5d3829;
-  cursor: pointer;
-  font-size: 14px;
-  font-weight: 700;
-  letter-spacing: -0.3px;
-}
-
-.my-page__profile-link svg {
-  width: 16px;
-  height: 16px;
-}
-
-.my-page__stats {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-top: 18px;
-  padding-top: 12px;
-  border-top: 1px solid #ead4c0;
-}
-
-.my-page__stats div {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex: 1;
-  gap: 9px;
-  color: #81746d;
-  border-right: 1px solid #e5cdb8;
-}
-
-.my-page__stats div:last-child {
-  border-right: 0;
-}
-
-.my-page__stats svg {
-  width: 32px;
-  height: 32px;
-}
-
-.my-page__stats span,
-.my-page__stats strong {
-  display: block;
-}
-
-.my-page__stats span {
-  color: #4b403b;
-  font-size: 13px;
-  font-weight: 600;
-  letter-spacing: -0.3px;
-  line-height: 1.15;
-  white-space: nowrap;
-}
-
-.my-page__stats strong {
-  margin-top: 2px;
-  color: #2b2725;
-  font-size: 24px;
-  font-weight: 800;
-  letter-spacing: -0.8px;
-  line-height: 1;
-  white-space: nowrap;
-}
-
-.my-page__persona-section {
-  margin-top: 13px;
-  padding: 18px 15px 16px;
-  border: 1px solid var(--my-border);
-  border-radius: 20px;
-  background: rgba(255, 249, 241, 0.76);
-  box-shadow: 0 8px 18px rgba(111, 69, 43, 0.05);
-}
-
-.my-page__section-heading {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  margin-bottom: 13px;
-}
-
-.my-page__section-heading h2 {
-  color: #2f2926;
-  font-size: 18px;
-  font-weight: 800;
-  letter-spacing: -0.5px;
-  line-height: 1;
-}
-
-.my-page__section-heading button {
-  display: flex;
-  align-items: center;
-  gap: 1px;
-  padding: 0;
-  border: none;
-  background: transparent;
-  color: #6d5d54;
-  cursor: pointer;
-  font-size: 14px;
-  font-weight: 600;
-  letter-spacing: -0.3px;
-}
-
-.my-page__section-heading svg {
-  width: 16px;
-  height: 16px;
-}
-
-.my-page__persona-list {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 8px;
-}
-
-.my-page__persona-card {
-  display: flex;
-  align-items: center;
-  min-width: 0;
-  min-height: 62px;
-  gap: 10px;
-  padding: 10px 12px;
-  border: 1px solid #ead8c9;
-  border-radius: 16px;
-  background: rgba(255, 252, 247, 0.78);
-  color: var(--my-text);
-  cursor: pointer;
-  text-align: left;
-}
-
-.my-page__persona-avatar {
-  width: 44px;
-  height: 44px;
-  overflow: hidden;
-  flex: 0 0 auto;
-  border-radius: 50%;
-  background: #f0ddc8;
-}
-
-.my-page__persona-card > span:nth-child(2) {
-  display: flex;
-  flex: 1;
-  min-width: 0;
-  flex-direction: column;
-}
-
-.my-page__persona-card strong {
-  color: #2f2926;
-  font-size: 15px;
-  font-weight: 800;
-  letter-spacing: -0.4px;
-  line-height: 1.2;
-}
-
-.my-page__persona-card small {
-  margin-top: 5px;
-  color: #6f625b;
-  font-size: 12px;
-  font-weight: 500;
-  letter-spacing: -0.4px;
-  line-height: 1.35;
-  word-break: keep-all;
-}
-
-.my-page__persona-card > svg {
-  width: 16px;
-  height: 16px;
-  flex: 0 0 auto;
-  color: #8a7c73;
-}
-
-.my-page__create-persona {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  height: 46px;
-  margin-top: 10px;
-  border: none;
-  border-radius: 13px;
-  background: linear-gradient(90deg, rgba(245, 228, 235, 0.92), rgba(240, 230, 244, 0.92));
-  color: var(--my-purple);
-  cursor: pointer;
-  font-size: 16px;
-  font-weight: 800;
-  letter-spacing: -0.4px;
-}
-
-.my-page__menu-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 10px 13px;
+.account-page__note {
   margin-top: 14px;
+  border-left: 4px solid var(--coral);
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: rgba(255, 246, 239, 0.84);
+  color: var(--muted);
+  line-height: 1.6;
 }
 
-.my-page__menu-card,
-.my-page__wide-card {
-  display: flex;
-  align-items: center;
-  min-width: 0;
-  border: 1px solid var(--my-border);
-  border-radius: 15px;
-  background: var(--my-card);
-  box-shadow: 0 7px 16px rgba(97, 61, 38, 0.035);
-  color: var(--my-text);
-  cursor: pointer;
-  text-align: left;
-}
-
-.my-page__menu-card {
-  min-height: 86px;
-  padding: 16px 14px;
-}
-
-.my-page__wide-menu {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin-top: 11px;
-}
-
-.my-page__wide-card {
-  width: 100%;
-  min-height: 70px;
-  padding: 14px 18px 14px 16px;
-}
-
-.my-page__menu-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 49px;
-  height: 49px;
-  flex: 0 0 auto;
-  border-radius: 50%;
-  background: #f9dfd2;
-  color: #c96f52;
-}
-
-.my-page__menu-icon--card,
-.my-page__menu-icon--settings {
-  background: #eee4f6;
-  color: #8b6aa6;
-}
-
-.my-page__menu-icon--mic,
-.my-page__menu-icon--shield {
-  background: #deeadf;
-  color: #5e9876;
-}
-
-.my-page__menu-icon--book {
-  background: #f0ddc8;
-  color: #c18050;
-}
-
-.my-page__menu-icon--bell {
-  background: #f8dfd5;
-  color: #c56f4d;
-}
-
-.my-page__menu-icon--headset {
-  background: #f4dfdc;
-  color: #c36d64;
-}
-
-.my-page__menu-icon svg {
-  width: 27px;
-  height: 27px;
-}
-
-.my-page__menu-text {
-  display: flex;
-  flex: 1;
-  min-width: 0;
-  flex-direction: column;
-  margin-left: 14px;
-}
-
-.my-page__menu-text strong {
-  color: #2f2926;
-  font-size: 15px;
-  font-weight: 800;
-  letter-spacing: -0.4px;
-  line-height: 1.15;
-}
-
-.my-page__menu-text small {
-  margin-top: 7px;
-  color: var(--my-muted);
-  font-size: 12px;
-  font-weight: 500;
-  letter-spacing: -0.35px;
-  line-height: 1.38;
-}
-
-.my-page__wide-card .my-page__menu-text small {
-  font-size: 12.5px;
-}
-
-.my-page__menu-card > svg,
-.my-page__wide-card > svg {
-  width: 18px;
-  height: 18px;
-  flex: 0 0 auto;
-  color: #897970;
-}
-
-.my-page__monthly-banner {
-  position: relative;
-  min-height: 92px;
-  margin-top: 11px;
-  padding: 18px 170px 17px 17px;
-  overflow: hidden;
-  border: 1px solid #edcfaf;
-  border-radius: 15px;
-  background:
-    linear-gradient(90deg, rgba(255, 246, 233, 0.95) 0%, rgba(255, 244, 225, 0.72) 58%, rgba(255, 236, 213, 0.95) 100%),
-    radial-gradient(circle at 82% 33%, rgba(230, 172, 115, 0.18), transparent 38%);
-  box-shadow: 0 8px 16px rgba(119, 73, 44, 0.04);
-}
-
-.my-page__monthly-banner h2 {
-  position: relative;
-  color: #332925;
-  font-size: 17px;
-  font-weight: 800;
-  letter-spacing: -0.4px;
-  line-height: 1.1;
-  z-index: 1;
-}
-
-.my-page__monthly-banner p {
-  position: relative;
-  margin-top: 10px;
-  color: #544942;
-  font-size: 13px;
-  font-weight: 500;
-  letter-spacing: -0.35px;
-  line-height: 1.45;
-  z-index: 1;
-}
-
-.my-page__monthly-banner button {
-  position: absolute;
-  right: 16px;
-  top: 22px;
-  z-index: 2;
-  display: flex;
-  align-items: center;
-  height: 39px;
-  gap: 2px;
-  padding: 0 12px 0 16px;
-  border: 1px solid #e4c49e;
-  border-radius: 999px;
-  background: rgba(255, 247, 237, 0.78);
-  color: #5d3c2f;
-  cursor: pointer;
-  font-size: 13px;
-  font-weight: 800;
-  letter-spacing: -0.3px;
-}
-
-.my-page__monthly-banner button svg {
-  width: 16px;
-  height: 16px;
-}
-
-.my-page__banner-image {
-  position: absolute;
-  right: 0;
-  bottom: 0;
-  width: 190px;
-  height: 82px;
-  object-fit: contain;
-  object-position: right bottom;
-  opacity: 0.72;
-  pointer-events: none;
-}
-
-.my-page__bottom-nav {
-  position: fixed;
-  left: 50%;
-  bottom: 0;
-  z-index: 20;
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  width: 100%;
-  max-width: 480px;
-  height: 84px;
-  border-top: 1px solid #ead8c9;
-  background: rgba(255, 250, 244, 0.94);
-  box-shadow: 0 -8px 20px rgba(84, 52, 32, 0.045);
-  backdrop-filter: blur(14px);
-  transform: translateX(-50%);
-}
-
-.my-page__nav-button {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 5px;
-  border: none;
-  background: transparent;
-  color: #8d8078;
-  cursor: pointer;
-  font-size: 13px;
-  font-weight: 700;
-}
-
-.my-page__nav-button svg {
-  width: 29px;
-  height: 29px;
-}
-
-.my-page__nav-button span {
-  font-size: 13px;
-  font-weight: 700;
-  letter-spacing: -0.3px;
-  line-height: 1;
-}
-
-.my-page__nav-button.is-active,
-.my-page__nav-button.is-active span {
-  color: var(--my-peach);
-}
-
-.my-page button:focus-visible {
-  outline: 2px solid var(--my-peach);
+.account-page a:focus-visible,
+.account-page button:focus-visible {
+  outline: 3px solid rgba(207, 123, 92, 0.35);
   outline-offset: 3px;
 }
 
-.my-page button:hover {
-  filter: contrast(1.02);
-}
-
-@media (max-width: 430px) {
-  .my-page__container {
-    padding-right: 12px;
-    padding-left: 12px;
+@media (max-width: 700px) {
+  .account-page__profile {
+    align-items: flex-start;
   }
 
-  .my-page__profile-card {
-    padding: 22px 15px 18px;
-  }
-
-  .my-page__profile-top {
-    gap: 16px;
-  }
-
-  .my-page__avatar-wrap,
-  .my-page__avatar {
-    width: 104px;
-    height: 104px;
-  }
-
-  .my-page__camera-button {
-    width: 36px;
-    height: 36px;
-  }
-
-  .my-page__profile-top {
-    flex-wrap: wrap;
-  }
-
-  .my-page__profile-link {
-    margin-left: calc(104px + 16px);
-  }
-
-  .my-page__stats {
-    gap: 7px;
-  }
-
-  .my-page__stats div {
-    gap: 5px;
-  }
-
-  .my-page__stats span {
-    font-size: 11px;
-  }
-
-  .my-page__stats strong {
-    font-size: 21px;
-  }
-
-  .my-page__persona-list {
+  .account-page__details {
     grid-template-columns: 1fr;
-    gap: 8px;
   }
 
-  .my-page__persona-card {
-    min-height: 62px;
-    gap: 10px;
-    padding: 10px 12px;
-  }
-
-  .my-page__persona-avatar {
-    width: 44px;
-    height: 44px;
-  }
-
-  .my-page__persona-card strong {
-    font-size: 14px;
-  }
-
-  .my-page__persona-card small {
-    font-size: 11px;
-    line-height: 1.35;
-    word-break: keep-all;
-  }
-
-  .my-page__menu-grid {
-    gap: 9px;
-  }
-
-  .my-page__menu-card {
-    padding: 13px 10px;
-  }
-
-  .my-page__menu-icon {
-    width: 43px;
-    height: 43px;
-  }
-
-  .my-page__menu-text {
-    margin-left: 10px;
-  }
-
-  .my-page__menu-text strong {
-    font-size: 14px;
-  }
-
-  .my-page__menu-text small {
-    font-size: 11.5px;
-  }
-
-  .my-page__monthly-banner {
-    padding-right: 140px;
-  }
-
-  .my-page__banner-image {
-    right: -18px;
-    width: 170px;
-  }
-}
-
-@media (min-width: 900px) {
-  .my-page__container {
-    max-width: 1180px;
-    padding: 112px 32px 56px;
-  }
-
-  .my-page__header {
-    align-items: flex-end;
-    padding-bottom: 28px;
-  }
-
-  .my-page__header h1 {
-    font-size: 42px;
-  }
-
-  .my-page__profile-card {
-    padding: 28px;
-    border-radius: 22px;
-  }
-
-  .my-page__profile-top {
-    align-items: center;
-  }
-
-  .my-page__persona-list {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 12px;
-  }
-
-  .my-page__persona-section {
-    padding: 22px;
-  }
-
-  .my-page__menu-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-
-  .my-page__wide-menu {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 12px;
-  }
-
-  .my-page__monthly-banner {
-    min-height: 128px;
-    padding: 26px 260px 24px 28px;
-  }
-
-  .my-page__banner-image {
-    width: 250px;
-    height: 118px;
-  }
-
-  .my-page__bottom-nav {
-    top: 18px;
-    bottom: auto;
-    max-width: 1120px;
-    height: 68px;
-    border: 1px solid #ead8c9;
-    border-radius: 20px;
-    box-shadow: 0 12px 28px rgba(84, 52, 32, 0.08);
-  }
-}
-
-@media (min-width: 1180px) {
-  .my-page__persona-list {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-
-  .my-page__menu-grid {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+  .account-page__section-heading {
+    align-items: flex-start;
+    flex-direction: column;
   }
 }

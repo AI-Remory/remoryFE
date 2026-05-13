@@ -4,20 +4,44 @@ import { AppShell } from '../components/layout/AppShell'
 import { useVoiceCall } from '../hooks/useVoiceCall'
 import { ApiError } from '../services/apiClient'
 import { chatService } from '../services/chatService'
+import { consentService } from '../services/consentService'
 import { mediaService } from '../services/mediaService'
 import { mockFeatureService } from '../services/mock/mockFeatureService'
 import { personaService } from '../services/personaService'
 import { targetService } from '../services/targetService'
+import { verificationService } from '../services/verificationService'
 import type { MockFeaturePageKey } from '../data/mockFeaturePages'
 import type { ChatId, PersonaChatResponse, PersonaMessageResponse, SenderType } from '../types/chat'
+import type { ConsentResponse, ConsentType } from '../types/consent'
 import type { MediaType, TargetMediaResponse } from '../types/media'
 import type { PersonaDetailResponse, PersonaStatus, PersonaStatusResponse } from '../types/persona'
 import type { TargetDetailResponse, TargetResponse, TargetType } from '../types/target'
+import type { VerificationRequestResponse, VerificationStatus, VerificationType } from '../types/verification'
 import type { VoiceCallMessage, VoiceCallStatus } from '../types/voice'
 import { toPlayableFileUrl } from '../utils/fileUrl'
 import './DomainPages.css'
 
 const targetTypeOptions: TargetType[] = ['parent', 'grandparent', 'friend', 'romantic', 'self', 'other']
+const consentTypeOptions: ConsentType[] = [
+  'target_profile_consent',
+  'photo_upload_consent',
+  'voice_upload_consent',
+  'voice_cloning_consent',
+  'ai_persona_creation_consent',
+  'ai_response_notice_consent',
+  'storybook_share_consent',
+  'group_share_consent',
+  'data_retention_consent',
+  'third_party_ai_processing_consent',
+  'voice_collection',
+  'photo_collection',
+  'persona_creation',
+  'data_usage',
+  'ai_processing',
+  'ai_response_notice',
+  'storybook_share',
+]
+const verificationTypeOptions: VerificationType[] = ['FAMILY_RELATION_CERTIFICATE', 'ID_CARD', 'SELF_DECLARATION', 'OTHER']
 
 function getApiErrorMessage(error: unknown) {
   if (error instanceof ApiError) {
@@ -356,6 +380,20 @@ function TargetCreateApiPage() {
   )
 }
 
+function getLatestApprovedVerification(requests: VerificationRequestResponse[]) {
+  return requests.find((request) => request.status === 'APPROVED') ?? null
+}
+
+function hasPersonaCreationConsent(consents: ConsentResponse[]) {
+  return consents.some(
+    (consent) =>
+      consent.consent_type === 'ai_persona_creation_consent' &&
+      consent.is_consented &&
+      consent.is_agreed &&
+      !consent.revoked_at,
+  )
+}
+
 function TargetDetailApiPage() {
   const [targetId] = useState(() => getTargetIdFromLocation())
   const [target, setTarget] = useState<TargetDetailResponse | null>(null)
@@ -367,6 +405,9 @@ function TargetDetailApiPage() {
   const [errorMessage, setErrorMessage] = useState<string | null>(() => (targetId ? null : 'target_id is required.'))
   const [notice, setNotice] = useState<string | null>(null)
   const [isPermissionError, setIsPermissionError] = useState(false)
+  const [consents, setConsents] = useState<ConsentResponse[]>([])
+  const [verificationRequests, setVerificationRequests] = useState<VerificationRequestResponse[]>([])
+  const [gateErrorMessage, setGateErrorMessage] = useState<string | null>(null)
 
   useEffect(() => {
     if (!targetId) {
@@ -401,6 +442,38 @@ function TargetDetailApiPage() {
         if (isMounted) {
           setIsLoading(false)
         }
+      })
+
+    return () => {
+      isMounted = false
+    }
+  }, [targetId])
+
+  useEffect(() => {
+    if (!targetId) {
+      return
+    }
+
+    let isMounted = true
+
+    Promise.all([
+      consentService.listTargetConsents(targetId),
+      verificationService.listTargetVerificationRequests(targetId, { skip: 0, limit: 20 }),
+    ])
+      .then(([consentResponse, verificationResponse]) => {
+        if (!isMounted) {
+          return
+        }
+
+        setConsents(consentResponse)
+        setVerificationRequests(verificationResponse.items)
+      })
+      .catch((error: unknown) => {
+        if (!isMounted) {
+          return
+        }
+
+        setGateErrorMessage(getApiErrorMessage(error))
       })
 
     return () => {
@@ -459,6 +532,11 @@ function TargetDetailApiPage() {
 
   async function handleCreatePersona() {
     if (!targetId) {
+      return
+    }
+
+    if (!getLatestApprovedVerification(verificationRequests)) {
+      setErrorMessage('Persona creation requires an APPROVED verification request for this Target.')
       return
     }
 
@@ -553,6 +631,29 @@ function TargetDetailApiPage() {
             </article>
 
             <form className="target-form" onSubmit={handleUpdate}>
+              <section className="target-api-state">
+                <h2>Persona gate</h2>
+                {gateErrorMessage && <p role="alert">{gateErrorMessage}</p>}
+                <dl>
+                  <div>
+                    <dt>verification</dt>
+                    <dd>{getLatestApprovedVerification(verificationRequests) ? 'APPROVED' : 'APPROVED required'}</dd>
+                  </div>
+                  <div>
+                    <dt>ai_persona_creation_consent</dt>
+                    <dd>{hasPersonaCreationConsent(consents) ? 'consented' : 'not consented or revoked'}</dd>
+                  </div>
+                </dl>
+                <p>
+                  Persona creation is disabled until at least one Target verification request has status APPROVED. Server
+                  403 detail is shown unchanged when returned.
+                </p>
+                <div className="target-form__actions">
+                  <a href={`/verification?target_id=${target.id}`}>Open verification</a>
+                  <a href={`/consents?target_id=${target.id}`}>Open consent</a>
+                </div>
+              </section>
+
               <div className="target-form__field">
                 <label htmlFor="detail-target-name">name</label>
                 <input
@@ -606,7 +707,11 @@ function TargetDetailApiPage() {
                 <button disabled={isDeleting} onClick={handleDelete} type="button">
                   {isDeleting ? 'Deleting...' : 'Delete'}
                 </button>
-                <button disabled={isCreatingPersona} onClick={handleCreatePersona} type="button">
+                <button
+                  disabled={isCreatingPersona || !getLatestApprovedVerification(verificationRequests)}
+                  onClick={handleCreatePersona}
+                  type="button"
+                >
                   {isCreatingPersona ? 'Creating persona...' : 'Create persona'}
                 </button>
               </div>
@@ -1043,6 +1148,518 @@ function PersonaDetailCard({
         )}
       </aside>
     </section>
+  )
+}
+
+function ConsentApiPage() {
+  const [initialTargetId] = useState(() => getTargetIdFromLocation())
+  const [targetIdInput, setTargetIdInput] = useState(() => (initialTargetId ? String(initialTargetId) : ''))
+  const [activeTargetId, setActiveTargetId] = useState<number | null>(null)
+  const [consents, setConsents] = useState<ConsentResponse[]>([])
+  const [consentType, setConsentType] = useState<ConsentType>('ai_persona_creation_consent')
+  const [consentVersion, setConsentVersion] = useState('v1')
+  const [consentTextSnapshot, setConsentTextSnapshot] = useState('')
+  const [details, setDetails] = useState('')
+  const [isConsented, setIsConsented] = useState(true)
+  const [isLoading, setIsLoading] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [revokingConsentId, setRevokingConsentId] = useState<number | null>(null)
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const [notice, setNotice] = useState<string | null>(null)
+  const [isPermissionError, setIsPermissionError] = useState(false)
+
+  const loadConsents = useCallback(async (targetId: number) => {
+    setIsLoading(true)
+    setErrorMessage(null)
+    setNotice(null)
+    setIsPermissionError(false)
+
+    try {
+      const response = await consentService.listTargetConsents(targetId)
+      setConsents(response)
+      setActiveTargetId(targetId)
+    } catch (error) {
+      setIsPermissionError(isOwnerOnlyError(error))
+      setErrorMessage(getApiErrorMessage(error))
+    } finally {
+      setIsLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (initialTargetId) {
+      const timerId = window.setTimeout(() => {
+        void loadConsents(initialTargetId)
+      }, 0)
+
+      return () => {
+        window.clearTimeout(timerId)
+      }
+    }
+  }, [initialTargetId, loadConsents])
+
+  function handleSelectTarget(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    const targetId = Number(targetIdInput)
+
+    if (!Number.isInteger(targetId) || targetId <= 0) {
+      setErrorMessage('target_id must be a positive integer.')
+      return
+    }
+
+    void loadConsents(targetId)
+  }
+
+  async function handleCreateConsent(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    const targetId = Number(targetIdInput)
+
+    if (!Number.isInteger(targetId) || targetId <= 0) {
+      setErrorMessage('target_id must be a positive integer.')
+      return
+    }
+
+    setIsSubmitting(true)
+    setErrorMessage(null)
+    setNotice(null)
+    setIsPermissionError(false)
+
+    try {
+      await consentService.createConsent({
+        target_id: targetId,
+        consent_type: consentType,
+        consent_version: consentVersion,
+        consent_text_snapshot: consentTextSnapshot || null,
+        is_agreed: isConsented,
+        is_consented: isConsented,
+        details: details || null,
+      })
+      setNotice('Consent created.')
+      await loadConsents(targetId)
+    } catch (error) {
+      setIsPermissionError(isOwnerOnlyError(error))
+      setErrorMessage(getApiErrorMessage(error))
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  async function handleRevoke(consentId: number) {
+    if (!activeTargetId) {
+      return
+    }
+
+    setRevokingConsentId(consentId)
+    setErrorMessage(null)
+    setNotice(null)
+    setIsPermissionError(false)
+
+    try {
+      await consentService.revokeConsent(consentId)
+      setNotice('Consent revoked.')
+      await loadConsents(activeTargetId)
+    } catch (error) {
+      setIsPermissionError(isOwnerOnlyError(error))
+      setErrorMessage(getApiErrorMessage(error))
+    } finally {
+      setRevokingConsentId(null)
+    }
+  }
+
+  return (
+    <AppShell title="Consent" subtitle="Connected to ConsentLog APIs." badge="API connected">
+      <main className="domain-page target-api-page">
+        <header className="domain-page__hero">
+          <div>
+            <span className="domain-page__eyebrow">ConsentPage</span>
+            <h1>Target consent logs</h1>
+            <p>Lists, creates, and revokes consent records using backend ConsentLog endpoints.</p>
+          </div>
+          <span className="domain-page__badge domain-page__badge--connected">GET POST PATCH</span>
+        </header>
+
+        <form className="target-form" onSubmit={handleSelectTarget}>
+          <div className="target-form__field">
+            <label htmlFor="consent-target-id">target_id</label>
+            <input
+              id="consent-target-id"
+              inputMode="numeric"
+              onChange={(event) => setTargetIdInput(event.target.value)}
+              required
+              type="number"
+              value={targetIdInput}
+            />
+            <p className="target-form__helper">GET /targets/{'{target_id}'}/consents</p>
+          </div>
+          <div className="target-form__actions">
+            <button disabled={isLoading} type="submit">
+              {isLoading ? 'Loading...' : 'Load consents'}
+            </button>
+          </div>
+        </form>
+
+        <form className="target-form" onSubmit={handleCreateConsent}>
+          <div className="target-form__field">
+            <label htmlFor="consent-type">consent_type</label>
+            <select id="consent-type" onChange={(event) => setConsentType(event.target.value as ConsentType)} value={consentType}>
+              {consentTypeOptions.map((option) => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="target-form__field">
+            <label htmlFor="consent-version">consent_version</label>
+            <input id="consent-version" onChange={(event) => setConsentVersion(event.target.value)} value={consentVersion} />
+          </div>
+
+          <div className="target-form__field">
+            <label htmlFor="consent-text">consent_text_snapshot</label>
+            <textarea id="consent-text" onChange={(event) => setConsentTextSnapshot(event.target.value)} rows={4} value={consentTextSnapshot} />
+          </div>
+
+          <div className="target-form__field">
+            <label htmlFor="consent-details">details</label>
+            <textarea id="consent-details" onChange={(event) => setDetails(event.target.value)} rows={3} value={details} />
+          </div>
+
+          <label className="target-form__checkbox">
+            <input checked={isConsented} onChange={(event) => setIsConsented(event.target.checked)} type="checkbox" />
+            is_agreed / is_consented
+          </label>
+
+          {notice && <p className="target-form__notice">{notice}</p>}
+          {errorMessage && (
+            <p className="target-form__error" role="alert">
+              {isPermissionError ? errorMessage : errorMessage}
+            </p>
+          )}
+
+          <div className="target-form__actions">
+            <button disabled={isSubmitting} type="submit">
+              {isSubmitting ? 'Creating...' : 'Create consent'}
+            </button>
+          </div>
+        </form>
+
+        <section className="target-card-grid" aria-label="Consent records">
+          {consents.map((consent) => (
+            <article className="target-card" key={consent.id}>
+              <div className="target-card__body">
+                <div className="target-card__title-row">
+                  <h2>{consent.consent_type}</h2>
+                  <span>{consent.revoked_at ? 'REVOKED' : consent.is_consented ? 'CONSENTED' : 'NOT_CONSENTED'}</span>
+                </div>
+                <dl>
+                  <div>
+                    <dt>id</dt>
+                    <dd>{consent.id}</dd>
+                  </div>
+                  <div>
+                    <dt>consent_version</dt>
+                    <dd>{consent.consent_version}</dd>
+                  </div>
+                  <div>
+                    <dt>agreed_at</dt>
+                    <dd>{consent.agreed_at ? formatDateTime(consent.agreed_at) : 'null'}</dd>
+                  </div>
+                  <div>
+                    <dt>revoked_at</dt>
+                    <dd>{consent.revoked_at ? formatDateTime(consent.revoked_at) : 'null'}</dd>
+                  </div>
+                </dl>
+                {consent.details && <p>{consent.details}</p>}
+                <button disabled={Boolean(consent.revoked_at) || revokingConsentId === consent.id} onClick={() => void handleRevoke(consent.id)} type="button">
+                  {revokingConsentId === consent.id ? 'Revoking...' : 'Revoke'}
+                </button>
+              </div>
+            </article>
+          ))}
+        </section>
+
+        {activeTargetId && consents.length === 0 && !isLoading && (
+          <TargetStateMessage title="No consents" message="No ConsentLog records were returned for this Target." />
+        )}
+      </main>
+    </AppShell>
+  )
+}
+
+function getVerificationStatusMessage(status: VerificationStatus) {
+  switch (status) {
+    case 'APPROVED':
+      return 'Persona and voice features can be unlocked for this Target.'
+    case 'PENDING':
+      return 'Admin review is pending.'
+    case 'NEED_MORE_INFO':
+      return 'Admin requested more information. Check admin_note.'
+    case 'REJECTED':
+      return 'Rejected. Check rejection_reason.'
+    case 'EXPIRED':
+      return 'Expired. Submit a new verification request.'
+    case 'REVOKED':
+      return 'Revoked. Submit a new verification request.'
+    default:
+      return status
+  }
+}
+
+function TargetVerificationApiPage() {
+  const [initialTargetId] = useState(() => getTargetIdFromLocation())
+  const [targetIdInput, setTargetIdInput] = useState(() => (initialTargetId ? String(initialTargetId) : ''))
+  const [activeTargetId, setActiveTargetId] = useState<number | null>(null)
+  const [requests, setRequests] = useState<VerificationRequestResponse[]>([])
+  const [selectedRequest, setSelectedRequest] = useState<VerificationRequestResponse | null>(null)
+  const [verificationType, setVerificationType] = useState<VerificationType>('SELF_DECLARATION')
+  const [applicantNote, setApplicantNote] = useState('')
+  const [file, setFile] = useState<File | null>(null)
+  const [isLoading, setIsLoading] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const [notice, setNotice] = useState<string | null>(null)
+  const [isPermissionError, setIsPermissionError] = useState(false)
+
+  const loadRequests = useCallback(async (targetId: number) => {
+    setIsLoading(true)
+    setErrorMessage(null)
+    setNotice(null)
+    setIsPermissionError(false)
+
+    try {
+      const response = await verificationService.listTargetVerificationRequests(targetId, { skip: 0, limit: 20 })
+      setRequests(response.items)
+      setActiveTargetId(targetId)
+    } catch (error) {
+      setIsPermissionError(isOwnerOnlyError(error))
+      setErrorMessage(getApiErrorMessage(error))
+    } finally {
+      setIsLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (initialTargetId) {
+      const timerId = window.setTimeout(() => {
+        void loadRequests(initialTargetId)
+      }, 0)
+
+      return () => {
+        window.clearTimeout(timerId)
+      }
+    }
+  }, [initialTargetId, loadRequests])
+
+  function handleSelectTarget(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    const targetId = Number(targetIdInput)
+
+    if (!Number.isInteger(targetId) || targetId <= 0) {
+      setErrorMessage('target_id must be a positive integer.')
+      return
+    }
+
+    void loadRequests(targetId)
+  }
+
+  async function handleSubmitVerification(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    const targetId = Number(targetIdInput)
+
+    if (!Number.isInteger(targetId) || targetId <= 0) {
+      setErrorMessage('target_id must be a positive integer.')
+      return
+    }
+
+    if (!file) {
+      setErrorMessage('file is required.')
+      return
+    }
+
+    setIsSubmitting(true)
+    setErrorMessage(null)
+    setNotice(null)
+    setIsPermissionError(false)
+
+    try {
+      await verificationService.createVerificationRequest(targetId, {
+        verification_type_param: verificationType,
+        applicant_note: applicantNote || null,
+        file,
+      })
+      setNotice('Verification request submitted.')
+      setFile(null)
+      await loadRequests(targetId)
+    } catch (error) {
+      setIsPermissionError(isOwnerOnlyError(error))
+      setErrorMessage(getApiErrorMessage(error))
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  async function handleOpenDetail(requestId: number) {
+    setErrorMessage(null)
+    setNotice(null)
+    setIsPermissionError(false)
+
+    try {
+      const detail = await verificationService.getVerificationRequest(requestId)
+      setSelectedRequest(detail)
+    } catch (error) {
+      setIsPermissionError(isOwnerOnlyError(error))
+      setErrorMessage(getApiErrorMessage(error))
+    }
+  }
+
+  return (
+    <AppShell title="Target Verification" subtitle="Connected to TargetVerificationRequest APIs." badge="API connected">
+      <main className="domain-page target-api-page">
+        <header className="domain-page__hero">
+          <div>
+            <span className="domain-page__eyebrow">TargetVerificationPage</span>
+            <h1>Target verification requests</h1>
+            <p>Submit multipart verification files and review Target verification status.</p>
+          </div>
+          <span className="domain-page__badge domain-page__badge--connected">multipart/form-data</span>
+        </header>
+
+        <form className="target-form" onSubmit={handleSelectTarget}>
+          <div className="target-form__field">
+            <label htmlFor="verification-target-id">target_id</label>
+            <input
+              id="verification-target-id"
+              inputMode="numeric"
+              onChange={(event) => setTargetIdInput(event.target.value)}
+              required
+              type="number"
+              value={targetIdInput}
+            />
+            <p className="target-form__helper">GET /targets/{'{target_id}'}/verification-requests</p>
+          </div>
+          <div className="target-form__actions">
+            <button disabled={isLoading} type="submit">
+              {isLoading ? 'Loading...' : 'Load requests'}
+            </button>
+          </div>
+        </form>
+
+        <form className="target-form" onSubmit={handleSubmitVerification}>
+          <div className="target-form__field">
+            <label htmlFor="verification-type">verification_type_param</label>
+            <select
+              id="verification-type"
+              onChange={(event) => setVerificationType(event.target.value as VerificationType)}
+              value={verificationType}
+            >
+              {verificationTypeOptions.map((option) => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="target-form__field">
+            <label htmlFor="applicant-note">applicant_note</label>
+            <textarea id="applicant-note" onChange={(event) => setApplicantNote(event.target.value)} rows={4} value={applicantNote} />
+          </div>
+
+          <div className="target-form__field">
+            <label htmlFor="verification-file">file</label>
+            <input id="verification-file" onChange={(event) => setFile(event.target.files?.[0] ?? null)} required type="file" />
+            <p className="target-form__helper">Multipart field names: verification_type_param, applicant_note, file.</p>
+          </div>
+
+          {notice && <p className="target-form__notice">{notice}</p>}
+          {errorMessage && (
+            <p className="target-form__error" role="alert">
+              {isPermissionError ? errorMessage : errorMessage}
+            </p>
+          )}
+
+          <div className="target-form__actions">
+            <button disabled={isSubmitting} type="submit">
+              {isSubmitting ? 'Submitting...' : 'Submit verification'}
+            </button>
+          </div>
+        </form>
+
+        <section className="target-card-grid" aria-label="Verification requests">
+          {requests.map((request) => (
+            <article className="target-card" key={request.id}>
+              <div className="target-card__body">
+                <div className="target-card__title-row">
+                  <h2>{request.verification_type}</h2>
+                  <span>{request.status}</span>
+                </div>
+                <p>{getVerificationStatusMessage(request.status)}</p>
+                <dl>
+                  <div>
+                    <dt>id</dt>
+                    <dd>{request.id}</dd>
+                  </div>
+                  <div>
+                    <dt>original_filename</dt>
+                    <dd>{request.original_filename}</dd>
+                  </div>
+                  <div>
+                    <dt>mime_type</dt>
+                    <dd>{request.mime_type}</dd>
+                  </div>
+                  <div>
+                    <dt>file_size</dt>
+                    <dd>{formatFileSize(request.file_size)}</dd>
+                  </div>
+                  <div>
+                    <dt>created_at</dt>
+                    <dd>{formatDateTime(request.created_at)}</dd>
+                  </div>
+                </dl>
+                {request.admin_note && <p>admin_note: {request.admin_note}</p>}
+                {request.rejection_reason && <p>rejection_reason: {request.rejection_reason}</p>}
+                <button onClick={() => void handleOpenDetail(request.id)} type="button">
+                  Load detail
+                </button>
+              </div>
+            </article>
+          ))}
+        </section>
+
+        {activeTargetId && requests.length === 0 && !isLoading && (
+          <TargetStateMessage title="No verification requests" message="Submit a verification request to unlock Persona creation after approval." />
+        )}
+
+        {selectedRequest && (
+          <section className="target-detail-card">
+            <h2>Verification detail #{selectedRequest.id}</h2>
+            <dl>
+              <div>
+                <dt>status</dt>
+                <dd>{selectedRequest.status}</dd>
+              </div>
+              <div>
+                <dt>applicant_note</dt>
+                <dd>{selectedRequest.applicant_note ?? 'null'}</dd>
+              </div>
+              <div>
+                <dt>admin_note</dt>
+                <dd>{selectedRequest.admin_note ?? 'null'}</dd>
+              </div>
+              <div>
+                <dt>reviewed_at</dt>
+                <dd>{selectedRequest.reviewed_at ? formatDateTime(selectedRequest.reviewed_at) : 'null'}</dd>
+              </div>
+              <div>
+                <dt>expires_at</dt>
+                <dd>{selectedRequest.expires_at ? formatDateTime(selectedRequest.expires_at) : 'null'}</dd>
+              </div>
+            </dl>
+          </section>
+        )}
+      </main>
+    </AppShell>
   )
 }
 
@@ -1820,11 +2437,11 @@ export function TargetMediaPage() {
 }
 
 export function ConsentPage() {
-  return <MockFeaturePage pageKey="consentLog" />
+  return <ConsentApiPage />
 }
 
 export function TargetVerificationPage() {
-  return <MockFeaturePage pageKey="targetVerificationRequest" />
+  return <TargetVerificationApiPage />
 }
 
 export function PersonaListPage() {

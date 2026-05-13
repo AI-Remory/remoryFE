@@ -112,3 +112,19 @@ Updated on 2026-05-14.
 | SetupPage | Redefined as OnboardingPage. `/onboarding` is the canonical post-signup route; `/setup` remains as a compatibility alias and renders the same onboarding guide. | `src/pages/OnboardingPage.tsx`, `src/pages/OnboardingPage.css` | `redesign` |
 | Mock-only action buttons | Buttons without connected backend services were either routed to a backend-backed domain page or disabled with an API-connection-planned notice. | Landing Google/guest/info disabled, MyPage menu cards disabled, Chat legacy storybook CTA disabled | `keep` until service connection |
 | Legacy bottom nav StoryBook path | Updated from `/storybook` to `/storybooks`. | HomePage, ChatPage, MyPage | `merge` |
+
+## Consent Verification Connection Update
+
+Updated on 2026-05-14.
+
+| Feature | Previous status | Current status | Frontend files | Action |
+| --- | --- | --- | --- | --- |
+| ConsentLog | `mock-only` | `fully-connected` | `src/types/consent.ts`, `src/services/consentService.ts`, `ConsentPage` in `src/pages/DomainPages.tsx` | `keep` |
+| TargetVerificationRequest | `mock-only` | `fully-connected` | `src/types/verification.ts`, `src/services/verificationService.ts`, `TargetVerificationPage` in `src/pages/DomainPages.tsx` | `keep` |
+| Persona creation gate | `partially-connected` | `partially-connected` | `TargetDetailPage` in `src/pages/DomainPages.tsx` | `connect` |
+
+Notes:
+- ConsentLog now uses `GET /targets/{target_id}/consents`, `POST /consents`, and `PATCH /consents/{consent_id}/revoke`.
+- TargetVerificationRequest now uses `POST /targets/{target_id}/verification-requests`, `GET /targets/{target_id}/verification-requests`, and `GET /verification-requests/{request_id}`.
+- Verification upload uses only the documented multipart field names: `verification_type_param`, `applicant_note`, and `file`.
+- TargetDetailPage shows consent/verification gate status and disables Persona creation unless a verification request has `APPROVED` status.

@@ -1,12 +1,12 @@
 .domain-page {
-  --domain-bg: #fff9f1;
-  --domain-card: rgba(255, 251, 246, 0.82);
-  --domain-border: #efdecf;
-  --domain-text: #332b28;
-  --domain-muted: #6d625d;
-  --domain-peach: #d8754c;
-  --domain-purple: #8068a7;
-  --domain-green: #5e9876;
+  --domain-bg: var(--color-bg);
+  --domain-card: var(--color-surface);
+  --domain-border: var(--color-border);
+  --domain-text: var(--color-ink);
+  --domain-muted: var(--color-muted);
+  --domain-peach: var(--color-coral);
+  --domain-purple: #7c6ed7;
+  --domain-green: var(--color-success);
 
   display: block;
   min-height: auto;
@@ -79,12 +79,13 @@
   justify-content: space-between;
   gap: 24px;
   padding: 28px;
-  border: 1px solid #efd6c4;
-  border-radius: 24px;
+  border: 1px solid rgba(244, 127, 116, 0.22);
+  border-radius: 30px;
   background:
-    linear-gradient(135deg, rgba(255, 242, 228, 0.95), rgba(255, 253, 248, 0.9)),
-    radial-gradient(circle at right top, rgba(216, 117, 76, 0.16), transparent 34%);
-  box-shadow: 0 10px 24px rgba(120, 75, 49, 0.08);
+    radial-gradient(circle at right top, rgba(183, 165, 245, 0.22), transparent 32%),
+    radial-gradient(circle at 16% 12%, rgba(255, 179, 126, 0.2), transparent 30%),
+    linear-gradient(135deg, rgba(255, 246, 240, 0.96), rgba(255, 253, 250, 0.92) 54%, rgba(247, 245, 255, 0.94));
+  box-shadow: var(--shadow-card);
 }
 
 .domain-page__hero h1,
@@ -98,7 +99,7 @@
 
 .domain-page__eyebrow {
   display: block;
-  color: #b6603f;
+  color: #9d677d;
   font-size: 12px;
   font-weight: 850;
   letter-spacing: 0.1em;
@@ -107,11 +108,11 @@
 
 .domain-page__hero h1 {
   margin-top: 8px;
-  font-family: Georgia, 'Times New Roman', serif;
-  font-size: clamp(38px, 6vw, 76px);
-  font-weight: 500;
-  letter-spacing: -0.045em;
-  line-height: 0.95;
+  font-family: var(--serif);
+  font-size: 56px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.04;
 }
 
 .domain-page__hero p {
@@ -135,23 +136,23 @@
 }
 
 .domain-page__badge--connected {
-  background: #deeadf;
-  color: #3c7659;
+  background: #e7f4ee;
+  color: #34735d;
 }
 
 .domain-page__badge--next {
-  background: #fff0e5;
-  color: #c45a31;
+  background: #fff1ea;
+  color: #a74f4c;
 }
 
 .domain-page__badge--mock {
-  background: #eee4f6;
-  color: #775682;
+  background: #f2efff;
+  color: #6656bb;
 }
 
 .domain-page__badge--admin {
-  background: #2f2926;
-  color: #fff7ed;
+  background: #34313a;
+  color: #fffdfa;
 }
 
 .domain-page__metrics {
@@ -164,9 +165,9 @@
 .domain-page__metrics article,
 .domain-page__panel {
   border: 1px solid var(--domain-border);
-  border-radius: 20px;
+  border-radius: 24px;
   background: var(--domain-card);
-  box-shadow: 0 8px 18px rgba(111, 69, 43, 0.05);
+  box-shadow: var(--shadow-card);
 }
 
 .domain-page__metrics article {
@@ -186,7 +187,7 @@
 
 .domain-page__metrics strong {
   margin-top: 8px;
-  font-size: clamp(28px, 4vw, 42px);
+  font-size: 36px;
   font-weight: 850;
   letter-spacing: -0.04em;
   line-height: 1;
@@ -211,7 +212,7 @@
 }
 
 .domain-page__panel h2 {
-  color: #2f2926;
+  color: var(--domain-text);
   font-size: 22px;
   font-weight: 850;
   letter-spacing: -0.04em;
@@ -227,17 +228,18 @@
 .domain-page__panel-heading button {
   min-height: 44px;
   padding: 0 14px;
-  border-radius: 12px;
-  background: #2f2926;
-  color: #fff7ed;
+  border-radius: 14px;
+  background: linear-gradient(135deg, var(--color-coral), var(--color-apricot));
+  color: #fff;
   cursor: pointer;
   font-size: 13px;
   font-weight: 850;
 }
 
 .domain-page__panel-heading button + button {
-  background: #fff0e5;
-  color: #a94d2e;
+  border: 1px solid rgba(244, 127, 116, 0.2);
+  background: #fff3ec;
+  color: #a74f4c;
 }
 
 .domain-page__cards {
@@ -250,11 +252,12 @@
 .domain-page__card {
   min-height: 180px;
   padding: 16px;
-  border: 1px solid #ead8c9;
-  border-radius: 16px;
+  border: 1px solid var(--domain-border);
+  border-radius: 22px;
   background:
-    radial-gradient(circle at top right, rgba(216, 117, 76, 0.11), transparent 38%),
-    rgba(255, 252, 247, 0.82);
+    radial-gradient(circle at top right, rgba(183, 165, 245, 0.14), transparent 38%),
+    rgba(255, 253, 250, 0.86);
+  box-shadow: 0 10px 24px rgba(101, 74, 88, 0.06);
 }
 
 .domain-page__card span {
@@ -263,7 +266,7 @@
   align-items: center;
   padding: 0 10px;
   border-radius: 999px;
-  background: #f4ecfb;
+  background: #f2efff;
   color: var(--domain-purple);
   font-size: 11px;
   font-weight: 850;
@@ -273,7 +276,7 @@
 
 .domain-page__card h3 {
   margin-top: 18px;
-  color: #2f2926;
+  color: var(--domain-text);
   font-size: 19px;
   font-weight: 850;
   letter-spacing: -0.04em;
@@ -1530,6 +1533,242 @@
   color: var(--domain-muted);
   font-size: 12px;
   font-weight: 700;
+}
+
+.target-api-state,
+.target-card,
+.target-detail-card,
+.target-form,
+.target-media-upload-card,
+.target-media-card,
+.persona-summary-card,
+.persona-action-card,
+.persona-chat-sidebar,
+.persona-chat-thread,
+.voice-call-panel,
+.mock-feature-panel {
+  border-color: var(--domain-border);
+  border-radius: var(--radius-card);
+  background: var(--domain-card);
+  box-shadow: var(--shadow-card);
+  backdrop-filter: blur(12px);
+}
+
+.target-card,
+.persona-summary-card,
+.persona-action-card {
+  background:
+    radial-gradient(circle at 90% 10%, rgba(183, 165, 245, 0.12), transparent 30%),
+    rgba(255, 253, 250, 0.9);
+}
+
+.target-card__avatar {
+  border-radius: 26px;
+  background: linear-gradient(135deg, #fff1ea, #f2efff);
+  color: #a74f4c;
+}
+
+.target-api-state a,
+.target-card a,
+.target-form__actions a,
+.persona-action-card__actions a,
+.persona-action-card__actions button,
+.target-form__actions button,
+.target-media-upload-card button,
+.target-media-card button,
+.persona-chat-sidebar > button,
+.persona-chat-send-error button,
+.persona-chat-composer button,
+.voice-call-actions button,
+.voice-call-form button {
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: linear-gradient(135deg, var(--color-coral), var(--color-apricot));
+  color: #fff;
+  box-shadow: 0 10px 20px rgba(244, 127, 116, 0.18);
+}
+
+.target-api-state a:hover,
+.target-card a:hover,
+.target-form__actions a:hover,
+.persona-action-card__actions a:hover,
+.target-form__actions button:hover,
+.target-media-upload-card button:hover,
+.target-media-card button:hover,
+.persona-chat-sidebar > button:hover,
+.persona-chat-send-error button:hover,
+.persona-chat-composer button:hover,
+.voice-call-actions button:hover,
+.voice-call-form button:hover {
+  transform: translateY(-1px);
+}
+
+.target-form__actions button[type='button'] {
+  border-color: rgba(182, 74, 67, 0.22);
+  background: #fff0ef;
+  color: var(--color-danger);
+  box-shadow: none;
+}
+
+.target-form input,
+.target-form textarea,
+.target-form select,
+.persona-chat-composer textarea {
+  border-color: var(--domain-border);
+  border-radius: var(--radius-control);
+  background: rgba(255, 255, 255, 0.82);
+}
+
+.target-form input:focus-visible,
+.target-form textarea:focus-visible,
+.target-form select:focus-visible,
+.persona-chat-composer textarea:focus-visible,
+.target-api-page a:focus-visible,
+.target-api-page button:focus-visible {
+  outline-color: var(--color-coral);
+  box-shadow: var(--focus-ring);
+}
+
+.target-card__title-row span,
+.persona-status-badge,
+.domain-page__card span {
+  border: 1px solid rgba(183, 165, 245, 0.2);
+  background: #f2efff;
+  color: #6656bb;
+}
+
+.persona-status-badge--ready {
+  border-color: rgba(79, 143, 120, 0.2);
+  background: #e7f4ee;
+  color: #34735d;
+}
+
+.persona-status-badge--pending {
+  border-color: rgba(244, 127, 116, 0.22);
+  background: #fff1ea;
+  color: #a74f4c;
+}
+
+.persona-status-badge--failed {
+  border-color: rgba(182, 74, 67, 0.22);
+  background: #fff0ef;
+  color: var(--color-danger);
+}
+
+.persona-chat-list button {
+  border-color: var(--domain-border);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.76);
+}
+
+.persona-chat-list button.is-active {
+  border-color: rgba(244, 127, 116, 0.36);
+  background: linear-gradient(135deg, #fff1ea, #f5f2ff);
+  box-shadow: 0 8px 18px rgba(101, 74, 88, 0.07);
+}
+
+.persona-chat-message,
+.voice-call-message {
+  border-color: var(--domain-border);
+  border-radius: 20px;
+  background: rgba(255, 253, 250, 0.9);
+}
+
+.persona-chat-message--user,
+.voice-call-message--user {
+  border-color: rgba(244, 127, 116, 0.32);
+  background: #fff0e8;
+}
+
+.persona-chat-message--system,
+.voice-call-message--system {
+  border-color: rgba(183, 165, 245, 0.28);
+  background: #f2efff;
+}
+
+.voice-call-status-card,
+.voice-call-live-caption {
+  border-color: var(--domain-border);
+  border-radius: 20px;
+  background: rgba(255, 253, 250, 0.86);
+}
+
+.voice-call-live-caption {
+  background: linear-gradient(135deg, #fff1ea, #f5f2ff);
+}
+
+.voice-call-live-caption span {
+  color: #9d677d;
+}
+
+.voice-call-status {
+  background: #f2efff;
+  color: #6656bb;
+}
+
+.voice-call-status--connected,
+.voice-call-status--recording {
+  background: #e7f4ee;
+  color: #34735d;
+}
+
+.voice-call-status--connecting,
+.voice-call-status--processing {
+  background: #fff5d8;
+  color: #875f13;
+}
+
+.voice-call-status--ended {
+  background: #eef6ff;
+  color: #356f93;
+}
+
+.mock-feature-card,
+.mock-feature-endpoints li {
+  border-color: var(--domain-border);
+  border-radius: 18px;
+  background: rgba(255, 253, 250, 0.86);
+}
+
+.mock-feature-status {
+  background: #f2efff;
+  color: #6656bb;
+}
+
+.mock-feature-status--ready,
+.mock-feature-status--done {
+  background: #e7f4ee;
+  color: #34735d;
+}
+
+.mock-feature-status--pending,
+.mock-feature-status--review {
+  background: #fff5d8;
+  color: #875f13;
+}
+
+.mock-feature-status--blocked {
+  background: #fff0ef;
+  color: var(--color-danger);
+}
+
+.mock-feature-status--admin,
+.domain-page__badge--admin {
+  background: #34313a;
+  color: #fffdfa;
+}
+
+.domain-page__badge--admin,
+.mock-feature-status--admin,
+.domain-page:has(.domain-page__badge--admin) .domain-page__hero {
+  box-shadow: 0 10px 28px rgba(37, 35, 43, 0.08);
+}
+
+.domain-page:has(.domain-page__badge--admin) .domain-page__hero,
+.domain-page:has(.domain-page__badge--admin) .domain-page__panel,
+.domain-page:has(.domain-page__badge--admin) .mock-feature-panel {
+  border-color: rgba(52, 49, 58, 0.16);
+  background: rgba(255, 255, 255, 0.9);
 }
 
 @media (max-width: 980px) {

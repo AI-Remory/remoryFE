@@ -1,19 +1,19 @@
 .chat-page {
-  --chat-bg: #fff9f3;
-  --chat-card: #fffdf9;
-  --chat-card-soft: #fffaf4;
-  --chat-text: #2d2925;
-  --chat-soft: #6f655b;
-  --chat-placeholder: #c9bdb2;
-  --chat-orange: #e8753c;
-  --chat-orange-dark: #d7612e;
-  --chat-user: #ffe0c9;
-  --chat-user-border: #f2b489;
-  --chat-ai: #fffdf8;
-  --chat-ai-border: #f2e0d2;
-  --chat-line: #f0d8c6;
-  --chat-icon-soft: #9b8c80;
-  --chat-nav-muted: #6f6259;
+  --chat-bg: var(--color-bg);
+  --chat-card: var(--color-surface-solid);
+  --chat-card-soft: rgba(255, 253, 250, 0.9);
+  --chat-text: var(--color-ink);
+  --chat-soft: var(--color-muted);
+  --chat-placeholder: #aaa2b0;
+  --chat-orange: var(--color-coral);
+  --chat-orange-dark: var(--color-coral-deep);
+  --chat-user: #fff0e8;
+  --chat-user-border: rgba(244, 127, 116, 0.32);
+  --chat-ai: rgba(255, 253, 250, 0.94);
+  --chat-ai-border: var(--color-border);
+  --chat-line: var(--color-border);
+  --chat-icon-soft: #91899a;
+  --chat-nav-muted: #6e6675;
 
   display: flex;
   justify-content: center;
@@ -21,9 +21,10 @@
   min-height: 100dvh;
   overflow-y: auto;
   background:
-    radial-gradient(circle at top left, rgba(255, 235, 212, 0.72), transparent 32%),
-    radial-gradient(circle at bottom right, rgba(255, 238, 218, 0.7), transparent 36%),
-    linear-gradient(180deg, var(--chat-bg) 0%, #fffdf9 44%, #fff7ed 100%);
+    radial-gradient(circle at 9% 10%, rgba(255, 179, 126, 0.24), transparent 32%),
+    radial-gradient(circle at 88% 15%, rgba(183, 165, 245, 0.2), transparent 30%),
+    radial-gradient(circle at 76% 88%, rgba(149, 207, 238, 0.18), transparent 34%),
+    linear-gradient(180deg, var(--chat-bg) 0%, #fffdf9 44%, #f8f5ff 100%);
   color: var(--chat-text);
 }
 
@@ -74,7 +75,7 @@
 .chat-page__title {
   justify-self: center;
   color: var(--chat-text);
-  font-size: clamp(26px, 7vw, 34px);
+  font-size: 32px;
   font-weight: 850;
   letter-spacing: -0.6px;
   line-height: 1.1;
@@ -97,9 +98,9 @@
   gap: 22px;
   padding: 22px 22px 22px 27px;
   border: 1.2px solid var(--chat-line);
-  border-radius: 25px;
+  border-radius: 28px;
   background: var(--chat-card-soft);
-  box-shadow: 0 8px 18px rgba(217, 183, 158, 0.12);
+  box-shadow: var(--shadow-card);
   color: var(--chat-text);
   cursor: pointer;
   text-align: left;
@@ -112,7 +113,7 @@
   overflow: hidden;
   border: 2px solid #fff;
   border-radius: 50%;
-  background: #f4e0d2;
+  background: linear-gradient(135deg, #fff1ea, #f2efff);
 }
 
 .chat-page__persona-avatar img,
@@ -153,10 +154,10 @@
   height: 34px;
   gap: 5px;
   padding: 0 13px;
-  border: 1px solid #ebc9b5;
-  border-radius: 17px;
-  background: #fff7f0;
-  color: #704d3c;
+  border: 1px solid rgba(244, 127, 116, 0.22);
+  border-radius: 999px;
+  background: #fff1ea;
+  color: #9d514f;
   font-size: 16px;
   font-weight: 650;
   white-space: nowrap;
@@ -192,9 +193,10 @@
   margin-top: 22px;
   padding: 24px 21px 30px;
   border: 1.2px solid #f0e0d4;
-  border-radius: 25px;
-  background: rgba(255, 253, 249, 0.78);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.54);
+  border-radius: 28px;
+  background: rgba(255, 253, 250, 0.82);
+  box-shadow: var(--shadow-card);
+  backdrop-filter: blur(12px);
 }
 
 .chat-page__message-list {
@@ -305,9 +307,9 @@
   height: 64px;
   gap: 12px;
   border: 0;
-  border-radius: 32px;
-  background: linear-gradient(180deg, #f0995f 0%, #df7d3f 100%);
-  box-shadow: 0 10px 20px rgba(212, 97, 45, 0.22);
+  border-radius: 999px;
+  background: linear-gradient(135deg, var(--color-coral), var(--color-apricot));
+  box-shadow: 0 12px 24px rgba(244, 127, 116, 0.22);
   color: #fff;
   cursor: pointer;
   font-size: 24px;
@@ -327,10 +329,10 @@
   margin-top: 16px;
   padding-right: 7px;
   padding-left: 12px;
-  border: 1px solid #eedfd5;
+  border: 1px solid var(--color-border);
   border-radius: 32px;
   background: #fff;
-  box-shadow: 0 8px 18px rgba(84, 52, 32, 0.045);
+  box-shadow: 0 10px 24px rgba(101, 74, 88, 0.07);
 }
 
 .chat-page__leaf-button,
@@ -394,9 +396,9 @@
   width: 100%;
   max-width: 480px;
   height: 84px;
-  border-top: 1px solid #ead8c9;
-  background: rgba(255, 250, 244, 0.94);
-  box-shadow: 0 -8px 20px rgba(84, 52, 32, 0.045);
+  border-top: 1px solid var(--color-border);
+  background: rgba(255, 253, 250, 0.94);
+  box-shadow: 0 -10px 28px rgba(101, 74, 88, 0.08);
   backdrop-filter: blur(14px);
   transform: translateX(-50%);
 }
@@ -439,6 +441,7 @@
 .chat-page input:focus-visible {
   outline: 2px solid var(--chat-orange);
   outline-offset: 3px;
+  box-shadow: var(--focus-ring);
 }
 
 .chat-page button:hover {

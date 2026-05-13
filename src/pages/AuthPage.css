@@ -1,15 +1,15 @@
 @import url("https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@700&family=Noto+Sans+KR:wght@400;500;600;700&display=swap");
 
 .auth-page {
-  --auth-bg: #fffaf4;
-  --auth-bg-deep: #fff8ef;
-  --auth-brown: #4a2422;
-  --auth-brown-deep: #552823;
-  --auth-muted: #716967;
-  --auth-border: #eaded7;
-  --auth-border-peach: #efd6c8;
-  --auth-peach-soft: #fff4ec;
-  --auth-purple: #7a48f2;
+  --auth-bg: #fff9f4;
+  --auth-bg-deep: #f8f5ff;
+  --auth-brown: var(--color-ink);
+  --auth-brown-deep: #bf5f5b;
+  --auth-muted: var(--color-muted);
+  --auth-border: var(--color-border);
+  --auth-border-peach: rgba(244, 127, 116, 0.26);
+  --auth-peach-soft: #fff2ea;
+  --auth-purple: #7a68d8;
 
   display: flex;
   justify-content: center;
@@ -17,10 +17,11 @@
   min-height: 100dvh;
   overflow-y: auto;
   background:
-    radial-gradient(circle at top left, rgba(255, 238, 220, 0.85), transparent 34%),
-    radial-gradient(circle at bottom right, rgba(255, 238, 220, 0.75), transparent 36%),
+    radial-gradient(circle at 8% 10%, rgba(255, 179, 126, 0.28), transparent 32%),
+    radial-gradient(circle at 86% 16%, rgba(183, 165, 245, 0.22), transparent 30%),
+    radial-gradient(circle at 74% 88%, rgba(149, 207, 238, 0.18), transparent 34%),
     linear-gradient(180deg, var(--auth-bg) 0%, #fffdfb 45%, var(--auth-bg-deep) 100%);
-  color: #3f302f;
+  color: var(--color-text);
   font-family: "Noto Sans KR", var(--sans);
 }
 
@@ -66,8 +67,9 @@
   margin-bottom: 29px;
   overflow: hidden;
   border: 1px solid var(--auth-border-peach);
-  border-radius: 15px;
-  background: rgba(255, 255, 255, 0.68);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.76);
+  box-shadow: 0 8px 20px rgba(101, 74, 88, 0.06);
 }
 
 .auth-tab-button {
@@ -83,9 +85,9 @@
 
 .auth-tab-button.active {
   border-right: 1px solid var(--auth-border-peach);
-  background: rgba(255, 244, 236, 0.94);
-  box-shadow: inset 0 0 18px rgba(255, 228, 211, 0.6);
-  color: var(--auth-brown);
+  background: linear-gradient(135deg, rgba(255, 239, 229, 0.98), rgba(244, 240, 255, 0.9));
+  box-shadow: inset 0 0 18px rgba(255, 214, 201, 0.36);
+  color: #9d514f;
   font-weight: 700;
 }
 
@@ -106,9 +108,9 @@
   margin-bottom: 17px;
   padding: 0 18px;
   border: 1px solid var(--auth-border);
-  border-radius: 15px;
-  background: rgba(255, 255, 255, 0.77);
-  box-shadow: 0 2px 9px rgba(84, 49, 38, 0.03);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.84);
+  box-shadow: 0 8px 22px rgba(101, 74, 88, 0.05);
 }
 
 .auth-input-icon {
@@ -136,10 +138,10 @@
 }
 
 .auth-input-box:focus-within {
-  border-color: rgba(122, 72, 242, 0.34);
+  border-color: rgba(122, 104, 216, 0.42);
   box-shadow:
-    0 2px 9px rgba(84, 49, 38, 0.03),
-    0 0 0 4px rgba(122, 72, 242, 0.06);
+    0 8px 22px rgba(101, 74, 88, 0.05),
+    var(--focus-ring);
 }
 
 .auth-eye-button {
@@ -182,8 +184,8 @@
 }
 
 .auth-check-circle.checked {
-  border-color: #6e342f;
-  background: #6e342f;
+  border-color: var(--color-coral);
+  background: var(--color-coral);
 }
 
 .auth-check-circle.checked span {
@@ -221,9 +223,9 @@
   width: 100%;
   height: 64px;
   border: none;
-  border-radius: 15px;
-  background: linear-gradient(180deg, #7c3b36 0%, var(--auth-brown-deep) 100%);
-  box-shadow: 0 9px 16px rgba(92, 42, 36, 0.18);
+  border-radius: 18px;
+  background: linear-gradient(135deg, var(--color-coral) 0%, #e98578 48%, #a790ee 100%);
+  box-shadow: 0 14px 26px rgba(217, 95, 88, 0.2);
   color: #fff;
   cursor: pointer;
   font-family: "Noto Sans KR", var(--sans);
@@ -233,7 +235,7 @@
 }
 
 .auth-submit-button:hover {
-  background: linear-gradient(180deg, #84443f 0%, #4c241f 100%);
+  background: linear-gradient(135deg, #ec7068 0%, #df796d 48%, #9a86e3 100%);
   transform: translateY(-1px);
 }
 
@@ -344,9 +346,10 @@
     min-height: auto;
     padding: 56px 48px 48px;
     border: 1px solid var(--auth-border-peach);
-    border-radius: 28px;
-    background: rgba(255, 253, 249, 0.78);
-    box-shadow: 0 22px 50px rgba(92, 42, 36, 0.1);
+    border-radius: 32px;
+    background: rgba(255, 253, 250, 0.84);
+    box-shadow: var(--shadow-soft);
+    backdrop-filter: blur(18px);
   }
 
   .auth-back-button {

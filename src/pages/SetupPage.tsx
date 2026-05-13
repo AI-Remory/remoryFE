@@ -1,7 +1,7 @@
-import { useEffect, useState, type ChangeEvent, type FormEvent } from 'react'
+import { useCallback, useEffect, useState, type ChangeEvent, type FormEvent } from 'react'
 import { ApiError } from '../lib/apiClient'
 import { consentApi, CONSENT_TYPES } from '../services/consentApi'
-import { REMORY_PERSONA_ID_KEY, REMORY_TARGET_ID_KEY } from '../services/personaSession'
+import { REMORY_CHAT_ID_KEY, REMORY_PERSONA_ID_KEY, REMORY_TARGET_ID_KEY } from '../services/personaSession'
 import { targetApi } from '../services/targetApi'
 import { verificationApi } from '../services/verificationApi'
 import type { ApiId, ConsentType, VerificationRequest, VerificationStatus, VerificationType } from '../types/api'
@@ -331,6 +331,10 @@ function getVerificationStatusDescription(request: VerificationRequest | null) {
   }
 }
 
+function isSameApiId(left: ApiId | null | undefined, right: ApiId | null | undefined) {
+  return left !== null && left !== undefined && right !== null && right !== undefined && String(left) === String(right)
+}
+
 function SetupPage() {
   const [step, setStep] = useState<SetupStep>(1)
   const [consents, setConsents] = useState<Record<ConsentKey, boolean>>(defaultConsents)
@@ -346,7 +350,7 @@ function SetupPage() {
   const [personaDescription, setPersonaDescription] = useState('')
   const [profileImageFile, setProfileImageFile] = useState<File | null>(null)
   const [profileImagePreviewUrl, setProfileImagePreviewUrl] = useState<string | null>(null)
-  const [targetId, setTargetId] = useState<ApiId | null>(() => window.localStorage.getItem(REMORY_TARGET_ID_KEY))
+  const [targetId, setTargetId] = useState<ApiId | null>(null)
   const [selectedPhotoFiles, setSelectedPhotoFiles] = useState<File[]>([])
   const [selectedVoiceFile, setSelectedVoiceFile] = useState<File | null>(null)
   const [verificationFile, setVerificationFile] = useState<File | null>(null)
@@ -360,6 +364,7 @@ function SetupPage() {
   const [errorMessage, setErrorMessage] = useState('')
   const [statusMessage, setStatusMessage] = useState('')
   const [hasSavedSetupData, setHasSavedSetupData] = useState(false)
+  const [isTargetValidated, setIsTargetValidated] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isRefreshingVerification, setIsRefreshingVerification] = useState(false)
 
@@ -376,6 +381,18 @@ function SetupPage() {
   const canSubmitVerification =
     verificationStatus === null || resubmittableVerificationStatuses.has(verificationStatus)
 
+  const clearStaleSetupStorage = useCallback(() => {
+    window.localStorage.removeItem(REMORY_TARGET_ID_KEY)
+    window.localStorage.removeItem(REMORY_PERSONA_ID_KEY)
+    window.localStorage.removeItem(REMORY_CHAT_ID_KEY)
+    window.localStorage.removeItem(SETUP_COMPLETED_KEY)
+    window.localStorage.removeItem(SETUP_MEMORY_NOTES_KEY)
+    setTargetId(null)
+    setVerificationRequest(null)
+    setHasSavedSetupData(false)
+    setErrorMessage('')
+  }, [])
+
   useEffect(() => {
     return () => {
       photoPreviewUrls.forEach((url) => URL.revokeObjectURL(url))
@@ -391,7 +408,55 @@ function SetupPage() {
   }, [profileImagePreviewUrl])
 
   useEffect(() => {
-    if (targetId === null) {
+    let ignore = false
+
+    async function validateStoredTarget() {
+      const storedTargetId = window.localStorage.getItem(REMORY_TARGET_ID_KEY)
+
+      setIsTargetValidated(false)
+
+      try {
+        const response = await targetApi.listTargets()
+
+        if (ignore) {
+          return
+        }
+
+        const hasStoredTarget = response.items.some((target) => isSameApiId(target.id, storedTargetId))
+
+        if (hasStoredTarget && storedTargetId) {
+          setTargetId(storedTargetId)
+        } else {
+          clearStaleSetupStorage()
+
+          if (storedTargetId) {
+            setStatusMessage('이전 설정 정보를 초기화했어요. 다시 진행해주세요.')
+          }
+        }
+      } catch {
+        if (!ignore) {
+          clearStaleSetupStorage()
+
+          if (storedTargetId) {
+            setStatusMessage('이전 설정 정보를 확인하지 못해 초기화했어요. 다시 진행해주세요.')
+          }
+        }
+      } finally {
+        if (!ignore) {
+          setIsTargetValidated(true)
+        }
+      }
+    }
+
+    validateStoredTarget()
+
+    return () => {
+      ignore = true
+    }
+  }, [clearStaleSetupStorage])
+
+  useEffect(() => {
+    if (!isTargetValidated || targetId === null) {
       return
     }
 
@@ -406,8 +471,11 @@ function SetupPage() {
         if (!ignore) {
           setVerificationRequest(latestRequest)
         }
-      } catch {
-        // Keep the setup flow usable when verification history cannot be loaded.
+      } catch (error) {
+        if (!ignore && error instanceof ApiError && error.status === 404) {
+          clearStaleSetupStorage()
+          setStatusMessage('이전 설정 정보를 초기화했어요. 다시 진행해주세요.')
+        }
       }
     }
 
@@ -416,7 +484,7 @@ function SetupPage() {
     return () => {
       ignore = true
     }
-  }, [targetId])
+  }, [clearStaleSetupStorage, isTargetValidated, targetId])
 
   const handleConsentChange = (key: ConsentKey, checked: boolean) => {
     setConsents((current) => ({
@@ -612,7 +680,13 @@ function SetupPage() {
 
       return latestRequest
     } catch (error) {
-      setErrorMessage(getApiErrorMessage(error, '검증 상태를 확인하지 못했습니다.'))
+      if (error instanceof ApiError && error.status === 404) {
+        clearStaleSetupStorage()
+        setStatusMessage('이전 설정 정보를 초기화했어요. 다시 진행해주세요.')
+      } else {
+        setErrorMessage(getApiErrorMessage(error, '검증 상태를 확인하지 못했습니다.'))
+      }
+
       return null
     } finally {
       setIsRefreshingVerification(false)

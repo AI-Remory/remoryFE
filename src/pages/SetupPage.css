@@ -39,6 +39,112 @@
   box-sizing: border-box;
 }
 
+.setup-page__container--guide {
+  display: grid;
+  gap: 24px;
+}
+
+.setup-page__guide-hero {
+  display: grid;
+  gap: 12px;
+  padding: 28px 22px;
+  border: 1px solid rgba(152, 118, 88, 0.22);
+  border-radius: 24px;
+  background: rgba(255, 252, 247, 0.86);
+  box-shadow: 0 18px 48px rgba(116, 84, 58, 0.08);
+}
+
+.setup-page__guide-eyebrow {
+  color: #a56f4f;
+  font-size: 13px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.setup-page__guide-hero h1,
+.setup-page__guide-note h2,
+.setup-page__guide-card h2 {
+  margin: 0;
+  color: #372921;
+  letter-spacing: 0;
+}
+
+.setup-page__guide-hero h1 {
+  font-size: clamp(30px, 6vw, 48px);
+  line-height: 1.12;
+}
+
+.setup-page__guide-hero p,
+.setup-page__guide-card p,
+.setup-page__guide-note li {
+  margin: 0;
+  color: #705e51;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.6;
+}
+
+.setup-page__guide-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.setup-page__guide-card,
+.setup-page__guide-note {
+  display: grid;
+  gap: 12px;
+  padding: 18px;
+  border: 1px solid rgba(152, 118, 88, 0.22);
+  border-radius: 18px;
+  background: rgba(255, 252, 247, 0.9);
+}
+
+.setup-page__guide-card span {
+  width: fit-content;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: #ffe5d2;
+  color: #8b4e31;
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.setup-page__guide-card a,
+.setup-page__guide-actions a {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  justify-content: center;
+  padding: 0 18px;
+  border-radius: 999px;
+  background: #2f2926;
+  color: #fffaf4;
+  font-size: 15px;
+  font-weight: 850;
+  text-decoration: none;
+}
+
+.setup-page__guide-actions a:last-child {
+  border: 1px solid rgba(152, 118, 88, 0.28);
+  background: #fffaf4;
+  color: #3f332d;
+}
+
+.setup-page__guide-note ul {
+  display: grid;
+  gap: 8px;
+  padding-left: 20px;
+  margin: 0;
+}
+
+.setup-page__guide-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
 .setup-page__container {
   width: 100%;
   max-width: 480px;
@@ -1867,6 +1973,14 @@ input.setup-page__form-input {
 }
 
 @media (max-width: 420px) {
+  .setup-page__guide-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .setup-page__guide-actions {
+    display: grid;
+  }
+
   .setup-page__container {
     padding: 30px 19px 58px;
   }

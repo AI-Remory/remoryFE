@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react'
 import { authApi } from '../services/authApi'
-import { ensureMomPersonaId } from '../services/personaSession'
 import { storybookApi } from '../services/storybookApi'
 import { targetApi } from '../services/targetApi'
 import type { Target } from '../types/api'
@@ -179,9 +178,6 @@ function HomePage() {
 
       storybookApi.listStorybooks().catch(() => undefined)
 
-      ensureMomPersonaId().catch(() => {
-        // The home UI can still render with mock cards when persona preparation fails.
-      })
     }
 
     loadHomeData()
@@ -201,15 +197,17 @@ function HomePage() {
     )
   }
 
-  const handleChatNavigation = async () => {
+  const handleChatNavigation = () => {
     setErrorMessage('')
 
-    try {
-      await ensureMomPersonaId()
-      window.location.href = '/chat'
-    } catch {
-      setErrorMessage('페르소나를 준비하지 못했습니다. 다시 시도해주세요.')
+    const activePersona = personaItems.find((persona) => persona.active && persona.personaId)
+
+    if (!activePersona?.personaId) {
+      setErrorMessage('Persona를 먼저 직접 생성하거나 선택한 뒤 대화를 시작할 수 있습니다.')
+      return
     }
+
+    window.location.href = `/persona-chat?persona_id=${activePersona.personaId}`
   }
 
   return (

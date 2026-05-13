@@ -182,7 +182,11 @@ function ChatPage() {
             ? chats.find((item) => String(item.id) === storedChatId)
             : undefined
 
-          chat = storedChat ?? chats[0] ?? await chatApi.createChat(personaId, '엄마와 대화')
+          chat = storedChat ?? chats[0]
+
+          if (!chat) {
+            throw new Error('채팅방이 없습니다. Persona Chat 화면에서 새 채팅 시작 버튼을 눌러 직접 생성해주세요.')
+          }
         } catch (error) {
           throw new Error(getChatErrorMessage(error, '채팅방을 준비하지 못했습니다. 다시 시도해주세요.'), {
             cause: error,

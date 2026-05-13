@@ -61,8 +61,8 @@
 | legacy ProfilePage | `/profile`, `src/pages/ProfilePage.tsx` | `frontend-only-remove` | `merge` | backend에는 Profile 도메인이 없다. Target/Persona/Media 상세 화면으로 통합한다. |
 | legacy StorybookPage | `/storybook`, `src/pages/StorybookPage.tsx`, `src/services/storybookApi.ts` | `partially-connected` | `merge` | backend StoryBook 기능은 존재하지만 신규 `/storybooks/*` mock skeleton과 중복된다. 실제 연결 페이지 하나로 합친다. |
 | legacy ChatPage | `/chat`, `src/pages/ChatPage.tsx`, `src/services/chatApi.ts`, `personaSession.ts` | `partially-connected` | `merge` | backend Chat 기능은 존재하지만 `/persona-chat` 실제 연결 페이지와 중복된다. 임의 Mom persona bootstrap 흐름은 제거 또는 명시적 Target/Persona 선택으로 redesign한다. |
-| Setup flow | `/setup`, `src/pages/SetupPage.tsx`, `targetApi`, `personaSession.ts` | `partially-connected` | `redesign` | Target/Media/Persona API를 호출하지만 consent/verification 조건을 우회하는 onboarding 성격이 강하다. 백엔드 flow 기준으로 TargetCreate, TargetMedia, Consent, Verification, PersonaCreate 단계로 분리한다. |
-| personaSession auto bootstrap | `src/services/personaSession.ts` | `frontend-only-remove` | `remove` | 특정 이름의 target/persona를 자동 생성하는 흐름은 backend 기능이 아니라 frontend 편의 로직이다. 명시적 사용자 선택 흐름으로 교체한다. |
+| Setup flow | `/setup`, `src/pages/SetupPage.tsx` | `partially-connected` | `keep` | 2026-05-14 업데이트: 자동 Target/Media/Persona 생성과 setup localStorage 저장을 제거했고, Target/Verification/Consent/Media CTA 안내 페이지로 변경했다. |
+| personaSession auto bootstrap | `src/services/personaSession.ts` | `frontend-only-remove` | `remove` | 2026-05-14 업데이트: 특정 이름의 target/persona를 자동 생성하던 흐름을 제거했다. 이제 저장된 persona_id 또는 기존 Target에 연결된 persona_id만 사용하고, 없으면 명시적 생성 안내 오류를 반환한다. |
 | local gallery/profile mock data | `src/data/memoryGallery.ts`, `src/data/mockProfilePhotos.ts` | `frontend-only-remove` | `remove` | backend PhotoMemory/TargetMedia와 중복되는 프론트 전용 샘플 데이터다. 실제 API 연결 후 제거한다. |
 | LandingPage | `/`, `src/pages/LandingPage.tsx` | `frontend-only-remove` | `keep` | backend 도메인 기능은 아니지만 public entry UI로만 남길 수 있다. backend API와 혼동되는 기능 CTA는 제거한다. |
 
@@ -84,3 +84,18 @@
 3. Convert mock-only domains in backend order: ConsentLog and TargetVerificationRequest first, then PersonaVoiceProfile, then StoryBook/ShareLink/MemoryGroup, then Admin.
 4. Split admin dashboard into real pages: verification review, reports, audit logs, usage limits, rate limit events, voice profile review.
 5. Do not add StoryVoiceNarration until backend docs/OpenAPI expose an endpoint.
+
+## Automatic Creation Removal Log
+
+2026-05-14 기준으로 회원가입 또는 최초 진입 시 프론트가 임의 기본 데이터를 생성하는 흐름을 제거했다.
+
+| 제거 항목 | 변경 파일 | 결과 |
+| --- | --- | --- |
+| 회원가입 직후 Target 조회 후 자동 setup 판정 | `src/pages/AuthPage.tsx` | 회원가입 성공 시 `/setup` 안내 화면으로 이동하고, 로그인 성공 시 `/home`으로 이동한다. Target/Persona 생성 호출은 없다. |
+| SetupPage의 자동 Target 생성 | `src/pages/SetupPage.tsx` | 제거. 사용자는 `/targets/new`에서 직접 Target 생성 버튼을 눌러야 한다. |
+| SetupPage의 자동 media upload | `src/pages/SetupPage.tsx` | 제거. 사용자는 `/target-media`에서 직접 업로드한다. |
+| SetupPage의 자동 Persona 생성 | `src/pages/SetupPage.tsx` | 제거. Persona 생성은 Target detail 또는 Persona page의 명시 버튼에서만 수행한다. |
+| SetupPage의 setup 완료/mock memory localStorage 저장 | `src/pages/SetupPage.tsx` | `remory_setup_completed`, `remory_setup_memory_notes` 저장 제거. |
+| 최초 Home 진입 시 persona 자동 준비 | `src/pages/HomePage.tsx`, `src/services/personaSession.ts` | `ensureMomPersonaId()` 자동 호출 제거. 기존 persona가 없으면 대화 시작 대신 생성 안내를 표시한다. |
+| 특정 이름 target/persona bootstrap | `src/services/personaSession.ts` | `createTarget`, `createPersona` 호출 제거. 기존 persona만 조회한다. |
+| ChatPage 진입 시 채팅방 자동 생성 | `src/pages/ChatPage.tsx` | 기존 채팅방이 없으면 자동 생성하지 않고 `/persona-chat`에서 사용자가 직접 새 채팅을 시작하도록 안내한다. |

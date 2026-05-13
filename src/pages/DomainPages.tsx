@@ -2,9 +2,11 @@ import { useCallback, useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
 import { AppShell } from '../components/layout/AppShell'
 import { ApiError } from '../services/apiClient'
+import { chatService } from '../services/chatService'
 import { mediaService } from '../services/mediaService'
 import { personaService } from '../services/personaService'
 import { targetService } from '../services/targetService'
+import type { ChatId, PersonaChatResponse, PersonaMessageResponse, SenderType } from '../types/chat'
 import type { MediaType, TargetMediaResponse } from '../types/media'
 import type { PersonaDetailResponse, PersonaStatus, PersonaStatusResponse } from '../types/persona'
 import type { TargetDetailResponse, TargetResponse, TargetType } from '../types/target'
@@ -75,6 +77,13 @@ function getPersonaIdFromLocation() {
   return Number.isInteger(personaId) && personaId > 0 ? personaId : null
 }
 
+function getChatIdFromLocation() {
+  const params = new URLSearchParams(window.location.search)
+  const chatId = Number(params.get('chat_id'))
+
+  return Number.isInteger(chatId) && chatId > 0 ? chatId : null
+}
+
 function formatDateTime(value: string) {
   return new Intl.DateTimeFormat('ko-KR', {
     dateStyle: 'medium',
@@ -109,6 +118,19 @@ function getPersonaStatusMessage(status: PersonaStatus) {
 
 function PersonaStatusBadge({ status }: { status: PersonaStatus }) {
   return <span className={`persona-status-badge persona-status-badge--${status.toLowerCase()}`}>{status}</span>
+}
+
+function getSenderLabel(senderType: SenderType) {
+  switch (senderType) {
+    case 'USER':
+      return 'User'
+    case 'PERSONA':
+      return 'Persona'
+    case 'SYSTEM':
+      return 'System'
+    default:
+      return senderType
+  }
 }
 
 function TargetImage({ target }: { target: TargetResponse }) {
@@ -1240,6 +1262,322 @@ function PersonaDetailApiPage() {
   )
 }
 
+function ChatMessageBubble({ message }: { message: PersonaMessageResponse }) {
+  const audioUrl = message.audio_file_path ? toPlayableFileUrl(message.audio_file_path) : null
+
+  return (
+    <article className={`persona-chat-message persona-chat-message--${message.sender_type.toLowerCase()}`}>
+      <header>
+        <strong>{getSenderLabel(message.sender_type)}</strong>
+        <span>{message.message_type}</span>
+      </header>
+      {message.content && <p>{message.content}</p>}
+      {message.message_type === 'AUDIO' && audioUrl && <audio controls preload="metadata" src={audioUrl} />}
+      {message.message_type === 'TEXT' && audioUrl && <audio controls preload="metadata" src={audioUrl} />}
+      <small>{formatDateTime(message.created_at)}</small>
+    </article>
+  )
+}
+
+function PersonaChatApiPage() {
+  const [initialPersonaId] = useState(() => getPersonaIdFromLocation())
+  const [initialChatId] = useState(() => getChatIdFromLocation())
+  const [personaIdInput, setPersonaIdInput] = useState(() => (initialPersonaId ? String(initialPersonaId) : ''))
+  const [activePersonaId, setActivePersonaId] = useState<number | null>(null)
+  const [chats, setChats] = useState<PersonaChatResponse[]>([])
+  const [activeChatId, setActiveChatId] = useState<ChatId | null>(initialChatId)
+  const [messages, setMessages] = useState<PersonaMessageResponse[]>([])
+  const [chatTitle, setChatTitle] = useState('')
+  const [messageContent, setMessageContent] = useState('')
+  const [generateAudio, setGenerateAudio] = useState(false)
+  const [isLoadingChats, setIsLoadingChats] = useState(false)
+  const [isLoadingMessages, setIsLoadingMessages] = useState(false)
+  const [isCreatingChat, setIsCreatingChat] = useState(false)
+  const [isSending, setIsSending] = useState(false)
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const [sendErrorMessage, setSendErrorMessage] = useState<string | null>(null)
+  const [lastFailedMessage, setLastFailedMessage] = useState<string | null>(null)
+  const [isPermissionError, setIsPermissionError] = useState(false)
+
+  const loadMessages = useCallback(async (chatId: ChatId) => {
+    setIsLoadingMessages(true)
+    setErrorMessage(null)
+    setIsPermissionError(false)
+
+    try {
+      const response = await chatService.listChatMessages(chatId)
+      setMessages(response)
+    } catch (error) {
+      setIsPermissionError(isOwnerOnlyError(error))
+      setErrorMessage(getApiErrorMessage(error))
+    } finally {
+      setIsLoadingMessages(false)
+    }
+  }, [])
+
+  const loadChats = useCallback(
+    async (personaId: number, preferredChatId?: ChatId | null) => {
+      setIsLoadingChats(true)
+      setErrorMessage(null)
+      setIsPermissionError(false)
+
+      try {
+        const response = await chatService.listPersonaChats(personaId)
+        setChats(response)
+
+        const nextChatId = preferredChatId ?? response[0]?.id ?? null
+        setActiveChatId(nextChatId)
+
+        if (nextChatId) {
+          await loadMessages(nextChatId)
+        } else {
+          setMessages([])
+        }
+      } catch (error) {
+        setIsPermissionError(isOwnerOnlyError(error))
+        setErrorMessage(getApiErrorMessage(error))
+      } finally {
+        setIsLoadingChats(false)
+      }
+    },
+    [loadMessages],
+  )
+
+  useEffect(() => {
+    if (!initialPersonaId) {
+      return
+    }
+
+    const timerId = window.setTimeout(() => {
+      setActivePersonaId(initialPersonaId)
+      void loadChats(initialPersonaId, initialChatId)
+    }, 0)
+
+    return () => {
+      window.clearTimeout(timerId)
+    }
+  }, [initialChatId, initialPersonaId, loadChats])
+
+  function handlePersonaSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    const personaId = Number(personaIdInput)
+
+    if (!Number.isInteger(personaId) || personaId <= 0) {
+      setErrorMessage('persona_id must be a positive integer.')
+      return
+    }
+
+    setActivePersonaId(personaId)
+    void loadChats(personaId, null)
+  }
+
+  async function handleCreateChat() {
+    if (!activePersonaId) {
+      setErrorMessage('persona_id is required before creating a chat.')
+      return
+    }
+
+    setIsCreatingChat(true)
+    setErrorMessage(null)
+    setIsPermissionError(false)
+
+    try {
+      const createdChat = await chatService.createPersonaChat(activePersonaId, { title: chatTitle || null })
+      setChats((current) => [createdChat, ...current.filter((chat) => chat.id !== createdChat.id)])
+      setActiveChatId(createdChat.id)
+      setMessages([])
+      setChatTitle('')
+      await loadMessages(createdChat.id)
+    } catch (error) {
+      setIsPermissionError(isOwnerOnlyError(error))
+      setErrorMessage(getApiErrorMessage(error))
+    } finally {
+      setIsCreatingChat(false)
+    }
+  }
+
+  async function sendTextMessage(content: string) {
+    if (!activeChatId) {
+      setSendErrorMessage('chat_id is required before sending a message.')
+      return
+    }
+
+    setIsSending(true)
+    setSendErrorMessage(null)
+
+    try {
+      const response = await chatService.createChatMessage(activeChatId, {
+        message_type: 'TEXT',
+        content,
+        generate_audio: generateAudio,
+      })
+
+      setMessages((current) => [...current, response.user_message, response.persona_message])
+      setMessageContent('')
+      setLastFailedMessage(null)
+    } catch (error) {
+      setLastFailedMessage(content)
+      setSendErrorMessage(getApiErrorMessage(error))
+    } finally {
+      setIsSending(false)
+    }
+  }
+
+  function handleSendMessage(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    const content = messageContent.trim()
+
+    if (!content) {
+      return
+    }
+
+    void sendTextMessage(content)
+  }
+
+  return (
+    <AppShell title="Persona Chat" subtitle="Creates chats and sends Persona messages through backend APIs." badge="API connected">
+      <main className="domain-page target-api-page persona-chat-page">
+        <header className="domain-page__hero">
+          <div>
+            <span className="domain-page__eyebrow">PersonaChatPage</span>
+            <h1>Persona chat</h1>
+            <p>Uses PersonaChatResponse, PersonaMessageResponse, and PersonaMessagePairResponse as defined by OpenAPI.</p>
+          </div>
+          <span className="domain-page__badge domain-page__badge--connected">Chat API</span>
+        </header>
+
+        <form className="target-form target-media-target-form" onSubmit={handlePersonaSubmit}>
+          <div className="target-form__field">
+            <label htmlFor="chat-persona-id">persona_id</label>
+            <input
+              id="chat-persona-id"
+              inputMode="numeric"
+              onChange={(event) => setPersonaIdInput(event.target.value)}
+              required
+              type="number"
+              value={personaIdInput}
+            />
+            <p className="target-form__helper">Path param for /personas/{'{persona_id}'}/chats.</p>
+          </div>
+          <div className="target-form__actions">
+            <a href="/personas">Create persona</a>
+            <button disabled={isLoadingChats} type="submit">
+              {isLoadingChats ? 'Loading...' : 'Load chats'}
+            </button>
+          </div>
+        </form>
+
+        {errorMessage && (
+          <p className="target-form__error" role="alert">
+            {isPermissionError ? 'You do not have permission to access this chat resource.' : errorMessage}
+          </p>
+        )}
+
+        {activePersonaId && (
+          <section className="persona-chat-layout">
+            <aside className="persona-chat-sidebar">
+              <h2>Chats</h2>
+              <div className="target-form__field">
+                <label htmlFor="chat-title">title</label>
+                <input
+                  id="chat-title"
+                  maxLength={255}
+                  onChange={(event) => setChatTitle(event.target.value)}
+                  placeholder="Optional title"
+                  type="text"
+                  value={chatTitle}
+                />
+              </div>
+              <button disabled={isCreatingChat} onClick={() => void handleCreateChat()} type="button">
+                {isCreatingChat ? 'Starting...' : 'Start new chat'}
+              </button>
+
+              {isLoadingChats && <p className="persona-chat-empty">Loading chat rooms...</p>}
+
+              {!isLoadingChats && chats.length === 0 && (
+                <p className="persona-chat-empty">No chat rooms yet. Start a new chat to send messages.</p>
+              )}
+
+              {chats.length > 0 && (
+                <div className="persona-chat-list">
+                  {chats.map((chat) => (
+                    <button
+                      className={chat.id === activeChatId ? 'is-active' : undefined}
+                      key={chat.id}
+                      onClick={() => {
+                        setActiveChatId(chat.id)
+                        void loadMessages(chat.id)
+                      }}
+                      type="button"
+                    >
+                      <strong>{chat.title ?? `Chat ${chat.id}`}</strong>
+                      <span>{formatDateTime(chat.updated_at)}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </aside>
+
+            <section className="persona-chat-thread">
+              <div className="persona-chat-thread__header">
+                <h2>Messages</h2>
+                <span>{activeChatId ? `chat_id ${activeChatId}` : 'No chat selected'}</span>
+              </div>
+
+              {isLoadingMessages && <p className="persona-chat-empty">Loading messages...</p>}
+
+              {!isLoadingMessages && activeChatId && messages.length === 0 && (
+                <p className="persona-chat-empty">No messages yet. Send the first TEXT message.</p>
+              )}
+
+              <div className="persona-chat-messages" aria-live="polite">
+                {messages.map((message) => (
+                  <ChatMessageBubble key={message.id} message={message} />
+                ))}
+              </div>
+
+              {sendErrorMessage && (
+                <div className="persona-chat-send-error" role="alert">
+                  <p>{sendErrorMessage}</p>
+                  {lastFailedMessage && (
+                    <button disabled={isSending} onClick={() => void sendTextMessage(lastFailedMessage)} type="button">
+                      Retry
+                    </button>
+                  )}
+                </div>
+              )}
+
+              <form className="persona-chat-composer" onSubmit={handleSendMessage}>
+                <label htmlFor="persona-chat-message">content</label>
+                <textarea
+                  disabled={!activeChatId || isSending}
+                  id="persona-chat-message"
+                  onChange={(event) => setMessageContent(event.target.value)}
+                  placeholder="Send a TEXT message"
+                  rows={3}
+                  value={messageContent}
+                />
+                <label className="persona-chat-checkbox" htmlFor="persona-chat-generate-audio">
+                  <input
+                    checked={generateAudio}
+                    id="persona-chat-generate-audio"
+                    onChange={(event) => setGenerateAudio(event.target.checked)}
+                    type="checkbox"
+                  />
+                  generate_audio
+                </label>
+                <button disabled={!activeChatId || isSending || !messageContent.trim()} type="submit">
+                  {isSending ? 'Sending...' : 'Send message'}
+                </button>
+              </form>
+            </section>
+          </section>
+        )}
+      </main>
+    </AppShell>
+  )
+}
+
 const priorityBadge = {
   connected: 'API 연결됨',
   next: 'API 연결 예정',
@@ -1803,7 +2141,7 @@ export function PersonaVoiceProfilePage() {
 }
 
 export function PersonaChatPage() {
-  return <DomainShell config={configs.personaChat} />
+  return <PersonaChatApiPage />
 }
 
 export function PersonaVoiceCallPage() {

@@ -9,7 +9,7 @@ function formatDateTime(value: string) {
   }).format(new Date(value))
 }
 
-function getRoleLabel(role: string | undefined) {
+function getRoleLabel(role: string) {
   if (role === 'admin' || role === 'ADMIN') {
     return '관리자'
   }
@@ -18,7 +18,7 @@ function getRoleLabel(role: string | undefined) {
     return '일반 사용자'
   }
 
-  return 'role 필드 없음'
+  return role
 }
 
 function MyPage() {
@@ -30,16 +30,16 @@ function MyPage() {
   }
 
   return (
-    <AppShell title="내 계정" subtitle="백엔드가 제공하는 계정 정보만 표시합니다." badge="API 연결됨">
+    <AppShell title="내 계정" subtitle="현재 로그인한 사용자 정보를 표시합니다." badge="API 연결됨">
       <main className="account-page" aria-label="내 계정">
         <section className="account-page__profile">
           <div className="account-page__avatar" aria-hidden="true">
-            {user?.nickname?.slice(0, 1) ?? 'R'}
+            {user?.nickname?.slice(0, 1) || user?.email?.slice(0, 1) || 'R'}
           </div>
           <div>
             <p className="account-page__eyebrow">현재 로그인 계정</p>
-            <h1>{user?.nickname ?? '사용자'}</h1>
-            <p>{user?.email ?? '이메일 정보를 불러올 수 없습니다.'}</p>
+            <h1>{user?.nickname ?? '정보 없음'}</h1>
+            <p>{user?.email ?? '정보 없음'}</p>
           </div>
         </section>
 
@@ -48,37 +48,35 @@ function MyPage() {
             <h2>계정 정보</h2>
             <span>GET /auth/me</span>
           </div>
+
           <dl className="account-page__details">
             <div>
               <dt>사용자 ID</dt>
-              <dd>{user?.id ?? '-'}</dd>
+              <dd>{user?.id ?? '정보 없음'}</dd>
             </div>
             <div>
               <dt>이메일</dt>
-              <dd>{user?.email ?? '-'}</dd>
+              <dd>{user?.email ?? '정보 없음'}</dd>
             </div>
             <div>
               <dt>이름</dt>
-              <dd>{user?.nickname ?? '-'}</dd>
+              <dd>{user?.nickname ?? '정보 없음'}</dd>
+            </div>
+            {user?.role && (
+              <div>
+                <dt>역할</dt>
+                <dd>{getRoleLabel(user.role)}</dd>
+              </div>
+            )}
+            <div>
+              <dt>생성일</dt>
+              <dd>{user?.created_at ? formatDateTime(user.created_at) : '정보 없음'}</dd>
             </div>
             <div>
-              <dt>역할</dt>
-              <dd>{getRoleLabel(user?.role)}</dd>
-            </div>
-            <div>
-              <dt>가입일</dt>
-              <dd>{user?.created_at ? formatDateTime(user.created_at) : '-'}</dd>
-            </div>
-            <div>
-              <dt>최근 수정일</dt>
-              <dd>{user?.updated_at ? formatDateTime(user.updated_at) : '-'}</dd>
+              <dt>수정일</dt>
+              <dd>{user?.updated_at ? formatDateTime(user.updated_at) : '정보 없음'}</dd>
             </div>
           </dl>
-          {!user?.role && (
-            <p className="account-page__note">
-              현재 OpenAPI의 UserResponse에는 role 필드가 포함되어 있지 않습니다. role이 없으면 관리자 권한으로 판단하지 않습니다.
-            </p>
-          )}
         </section>
 
         <section className="account-page__section" aria-label="계정 작업">
@@ -93,7 +91,7 @@ function MyPage() {
             </button>
           </div>
           <p className="account-page__note">
-            알림, 결제, 구독, 저장공간, 외부 계정 연결은 현재 확인된 백엔드 API가 없어 표시하지 않습니다.
+            알림, 결제, 구독, 저장공간, 외부 계정 연결처럼 백엔드 API가 확인되지 않은 기능은 계정 페이지에 표시하지 않습니다.
           </p>
         </section>
       </main>

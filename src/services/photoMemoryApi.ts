@@ -9,6 +9,20 @@ type CreatePhotoMemoryPayload = {
   file?: File
 }
 
+function normalizeTakenAt(value?: string) {
+  const trimmed = value?.trim()
+
+  if (!trimmed) {
+    return null
+  }
+
+  if (trimmed.includes('T')) {
+    return trimmed
+  }
+
+  return `${trimmed}T00:00:00`
+}
+
 function toCreatePhotoMemoryBody(payload: CreatePhotoMemoryPayload) {
   const title = payload.title.trim()
 
@@ -28,8 +42,10 @@ function toCreatePhotoMemoryBody(payload: CreatePhotoMemoryPayload) {
     formData.append('description', payload.description.trim())
   }
 
-  if (payload.taken_at?.trim()) {
-    formData.append('taken_at', payload.taken_at.trim())
+  const takenAt = normalizeTakenAt(payload.taken_at)
+
+  if (takenAt) {
+    formData.append('taken_at', takenAt)
   }
 
   if (payload.location?.trim()) {

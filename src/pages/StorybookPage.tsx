@@ -109,6 +109,10 @@ function mapStoryChapters(apiChapters: StoryChapter[]): Chapter[] {
 
 function getApiErrorMessage(error: unknown, fallbackMessage: string) {
   if (error instanceof ApiError) {
+    if (error.status === 422 && hasTakenAtValidationError(error.detail)) {
+      return '촬영일 형식이 올바르지 않습니다. 다시 선택해주세요.'
+    }
+
     return error.message
   }
 
@@ -117,6 +121,28 @@ function getApiErrorMessage(error: unknown, fallbackMessage: string) {
   }
 
   return fallbackMessage
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null
+}
+
+function hasTakenAtValidationError(detail: unknown) {
+  const details = Array.isArray(detail) ? detail : [detail]
+
+  return details.some((item) => {
+    if (!isRecord(item)) {
+      return false
+    }
+
+    const loc = item.loc
+    const type = typeof item.type === 'string' ? item.type : ''
+    const message = `${typeof item.msg === 'string' ? item.msg : ''} ${typeof item.message === 'string' ? item.message : ''}`
+
+    return Array.isArray(loc) && loc.includes('taken_at') && (
+      type.includes('datetime') || message.toLowerCase().includes('datetime')
+    )
+  })
 }
 
 function getPhotoMemoryTitle(memory: PhotoMemory, index = 0) {

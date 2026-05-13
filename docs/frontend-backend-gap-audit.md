@@ -212,3 +212,23 @@ Notes:
 - Report now uses `POST /reports`, `GET /reports?page={page}&size={size}`, and `GET /reports/{report_id}`.
 - ReportTargetType and ReportReasonType enums are limited to backend OpenAPI values.
 - Deletion request creation/cancel and report creation require a confirmation dialog before the API request is sent.
+
+## Admin Connection Update
+
+Updated on 2026-05-14.
+
+| Feature | Previous status | Current status | Frontend files | Action |
+| --- | --- | --- | --- | --- |
+| Admin verification | `mock-only` | `fully-connected` | `src/types/admin.ts`, `src/services/adminService.ts`, `AdminVerificationReviewPage` in `src/pages/DomainPages.tsx` | `keep` |
+| Admin report | `mock-only` | `partially-connected` | `src/types/admin.ts`, `src/services/adminService.ts`, `AdminReportsPage` in `src/pages/DomainPages.tsx` | `keep` |
+| AuditLog | `mock-only` | `fully-connected` | `src/types/admin.ts`, `src/services/adminService.ts`, `AdminAuditLogsPage` in `src/pages/DomainPages.tsx` | `keep` |
+| UsageLimit | `mock-only` | `fully-connected` | `src/types/admin.ts`, `src/services/adminService.ts`, usage limit panel in `AdminDashboardPage` | `keep` |
+| RateLimit admin | `mock-only` | `fully-connected` | `src/types/admin.ts`, `src/services/adminService.ts`, rate limit event list in `AdminAuditLogsPage` | `keep` |
+| Admin voice profile | `mock-only` | `fully-connected` | `src/types/admin.ts`, `src/services/adminService.ts`, `AdminVoiceProfileReviewPage` in `src/pages/DomainPages.tsx` | `keep` |
+
+Notes:
+- Admin verification now uses list/detail/file/approve/reject/need-more-info/revoke endpoints under `/admin/verification-requests`.
+- Admin report actions now use `/admin/reports/{report_id}/reviewing`, `/resolve`, `/reject`, and `/action-taken`; OpenAPI returns an untyped object for admin report responses, so the page renders returned fields generically with a TODO in `src/types/admin.ts`.
+- Audit log, usage limit, user usage limit update, persona usage limit update, and rate limit event APIs are connected through `adminService`.
+- Admin voice profile detail/approve/reject/revoke is connected through `AdminVoiceProfileReviewPage`.
+- OpenAPI `UserResponse` does not expose a role field. Client-side admin role inference was removed; backend 403 responses now provide the actual authorization result.

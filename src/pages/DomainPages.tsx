@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
 import { AppShell } from '../components/layout/AppShell'
 import { useVoiceCall } from '../hooks/useVoiceCall'
+import { adminService } from '../services/adminService'
 import { ApiError } from '../services/apiClient'
 import { chatService } from '../services/chatService'
 import { consentService } from '../services/consentService'
@@ -19,6 +20,16 @@ import { voiceProfileService } from '../services/voiceProfileService'
 import { shareLinkService } from '../services/shareLinkService'
 import { storybookService } from '../services/storybookService'
 import type { MockFeaturePageKey } from '../data/mockFeaturePages'
+import type {
+  AdminReportAction,
+  AdminReportResponse,
+  AuditAction,
+  AuditLogResponse,
+  AuditTargetType,
+  RateLimitEventResponse,
+  UsageLimitResponse,
+  VerificationRequestAdminResponse,
+} from '../types/admin'
 import type { ChatId, PersonaChatResponse, PersonaMessageResponse, SenderType } from '../types/chat'
 import type { ConsentResponse, ConsentType } from '../types/consent'
 import type { DeletionRequestResponse, DeletionStatus, DeletionTargetType } from '../types/deletion'
@@ -77,6 +88,53 @@ const verificationTypeOptions: VerificationType[] = ['FAMILY_RELATION_CERTIFICAT
 const interviewTypeOptions: InterviewType[] = ['TARGET_PROFILE', 'PHOTO_MEMORY', 'SELF_STORY']
 const storyBookVisibilityOptions: StoryBookVisibility[] = ['PRIVATE', 'LINK', 'GROUP', 'PUBLIC']
 const groupMemberRoleOptions: GroupMemberRole[] = ['OWNER', 'MEMBER', 'VIEWER']
+const verificationStatusOptions: VerificationStatus[] = ['PENDING', 'NEED_MORE_INFO', 'APPROVED', 'REJECTED', 'EXPIRED', 'REVOKED']
+const reportStatusOptions: ReportStatus[] = ['PENDING', 'REVIEWING', 'RESOLVED', 'REJECTED', 'ACTION_TAKEN']
+const adminReportActionOptions: AdminReportAction[] = ['reviewing', 'resolve', 'reject', 'action-taken']
+const auditActionOptions: AuditAction[] = [
+  'USER_SIGNUP',
+  'TARGET_CREATED',
+  'TARGET_UPDATED',
+  'TARGET_DELETED',
+  'CONSENT_CREATED',
+  'CONSENT_REVOKED',
+  'VERIFICATION_SUBMITTED',
+  'VERIFICATION_APPROVED',
+  'VERIFICATION_REJECTED',
+  'VERIFICATION_NEED_MORE_INFO',
+  'VERIFICATION_REVOKED',
+  'PERSONA_CREATED',
+  'PERSONA_CHAT_CREATED',
+  'PERSONA_MESSAGE_CREATED',
+  'VOICE_PROFILE_CREATED',
+  'VOICE_PROFILE_REVIEWED',
+  'VOICE_SYNTHESIZED',
+  'VOICE_CALL_STARTED',
+  'VOICE_CALL_ENDED',
+  'DELETION_REQUESTED',
+  'DELETION_COMPLETED',
+  'DELETION_REJECTED',
+  'REPORT_CREATED',
+  'REPORT_RESOLVED',
+  'REPORT_REVIEWING',
+  'REPORT_REJECTED',
+  'REPORT_ACTION_TAKEN',
+  'RATE_LIMIT_BLOCKED',
+  'ABNORMAL_REQUEST_BLOCKED',
+]
+const auditTargetTypeOptions: AuditTargetType[] = [
+  'TARGET',
+  'CONSENT',
+  'VERIFICATION_REQUEST',
+  'PERSONA',
+  'PERSONA_CHAT',
+  'PERSONA_MESSAGE',
+  'VOICE_PROFILE',
+  'DELETION_REQUEST',
+  'REPORT',
+  'USER',
+  'SYSTEM',
+]
 const deletionTargetTypeOptions: DeletionTargetType[] = [
   'TARGET',
   'TARGET_MEDIA',
@@ -5088,7 +5146,732 @@ function PersonaVoiceCallApiPage() {
   )
 }
 
-function MockFeaturePage({ pageKey }: { pageKey: MockFeaturePageKey }) {
+function getRecordValue(record: Record<string, unknown>, key: string) {
+  const value = record[key]
+
+  if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
+    return String(value)
+  }
+
+  if (value === null || value === undefined) {
+    return 'null'
+  }
+
+  return JSON.stringify(value)
+}
+
+function getRecordId(record: Record<string, unknown>) {
+  const id = Number(record.id)
+  return Number.isInteger(id) && id > 0 ? id : null
+}
+
+function AdminPermissionMessage({ message }: { message: string | null }) {
+  if (!message) {
+    return null
+  }
+
+  return <p className="target-form__error" role="alert">{message}</p>
+}
+
+function AdminDashboardApiPage() {
+  const [counts, setCounts] = useState({ verifications: 0, reports: 0, auditLogs: 0, usageLimits: 0, rateLimitEvents: 0 })
+  const [isLoading, setIsLoading] = useState(true)
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
+
+  const loadDashboard = useCallback(async () => {
+    setIsLoading(true)
+    setErrorMessage(null)
+
+    try {
+      const [verifications, reports, auditLogs, usageLimits, rateLimitEvents] = await Promise.all([
+        adminService.listVerificationRequests({ page: 1, size: 5 }),
+        adminService.listReports({ page: 1, size: 5 }),
+        adminService.listAuditLogs({ page: 1, size: 5 }),
+        adminService.listUsageLimits({ page: 1, size: 5 }),
+        adminService.listRateLimitEvents({ page: 1, size: 5 }),
+      ])
+      setCounts({
+        verifications: verifications.total,
+        reports: reports.total,
+        auditLogs: auditLogs.total,
+        usageLimits: usageLimits.total,
+        rateLimitEvents: rateLimitEvents.total,
+      })
+    } catch (error) {
+      setErrorMessage(getApiErrorMessage(error))
+    } finally {
+      setIsLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    const timerId = window.setTimeout(() => {
+      void loadDashboard()
+    }, 0)
+
+    return () => window.clearTimeout(timerId)
+  }, [loadDashboard])
+
+  return (
+    <AppShell title="Admin" subtitle="Admin APIs are protected by backend get_admin_user." badge="API connected">
+      <main className="domain-page target-api-page">
+        <header className="domain-page__hero">
+          <div>
+            <span className="domain-page__eyebrow">AdminDashboardPage</span>
+            <h1>Admin dashboard</h1>
+            <p>Client role gating is not inferred because OpenAPI UserResponse has no role field; backend 403 is displayed here.</p>
+          </div>
+          <span className="domain-page__badge domain-page__badge--connected">/admin/*</span>
+        </header>
+
+        <div className="target-form__actions">
+          <a href="/admin/verification">Verification review</a>
+          <a href="/admin/reports">Reports</a>
+          <a href="/admin/audit-logs">Audit logs</a>
+          <a href="/admin/voice-profiles">Voice profiles</a>
+          <button disabled={isLoading} onClick={() => void loadDashboard()} type="button">{isLoading ? 'Loading...' : 'Refresh'}</button>
+        </div>
+
+        <AdminPermissionMessage message={errorMessage} />
+        {isLoading && <TargetStateMessage title="Loading admin summary" message="Fetching admin API totals." />}
+
+        <section className="domain-page__metrics" aria-label="Admin totals">
+          <article><span>verification</span><strong>{counts.verifications}</strong></article>
+          <article><span>reports</span><strong>{counts.reports}</strong></article>
+          <article><span>audit logs</span><strong>{counts.auditLogs}</strong></article>
+          <article><span>usage limits</span><strong>{counts.usageLimits}</strong></article>
+          <article><span>rate limit events</span><strong>{counts.rateLimitEvents}</strong></article>
+        </section>
+
+        <AdminUsageLimitPanel />
+      </main>
+    </AppShell>
+  )
+}
+
+function AdminVerificationCard({ request }: { request: VerificationRequestAdminResponse }) {
+  return (
+    <article className="target-card">
+      <div className="target-card__body">
+        <div className="target-card__title-row">
+          <h2>Request #{request.id}</h2>
+          <span>{request.status}</span>
+        </div>
+        <p>{request.original_filename}</p>
+        <dl>
+          <div><dt>user_id</dt><dd>{request.user_id}</dd></div>
+          <div><dt>target_id</dt><dd>{request.target_id}</dd></div>
+          <div><dt>verification_type</dt><dd>{request.verification_type}</dd></div>
+          <div><dt>mime_type</dt><dd>{request.mime_type}</dd></div>
+          <div><dt>file_size</dt><dd>{formatFileSize(request.file_size)}</dd></div>
+          <div><dt>admin_note</dt><dd>{request.admin_note ?? 'null'}</dd></div>
+        </dl>
+      </div>
+    </article>
+  )
+}
+
+function AdminVerificationReviewApiPage() {
+  const [requests, setRequests] = useState<VerificationRequestAdminResponse[]>([])
+  const [selected, setSelected] = useState<VerificationRequestAdminResponse | null>(null)
+  const [status, setStatus] = useState<VerificationStatus | ''>('')
+  const [requestId, setRequestId] = useState('')
+  const [adminNote, setAdminNote] = useState('')
+  const [rejectionReason, setRejectionReason] = useState('')
+  const [expiresAt, setExpiresAt] = useState('')
+  const [isLoading, setIsLoading] = useState(false)
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const [notice, setNotice] = useState<string | null>(null)
+
+  const loadRequests = useCallback(async () => {
+    setIsLoading(true)
+    setErrorMessage(null)
+
+    try {
+      const response = await adminService.listVerificationRequests({ status, page: 1, size: 20 })
+      setRequests(response.items)
+    } catch (error) {
+      setErrorMessage(getApiErrorMessage(error))
+    } finally {
+      setIsLoading(false)
+    }
+  }, [status])
+
+  useEffect(() => {
+    const timerId = window.setTimeout(() => {
+      void loadRequests()
+    }, 0)
+
+    return () => window.clearTimeout(timerId)
+  }, [loadRequests])
+
+  function getRequestId() {
+    const id = Number(requestId || selected?.id)
+    return Number.isInteger(id) && id > 0 ? id : null
+  }
+
+  async function handleDetail(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    const id = getRequestId()
+
+    if (!id) {
+      setErrorMessage('request_id must be a positive integer.')
+      return
+    }
+
+    try {
+      setSelected(await adminService.getVerificationRequest(id))
+      setErrorMessage(null)
+    } catch (error) {
+      setErrorMessage(getApiErrorMessage(error))
+    }
+  }
+
+  async function handleDownloadFile() {
+    const id = getRequestId()
+
+    if (!id) {
+      setErrorMessage('request_id must be a positive integer.')
+      return
+    }
+
+    try {
+      const blob = await adminService.downloadVerificationFile(id)
+      const url = URL.createObjectURL(blob)
+      window.open(url, '_blank', 'noopener,noreferrer')
+      window.setTimeout(() => URL.revokeObjectURL(url), 30000)
+    } catch (error) {
+      setErrorMessage(getApiErrorMessage(error))
+    }
+  }
+
+  async function handleVerificationAction(action: 'approve' | 'reject' | 'need-more-info' | 'revoke') {
+    const id = getRequestId()
+
+    if (!id) {
+      setErrorMessage('request_id must be a positive integer.')
+      return
+    }
+
+    setErrorMessage(null)
+    setNotice(null)
+
+    try {
+      let response: VerificationRequestAdminResponse
+
+      if (action === 'approve') {
+        response = await adminService.approveVerificationRequest(id, { admin_note: adminNote || null, expires_at: expiresAt ? new Date(expiresAt).toISOString() : null })
+      } else if (action === 'reject') {
+        response = await adminService.rejectVerificationRequest(id, { rejection_reason: rejectionReason, admin_note: adminNote || null })
+      } else if (action === 'need-more-info') {
+        response = await adminService.requestMoreVerificationInfo(id, { admin_note: adminNote })
+      } else {
+        response = await adminService.revokeVerificationRequest(id, { admin_note: adminNote || null })
+      }
+
+      setSelected(response)
+      setNotice(`Verification request #${response.id} updated.`)
+      await loadRequests()
+    } catch (error) {
+      setErrorMessage(getApiErrorMessage(error))
+    }
+  }
+
+  return (
+    <AppShell title="Admin Verification" subtitle="Reviews TargetVerificationRequest records." badge="API connected">
+      <main className="domain-page target-api-page">
+        <header className="domain-page__hero">
+          <div>
+            <span className="domain-page__eyebrow">AdminVerificationReviewPage</span>
+            <h1>Verification review</h1>
+            <p>List, detail, file view, approve, reject, need-more-info, and revoke actions are connected.</p>
+          </div>
+          <span className="domain-page__badge domain-page__badge--connected">Verification admin</span>
+        </header>
+
+        <form className="target-form target-media-target-form" onSubmit={(event) => { event.preventDefault(); void loadRequests() }}>
+          <div className="target-form__field">
+            <label htmlFor="admin-verification-status">status</label>
+            <select id="admin-verification-status" onChange={(event) => setStatus(event.target.value as VerificationStatus | '')} value={status}>
+              <option value="">all</option>
+              {verificationStatusOptions.map((option) => <option key={option} value={option}>{option}</option>)}
+            </select>
+          </div>
+          <button disabled={isLoading} type="submit">{isLoading ? 'Loading...' : 'Load'}</button>
+        </form>
+
+        <form className="target-form" onSubmit={handleDetail}>
+          <div className="target-form__field">
+            <label htmlFor="admin-verification-id">request_id</label>
+            <input id="admin-verification-id" inputMode="numeric" onChange={(event) => setRequestId(event.target.value)} type="number" value={requestId} />
+          </div>
+          <div className="target-form__field">
+            <label htmlFor="admin-verification-note">admin_note</label>
+            <textarea id="admin-verification-note" onChange={(event) => setAdminNote(event.target.value)} value={adminNote} />
+          </div>
+          <div className="target-form__field">
+            <label htmlFor="admin-verification-rejection">rejection_reason</label>
+            <input id="admin-verification-rejection" minLength={5} onChange={(event) => setRejectionReason(event.target.value)} value={rejectionReason} />
+          </div>
+          <div className="target-form__field">
+            <label htmlFor="admin-verification-expires">expires_at</label>
+            <input id="admin-verification-expires" onChange={(event) => setExpiresAt(event.target.value)} type="datetime-local" value={expiresAt} />
+          </div>
+          <div className="target-form__actions">
+            <button type="submit">Load detail</button>
+            <button onClick={() => void handleDownloadFile()} type="button">Open file</button>
+            <button onClick={() => void handleVerificationAction('approve')} type="button">Approve</button>
+            <button disabled={rejectionReason.length < 5} onClick={() => void handleVerificationAction('reject')} type="button">Reject</button>
+            <button disabled={adminNote.length < 5} onClick={() => void handleVerificationAction('need-more-info')} type="button">Need more info</button>
+            <button onClick={() => void handleVerificationAction('revoke')} type="button">Revoke</button>
+          </div>
+        </form>
+
+        {notice && <p className="target-form__notice">{notice}</p>}
+        <AdminPermissionMessage message={errorMessage} />
+        {selected && <AdminVerificationCard request={selected} />}
+
+        <section className="target-card-grid" aria-label="Admin verification requests">
+          {requests.map((request) => <AdminVerificationCard key={request.id} request={request} />)}
+        </section>
+      </main>
+    </AppShell>
+  )
+}
+
+function AdminReportCard({ report }: { report: AdminReportResponse }) {
+  const id = getRecordId(report)
+
+  return (
+    <article className="target-card">
+      <div className="target-card__body">
+        <div className="target-card__title-row">
+          <h2>Report {id ? `#${id}` : ''}</h2>
+          <span>{getRecordValue(report, 'status')}</span>
+        </div>
+        <dl>
+          {Object.keys(report).slice(0, 12).map((key) => (
+            <div key={key}>
+              <dt>{key}</dt>
+              <dd>{getRecordValue(report, key)}</dd>
+            </div>
+          ))}
+        </dl>
+      </div>
+    </article>
+  )
+}
+
+function AdminReportsApiPage() {
+  const [reports, setReports] = useState<AdminReportResponse[]>([])
+  const [selected, setSelected] = useState<AdminReportResponse | null>(null)
+  const [status, setStatus] = useState<ReportStatus | ''>('')
+  const [reportId, setReportId] = useState('')
+  const [adminNote, setAdminNote] = useState('')
+  const [total, setTotal] = useState(0)
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const [notice, setNotice] = useState<string | null>(null)
+
+  const loadReports = useCallback(async () => {
+    try {
+      const response = await adminService.listReports({ status, page: 1, size: 20 })
+      setReports(response.items)
+      setTotal(response.total)
+      setErrorMessage(null)
+    } catch (error) {
+      setErrorMessage(getApiErrorMessage(error))
+    }
+  }, [status])
+
+  useEffect(() => {
+    const timerId = window.setTimeout(() => {
+      void loadReports()
+    }, 0)
+
+    return () => window.clearTimeout(timerId)
+  }, [loadReports])
+
+  function getReportId() {
+    const id = Number(reportId || (selected ? getRecordId(selected) : null))
+    return Number.isInteger(id) && id > 0 ? id : null
+  }
+
+  async function handleDetail(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    const id = getReportId()
+
+    if (!id) {
+      setErrorMessage('report_id must be a positive integer.')
+      return
+    }
+
+    try {
+      setSelected(await adminService.getReport(id))
+      setErrorMessage(null)
+    } catch (error) {
+      setErrorMessage(getApiErrorMessage(error))
+    }
+  }
+
+  async function handleAction(action: AdminReportAction) {
+    const id = getReportId()
+
+    if (!id) {
+      setErrorMessage('report_id must be a positive integer.')
+      return
+    }
+
+    try {
+      const response = await adminService.updateReport(id, action, adminNote ? { admin_note: adminNote } : null)
+      setSelected(response)
+      setNotice(`Report #${id} updated with ${action}.`)
+      setErrorMessage(null)
+      await loadReports()
+    } catch (error) {
+      setErrorMessage(getApiErrorMessage(error))
+    }
+  }
+
+  return (
+    <AppShell title="Admin Reports" subtitle="Reviews user reports with backend admin report APIs." badge="API connected">
+      <main className="domain-page target-api-page">
+        <header className="domain-page__hero">
+          <div>
+            <span className="domain-page__eyebrow">AdminReportsPage</span>
+            <h1>Admin reports</h1>
+            <p>OpenAPI admin report response is untyped, so returned fields are rendered generically.</p>
+          </div>
+          <span className="domain-page__badge domain-page__badge--connected">Report admin</span>
+        </header>
+
+        <form className="target-form target-media-target-form" onSubmit={(event) => { event.preventDefault(); void loadReports() }}>
+          <div className="target-form__field">
+            <label htmlFor="admin-report-status">status</label>
+            <select id="admin-report-status" onChange={(event) => setStatus(event.target.value as ReportStatus | '')} value={status}>
+              <option value="">all</option>
+              {reportStatusOptions.map((option) => <option key={option} value={option}>{option}</option>)}
+            </select>
+          </div>
+          <button type="submit">Load reports</button>
+        </form>
+
+        <form className="target-form" onSubmit={handleDetail}>
+          <div className="target-form__field">
+            <label htmlFor="admin-report-id">report_id</label>
+            <input id="admin-report-id" inputMode="numeric" onChange={(event) => setReportId(event.target.value)} type="number" value={reportId} />
+          </div>
+          <div className="target-form__field">
+            <label htmlFor="admin-report-note">admin_note</label>
+            <textarea id="admin-report-note" onChange={(event) => setAdminNote(event.target.value)} value={adminNote} />
+          </div>
+          <div className="target-form__actions">
+            <button type="submit">Load detail</button>
+            {adminReportActionOptions.map((action) => (
+              <button key={action} onClick={() => void handleAction(action)} type="button">{action}</button>
+            ))}
+          </div>
+        </form>
+
+        {notice && <p className="target-form__notice">{notice}</p>}
+        <AdminPermissionMessage message={errorMessage} />
+        <section className="domain-page__metrics"><article><span>total</span><strong>{total}</strong></article></section>
+        {selected && <AdminReportCard report={selected} />}
+        <section className="target-card-grid" aria-label="Admin reports">
+          {reports.map((report, index) => <AdminReportCard key={`${getRecordId(report) ?? index}`} report={report} />)}
+        </section>
+      </main>
+    </AppShell>
+  )
+}
+
+function AdminAuditLogsApiPage() {
+  const [auditLogs, setAuditLogs] = useState<AuditLogResponse[]>([])
+  const [rateLimitEvents, setRateLimitEvents] = useState<RateLimitEventResponse[]>([])
+  const [action, setAction] = useState<AuditAction | ''>('')
+  const [targetType, setTargetType] = useState<AuditTargetType | ''>('')
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
+
+  const loadLogs = useCallback(async () => {
+    try {
+      const [logs, rateLimits] = await Promise.all([
+        adminService.listAuditLogs({ action, target_type: targetType, page: 1, size: 20 }),
+        adminService.listRateLimitEvents({ page: 1, size: 20 }),
+      ])
+      setAuditLogs(logs.items)
+      setRateLimitEvents(rateLimits.items)
+      setErrorMessage(null)
+    } catch (error) {
+      setErrorMessage(getApiErrorMessage(error))
+    }
+  }, [action, targetType])
+
+  useEffect(() => {
+    const timerId = window.setTimeout(() => {
+      void loadLogs()
+    }, 0)
+
+    return () => window.clearTimeout(timerId)
+  }, [loadLogs])
+
+  return (
+    <AppShell title="Admin Audit Logs" subtitle="Lists audit logs and rate limit events." badge="API connected">
+      <main className="domain-page target-api-page">
+        <header className="domain-page__hero">
+          <div>
+            <span className="domain-page__eyebrow">AdminAuditLogsPage</span>
+            <h1>Audit logs</h1>
+            <p>Audit filters use backend AuditAction and AuditTargetType enum values.</p>
+          </div>
+          <span className="domain-page__badge domain-page__badge--connected">Audit + RateLimit</span>
+        </header>
+
+        <form className="target-form target-media-target-form" onSubmit={(event) => { event.preventDefault(); void loadLogs() }}>
+          <div className="target-form__field">
+            <label htmlFor="audit-action">action</label>
+            <select id="audit-action" onChange={(event) => setAction(event.target.value as AuditAction | '')} value={action}>
+              <option value="">all</option>
+              {auditActionOptions.map((option) => <option key={option} value={option}>{option}</option>)}
+            </select>
+          </div>
+          <div className="target-form__field">
+            <label htmlFor="audit-target-type">target_type</label>
+            <select id="audit-target-type" onChange={(event) => setTargetType(event.target.value as AuditTargetType | '')} value={targetType}>
+              <option value="">all</option>
+              {auditTargetTypeOptions.map((option) => <option key={option} value={option}>{option}</option>)}
+            </select>
+          </div>
+          <button type="submit">Load logs</button>
+        </form>
+
+        <AdminPermissionMessage message={errorMessage} />
+        <section className="target-card-grid" aria-label="Audit logs">
+          {auditLogs.map((log) => (
+            <article className="target-card" key={log.id}>
+              <div className="target-card__body">
+                <div className="target-card__title-row"><h2>{log.action}</h2><span>#{log.id}</span></div>
+                <p>{log.description ?? 'No description returned.'}</p>
+                <dl>
+                  <div><dt>actor_user_id</dt><dd>{log.actor_user_id ?? 'null'}</dd></div>
+                  <div><dt>target_type</dt><dd>{log.target_type ?? 'null'}</dd></div>
+                  <div><dt>target_id</dt><dd>{log.target_id ?? 'null'}</dd></div>
+                  <div><dt>created_at</dt><dd>{formatDateTime(log.created_at)}</dd></div>
+                </dl>
+              </div>
+            </article>
+          ))}
+        </section>
+
+        <section className="target-card-grid" aria-label="Rate limit events">
+          {rateLimitEvents.map((event) => (
+            <article className="target-card" key={event.id}>
+              <div className="target-card__body">
+                <div className="target-card__title-row"><h2>{event.endpoint}</h2><span>{event.blocked ? 'BLOCKED' : 'RECORDED'}</span></div>
+                <p>{event.reason ?? event.event_type}</p>
+                <dl>
+                  <div><dt>user_id</dt><dd>{event.user_id ?? 'null'}</dd></div>
+                  <div><dt>count</dt><dd>{event.count}</dd></div>
+                  <div><dt>window_seconds</dt><dd>{event.window_seconds ?? 'null'}</dd></div>
+                  <div><dt>created_at</dt><dd>{formatDateTime(event.created_at)}</dd></div>
+                </dl>
+              </div>
+            </article>
+          ))}
+        </section>
+      </main>
+    </AppShell>
+  )
+}
+
+function AdminVoiceProfileReviewApiPage() {
+  const [voiceProfileId, setVoiceProfileId] = useState('')
+  const [reviewNote, setReviewNote] = useState('')
+  const [profile, setProfile] = useState<PersonaVoiceProfileResponse | null>(null)
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const [notice, setNotice] = useState<string | null>(null)
+
+  function getVoiceProfileId() {
+    const id = Number(voiceProfileId || profile?.id)
+    return Number.isInteger(id) && id > 0 ? id : null
+  }
+
+  async function handleLoad(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    const id = getVoiceProfileId()
+
+    if (!id) {
+      setErrorMessage('voice_profile_id must be a positive integer.')
+      return
+    }
+
+    try {
+      setProfile(await adminService.getVoiceProfile(id))
+      setErrorMessage(null)
+    } catch (error) {
+      setErrorMessage(getApiErrorMessage(error))
+    }
+  }
+
+  async function handleAction(action: 'approve' | 'reject' | 'revoke') {
+    const id = getVoiceProfileId()
+
+    if (!id) {
+      setErrorMessage('voice_profile_id must be a positive integer.')
+      return
+    }
+
+    try {
+      const payload = { review_note: reviewNote || null }
+      const response =
+        action === 'approve'
+          ? await adminService.approveVoiceProfile(id, payload)
+          : action === 'reject'
+            ? await adminService.rejectVoiceProfile(id, payload)
+            : await adminService.revokeVoiceProfile(id, payload)
+      setProfile(response)
+      setNotice(`Voice profile #${response.id} ${action}.`)
+      setErrorMessage(null)
+    } catch (error) {
+      setErrorMessage(getApiErrorMessage(error))
+    }
+  }
+
+  return (
+    <AppShell title="Admin Voice Profile" subtitle="Reviews PersonaVoiceProfile records." badge="API connected">
+      <main className="domain-page target-api-page">
+        <header className="domain-page__hero">
+          <div>
+            <span className="domain-page__eyebrow">AdminVoiceProfileReviewPage</span>
+            <h1>Voice profile review</h1>
+            <p>Admin voice profile detail, approve, reject, and revoke APIs are connected.</p>
+          </div>
+          <span className="domain-page__badge domain-page__badge--connected">Voice profile admin</span>
+        </header>
+
+        <form className="target-form" onSubmit={handleLoad}>
+          <div className="target-form__field">
+            <label htmlFor="admin-voice-profile-id">voice_profile_id</label>
+            <input id="admin-voice-profile-id" inputMode="numeric" onChange={(event) => setVoiceProfileId(event.target.value)} type="number" value={voiceProfileId} />
+          </div>
+          <div className="target-form__field">
+            <label htmlFor="admin-voice-profile-note">review_note</label>
+            <textarea id="admin-voice-profile-note" onChange={(event) => setReviewNote(event.target.value)} value={reviewNote} />
+          </div>
+          <div className="target-form__actions">
+            <button type="submit">Load profile</button>
+            <button onClick={() => void handleAction('approve')} type="button">Approve</button>
+            <button onClick={() => void handleAction('reject')} type="button">Reject</button>
+            <button onClick={() => void handleAction('revoke')} type="button">Revoke</button>
+          </div>
+        </form>
+
+        {notice && <p className="target-form__notice">{notice}</p>}
+        <AdminPermissionMessage message={errorMessage} />
+        {profile && <VoiceProfileDetailCard profile={profile} />}
+      </main>
+    </AppShell>
+  )
+}
+
+function AdminUsageLimitPanel() {
+  const [usageLimits, setUsageLimits] = useState<UsageLimitResponse[]>([])
+  const [userId, setUserId] = useState('')
+  const [personaId, setPersonaId] = useState('')
+  const [voiceLimit, setVoiceLimit] = useState('')
+  const [sttLimit, setSttLimit] = useState('')
+  const [callLimit, setCallLimit] = useState('')
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
+
+  async function loadUsageLimits() {
+    try {
+      const response = await adminService.listUsageLimits({ page: 1, size: 20 })
+      setUsageLimits(response.items)
+      setErrorMessage(null)
+    } catch (error) {
+      setErrorMessage(getApiErrorMessage(error))
+    }
+  }
+
+  async function updateUserLimit() {
+    const id = Number(userId)
+
+    if (!Number.isInteger(id) || id <= 0) {
+      setErrorMessage('user_id must be a positive integer.')
+      return
+    }
+
+    try {
+      await adminService.updateUserUsageLimit(id, {
+        voice_generation_limit: voiceLimit ? Number(voiceLimit) : null,
+        stt_request_limit: sttLimit ? Number(sttLimit) : null,
+        voice_call_seconds_limit: callLimit ? Number(callLimit) : null,
+      })
+      await loadUsageLimits()
+    } catch (error) {
+      setErrorMessage(getApiErrorMessage(error))
+    }
+  }
+
+  async function updatePersonaLimit() {
+    const id = Number(personaId)
+
+    if (!Number.isInteger(id) || id <= 0) {
+      setErrorMessage('persona_id must be a positive integer.')
+      return
+    }
+
+    try {
+      await adminService.updatePersonaUsageLimit(id, {
+        voice_generation_limit: voiceLimit ? Number(voiceLimit) : null,
+        voice_call_seconds_limit: callLimit ? Number(callLimit) : null,
+      })
+    } catch (error) {
+      setErrorMessage(getApiErrorMessage(error))
+    }
+  }
+
+  useEffect(() => {
+    const timerId = window.setTimeout(() => {
+      void loadUsageLimits()
+    }, 0)
+
+    return () => window.clearTimeout(timerId)
+  }, [])
+
+  return (
+    <section className="target-detail-card">
+      <h2>Usage limits</h2>
+      <form className="target-form target-media-target-form" onSubmit={(event) => { event.preventDefault(); void updateUserLimit() }}>
+        <div className="target-form__field"><label htmlFor="usage-user-id">user_id</label><input id="usage-user-id" onChange={(event) => setUserId(event.target.value)} type="number" value={userId} /></div>
+        <div className="target-form__field"><label htmlFor="usage-persona-id">persona_id</label><input id="usage-persona-id" onChange={(event) => setPersonaId(event.target.value)} type="number" value={personaId} /></div>
+        <div className="target-form__field"><label htmlFor="usage-voice-limit">voice_generation_limit</label><input id="usage-voice-limit" onChange={(event) => setVoiceLimit(event.target.value)} type="number" value={voiceLimit} /></div>
+        <div className="target-form__field"><label htmlFor="usage-stt-limit">stt_request_limit</label><input id="usage-stt-limit" onChange={(event) => setSttLimit(event.target.value)} type="number" value={sttLimit} /></div>
+        <div className="target-form__field"><label htmlFor="usage-call-limit">voice_call_seconds_limit</label><input id="usage-call-limit" onChange={(event) => setCallLimit(event.target.value)} type="number" value={callLimit} /></div>
+        <div className="target-form__actions">
+          <button type="submit">Update user limit</button>
+          <button onClick={() => void updatePersonaLimit()} type="button">Update persona limit</button>
+          <button onClick={() => void loadUsageLimits()} type="button">Refresh</button>
+        </div>
+      </form>
+      <AdminPermissionMessage message={errorMessage} />
+      <section className="target-card-grid" aria-label="Usage limits">
+        {usageLimits.map((limit) => (
+          <article className="target-card" key={limit.id}>
+            <div className="target-card__body">
+              <div className="target-card__title-row"><h2>User #{limit.user_id}</h2><span>{limit.period_ym}</span></div>
+              <dl>
+                <div><dt>voice_generation</dt><dd>{limit.voice_generation_count} / {limit.voice_generation_limit}</dd></div>
+                <div><dt>stt_request</dt><dd>{limit.stt_request_count} / {limit.stt_request_limit}</dd></div>
+                <div><dt>voice_call_seconds</dt><dd>{limit.voice_call_seconds} / {limit.voice_call_seconds_limit}</dd></div>
+              </dl>
+            </div>
+          </article>
+        ))}
+      </section>
+    </section>
+  )
+}
+
+export function MockFeaturePage({ pageKey }: { pageKey: MockFeaturePageKey }) {
   const page = mockFeatureService.getPage(pageKey)
 
   return (
@@ -5277,17 +6060,21 @@ export function ReportPage() {
 }
 
 export function AdminDashboardPage() {
-  return <MockFeaturePage pageKey="adminDashboard" />
+  return <AdminDashboardApiPage />
 }
 
 export function AdminVerificationReviewPage() {
-  return <MockFeaturePage pageKey="adminVerificationReview" />
+  return <AdminVerificationReviewApiPage />
 }
 
 export function AdminReportsPage() {
-  return <MockFeaturePage pageKey="adminReports" />
+  return <AdminReportsApiPage />
 }
 
 export function AdminAuditLogsPage() {
-  return <MockFeaturePage pageKey="adminAuditLogs" />
+  return <AdminAuditLogsApiPage />
+}
+
+export function AdminVoiceProfileReviewPage() {
+  return <AdminVoiceProfileReviewApiPage />
 }

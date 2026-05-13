@@ -249,6 +249,39 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
   return parsed as T
 }
 
+export async function apiDownload(path: string, options: Omit<RequestOptions, 'body'> = {}): Promise<Blob> {
+  const headers = new Headers(options.headers)
+  const method = options.method ?? 'GET'
+
+  if (options.auth !== false) {
+    const accessToken = getAccessToken()
+
+    if (accessToken) {
+      headers.set('Authorization', `Bearer ${accessToken}`)
+    }
+  }
+
+  let response: Response
+
+  try {
+    response = await fetch(buildUrl(path), { method, headers })
+  } catch {
+    throw new ApiError(getStatusMessage(0), 0, null)
+  }
+
+  if (!response.ok) {
+    if (response.status === 401) {
+      clearTokens()
+    }
+
+    const parsed = await parseResponse(response)
+    const detail = getErrorDetail(parsed)
+    throw new ApiError(getDetailMessage(detail) ?? getStatusMessage(response.status), response.status, detail)
+  }
+
+  return response.blob()
+}
+
 export const apiClient = {
   get: <T>(path: string, options?: Omit<RequestOptions, 'method' | 'body'>) =>
     apiRequest<T>(path, { ...options, method: 'GET' }),
@@ -260,4 +293,6 @@ export const apiClient = {
     apiRequest<T>(path, { ...options, method: 'PATCH', body }),
   delete: <T>(path: string, options?: Omit<RequestOptions, 'method' | 'body'>) =>
     apiRequest<T>(path, { ...options, method: 'DELETE' }),
+  download: (path: string, options?: Omit<RequestOptions, 'method' | 'body'>) =>
+    apiDownload(path, { ...options, method: 'GET' }),
 }

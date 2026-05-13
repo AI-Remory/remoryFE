@@ -5,6 +5,7 @@ import {
   AdminDashboardPage,
   AdminReportsPage,
   AdminVerificationReviewPage,
+  AdminVoiceProfileReviewPage,
   ConsentPage,
   DeletionRequestPage,
   InterviewListPage,
@@ -59,29 +60,9 @@ const protectedPaths = [
   '/admin',
 ]
 
-function hasAdminRole(user: unknown) {
-  return typeof user === 'object' && user !== null && (user as { role?: string }).role === 'ADMIN'
-}
-
-function AdminAccessPending() {
-  return (
-    <main className="app-access-page">
-      <section>
-        <span>ADMIN</span>
-        <h1>관리자 권한이 필요합니다</h1>
-        <p>
-          Admin API는 백엔드 문서 기준 ADMIN role 전용입니다. 현재 OpenAPI의 UserResponse에는 role 필드가 없어,
-          role 전달 방식이 확정되면 이 guard가 바로 실제 권한 확인으로 동작합니다.
-        </p>
-        <a href="/home">Dashboard로 이동</a>
-      </section>
-    </main>
-  )
-}
-
 function App() {
   const { pathname } = window.location
-  const { user, isAuthenticated, isLoading } = useAuth()
+  const { isAuthenticated, isLoading } = useAuth()
 
   if (isLoading) {
     return <main className="app-loading">Loading...</main>
@@ -97,9 +78,8 @@ function App() {
     return <main className="app-loading">Loading...</main>
   }
 
-  if (pathname.startsWith('/admin') && !hasAdminRole(user)) {
-    return <AdminAccessPending />
-  }
+  // TODO: Backend docs say admin APIs require User.role == "admin", but OpenAPI UserResponse has no role field.
+  // Do not infer admin rights client-side; /admin/* endpoints return 403 for non-admin tokens.
 
   if (pathname.startsWith('/auth')) {
     return <AuthPage />
@@ -223,6 +203,10 @@ function App() {
 
   if (pathname.startsWith('/admin/audit-logs')) {
     return <AdminAuditLogsPage />
+  }
+
+  if (pathname.startsWith('/admin/voice-profiles')) {
+    return <AdminVoiceProfileReviewPage />
   }
 
   if (pathname.startsWith('/admin')) {

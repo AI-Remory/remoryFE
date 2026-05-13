@@ -10,10 +10,6 @@ export type MockDomainKey =
   | 'memoryGroup'
   | 'deletionRequest'
   | 'report'
-  | 'adminDashboard'
-  | 'adminVerificationReview'
-  | 'adminReports'
-  | 'adminAuditLogs'
 
 export type MockStatusTone = 'ready' | 'pending' | 'review' | 'blocked' | 'done' | 'admin'
 

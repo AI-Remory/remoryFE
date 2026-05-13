@@ -404,6 +404,104 @@
   gap: 10px;
 }
 
+.storybook-page__section-note {
+  color: var(--storybook-muted);
+  font-size: 14px;
+  font-weight: 750;
+}
+
+.storybook-page__storybook-list {
+  display: grid;
+  gap: 10px;
+}
+
+.storybook-page__storybook-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  width: 100%;
+  min-height: 82px;
+  gap: 14px;
+  padding: 15px 16px;
+  border: 1px solid var(--storybook-border);
+  border-radius: 16px;
+  background: var(--storybook-card);
+  color: var(--storybook-text);
+  cursor: pointer;
+  text-align: left;
+  box-shadow: 0 5px 11px rgba(216, 182, 157, 0.1);
+}
+
+.storybook-page__storybook-card.is-selected {
+  border-color: var(--storybook-orange);
+  background: #fff3e7;
+  box-shadow: 0 0 0 3px rgba(227, 110, 56, 0.13), 0 5px 11px rgba(216, 182, 157, 0.1);
+}
+
+.storybook-page__storybook-card:disabled {
+  cursor: wait;
+  opacity: 0.72;
+}
+
+.storybook-page__storybook-card-main {
+  display: grid;
+  min-width: 0;
+  gap: 6px;
+}
+
+.storybook-page__storybook-card-main strong {
+  overflow: hidden;
+  color: var(--storybook-dark);
+  font-size: 18px;
+  font-weight: 850;
+  line-height: 1.35;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.storybook-page__storybook-card-main small {
+  display: -webkit-box;
+  overflow: hidden;
+  color: var(--storybook-muted);
+  font-size: 14px;
+  font-weight: 650;
+  line-height: 1.4;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.storybook-page__storybook-card-meta {
+  display: grid;
+  justify-items: end;
+  gap: 8px;
+  color: var(--storybook-muted);
+  font-size: 13px;
+  font-weight: 750;
+  white-space: nowrap;
+}
+
+.storybook-page__storybook-card-meta em {
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: #f4e3d6;
+  color: var(--storybook-orange-deep);
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 850;
+}
+
+.storybook-page__empty-text,
+.storybook-page__current-storybook {
+  color: var(--storybook-muted);
+  font-size: 14px;
+  font-weight: 650;
+  line-height: 1.5;
+}
+
+.storybook-page__current-storybook {
+  margin-top: 4px;
+}
+
 .storybook-page__photo-form {
   display: grid;
   gap: 13px;

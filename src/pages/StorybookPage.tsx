@@ -185,6 +185,34 @@ function mapPhotoMemories(apiPhotoMemories: PhotoMemory[]): Photo[] {
   }))
 }
 
+function sortStorybooks(items: StoryBook[]) {
+  return [...items].sort((left, right) => {
+    const rightTime = Date.parse(right.created_at ?? '')
+    const leftTime = Date.parse(left.created_at ?? '')
+
+    if (!Number.isNaN(rightTime) && !Number.isNaN(leftTime) && rightTime !== leftTime) {
+      return rightTime - leftTime
+    }
+
+    const rightId = Number(right.id)
+    const leftId = Number(left.id)
+
+    if (!Number.isNaN(rightId) && !Number.isNaN(leftId) && rightId !== leftId) {
+      return rightId - leftId
+    }
+
+    return String(right.id).localeCompare(String(left.id))
+  })
+}
+
+function isSameApiId(left: ApiId | null | undefined, right: ApiId | null | undefined) {
+  return left != null && right != null && String(left) === String(right)
+}
+
+function getStorybookSummary(storybook: StoryBook) {
+  return storybook.summary ?? storybook.subtitle ?? '생성된 스토리북입니다.'
+}
+
 function StorybookIcon({ name }: { name: IconName }) {
   switch (name) {
     case 'share':
@@ -274,6 +302,7 @@ function StorybookIcon({ name }: { name: IconName }) {
 
 function StorybookPage() {
   const [currentStorybook, setCurrentStorybook] = useState<StoryBook | null>(null)
+  const [storybookItems, setStorybookItems] = useState<StoryBook[]>([])
   const [chapterItems, setChapterItems] = useState<Chapter[]>(chapters)
   const [photoItems, setPhotoItems] = useState<Photo[]>(photos)
   const [photoMemories, setPhotoMemories] = useState<PhotoMemory[]>([])
@@ -289,6 +318,7 @@ function StorybookPage() {
   const [photoUploadFile, setPhotoUploadFile] = useState<File | null>(null)
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false)
   const [isCreatingStorybook, setIsCreatingStorybook] = useState(false)
+  const [isSelectingStorybook, setIsSelectingStorybook] = useState(false)
   const [isSharePanelOpen, setIsSharePanelOpen] = useState(false)
   const [shareLinks, setShareLinks] = useState<ShareLink[]>([])
   const [isLoadingShareLinks, setIsLoadingShareLinks] = useState(false)
@@ -297,27 +327,35 @@ function StorybookPage() {
   const [statusMessage, setStatusMessage] = useState(() => window.localStorage.getItem(STORYBOOK_NOTICE_KEY) ?? '')
   const [errorMessage, setErrorMessage] = useState('')
 
-  const loadStorybook = useCallback(async (storybookId?: ApiId) => {
-    let detail = storybookId ? await storybookApi.getStorybook(storybookId) : null
-
-    if (!detail) {
-      const storybooks = await storybookApi.listStorybooks()
-      const firstStorybook = storybooks[0]
-
-      if (!firstStorybook) {
-        return null
-      }
-
-      detail = await storybookApi.getStorybook(firstStorybook.id)
-    }
-
+  const selectStorybook = useCallback(async (storybookId: ApiId) => {
+    const detail = await storybookApi.getStorybook(storybookId)
     const detailChapters = detail.chapters?.length ? detail.chapters : await storybookApi.listChapters(detail.id)
 
     setCurrentStorybook(detail)
     setChapterItems(detailChapters.length > 0 ? mapStoryChapters(detailChapters) : [])
+    setShareLinks([])
+    setIsSharePanelOpen(false)
 
     return detail
   }, [])
+
+  const loadStorybooks = useCallback(async (preferredStorybookId?: ApiId) => {
+    const storybooks = sortStorybooks(await storybookApi.listStorybooks())
+
+    setStorybookItems(storybooks)
+
+    const selectedStorybook = preferredStorybookId
+      ? storybooks.find((storybook) => isSameApiId(storybook.id, preferredStorybookId))
+      : storybooks[0]
+
+    if (!selectedStorybook) {
+      setCurrentStorybook(null)
+      setChapterItems(chapters)
+      return null
+    }
+
+    return selectStorybook(selectedStorybook.id)
+  }, [selectStorybook])
 
   const loadPhotoMemories = useCallback(async () => {
     const nextPhotoMemories = await photoMemoryApi.listPhotoMemories()
@@ -336,7 +374,7 @@ function StorybookPage() {
     window.localStorage.removeItem(STORYBOOK_NOTICE_KEY)
 
     const timeoutId = window.setTimeout(() => {
-      loadStorybook().catch(() => {
+      loadStorybooks().catch(() => {
         // Keep the existing mock storybook when storybook APIs are unavailable.
       })
       loadPhotoMemories().catch(() => {
@@ -345,7 +383,7 @@ function StorybookPage() {
     }, 0)
 
     return () => window.clearTimeout(timeoutId)
-  }, [loadPhotoMemories, loadStorybook])
+  }, [loadPhotoMemories, loadStorybooks])
 
   useEffect(() => {
     let ignore = false
@@ -510,20 +548,52 @@ function StorybookPage() {
         visibility: 'PRIVATE',
       })
 
-      await storybookApi.listStorybooks().catch(() => undefined)
+      const refreshedStorybooks = await storybookApi.listStorybooks().catch(() => null)
+
+      if (refreshedStorybooks) {
+        const sortedStorybooks = sortStorybooks(refreshedStorybooks)
+        const nextStorybooks = sortedStorybooks.some((item) => isSameApiId(item.id, storybook.id))
+          ? sortedStorybooks
+          : sortStorybooks([storybook, ...sortedStorybooks])
+
+        setStorybookItems(nextStorybooks)
+      } else {
+        setStorybookItems((current) => [
+          storybook,
+          ...current.filter((item) => !isSameApiId(item.id, storybook.id)),
+        ])
+      }
 
       try {
-        await loadStorybook(storybook.id)
+        await selectStorybook(storybook.id)
       } catch {
         setCurrentStorybook(storybook)
         setChapterItems([])
       }
 
-      setStatusMessage('선택한 사진으로 스토리북을 만들었어요.')
+      setStatusMessage('새 스토리북을 만들었어요. 아래에서 다른 스토리북도 선택할 수 있어요.')
     } catch (error) {
       setErrorMessage(getApiErrorMessage(error, '스토리북을 만들지 못했습니다.'))
     } finally {
       setIsCreatingStorybook(false)
+    }
+  }
+
+  const handleSelectStorybook = async (storybookId: ApiId) => {
+    if (isSelectingStorybook || isSameApiId(currentStorybook?.id, storybookId)) {
+      return
+    }
+
+    setIsSelectingStorybook(true)
+    setErrorMessage('')
+    setStatusMessage('')
+
+    try {
+      await selectStorybook(storybookId)
+    } catch (error) {
+      setErrorMessage(getApiErrorMessage(error, '스토리북 정보를 불러오지 못했습니다.'))
+    } finally {
+      setIsSelectingStorybook(false)
     }
   }
 
@@ -724,6 +794,43 @@ function StorybookPage() {
           </section>
         )}
 
+        <section className="storybook-page__section" aria-label="내 스토리북">
+          <div className="storybook-page__section-header">
+            <h2>내 스토리북</h2>
+            {isSelectingStorybook && <span className="storybook-page__section-note">불러오는 중...</span>}
+          </div>
+          {storybookItems.length > 0 ? (
+            <div className="storybook-page__storybook-list">
+              {storybookItems.map((storybook) => {
+                const isSelected = isSameApiId(currentStorybook?.id, storybook.id)
+                const summary = getStorybookSummary(storybook)
+
+                return (
+                  <button
+                    className={`storybook-page__storybook-card${isSelected ? ' is-selected' : ''}`}
+                    type="button"
+                    key={String(storybook.id)}
+                    aria-pressed={isSelected}
+                    onClick={() => handleSelectStorybook(storybook.id)}
+                    disabled={isSelectingStorybook}
+                  >
+                    <span className="storybook-page__storybook-card-main">
+                      <strong>{storybook.title}</strong>
+                      <small>{summary}</small>
+                    </span>
+                    <span className="storybook-page__storybook-card-meta">
+                      <em>{storybook.status ?? storybook.visibility ?? 'PRIVATE'}</em>
+                      <time>{formatDate(storybook.created_at)}</time>
+                    </span>
+                  </button>
+                )
+              })}
+            </div>
+          ) : (
+            <p className="storybook-page__empty-text">아직 생성된 스토리북이 없습니다. 사진 기억을 선택해 첫 스토리북을 만들어보세요.</p>
+          )}
+        </section>
+
         <section className="storybook-page__section">
           <div className="storybook-page__section-header">
             <h2>기억 속 사진</h2>
@@ -838,7 +945,12 @@ function StorybookPage() {
 
         <section className="storybook-page__section">
           <div className="storybook-page__section-header">
-            <h2>스토리 챕터</h2>
+            <div>
+              <h2>스토리 챕터</h2>
+              <p className="storybook-page__current-storybook">
+                현재 스토리북: {currentStorybook?.title ?? '선택된 스토리북 없음'}
+              </p>
+            </div>
             <button type="button" onClick={() => console.log('reorder chapters')}>
               순서 변경 <StorybookIcon name="reorder" />
             </button>

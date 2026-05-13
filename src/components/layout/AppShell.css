@@ -92,7 +92,7 @@
   align-items: flex-start;
   justify-content: space-between;
   gap: 22px;
-  width: min(1180px, 100%);
+  width: min(1120px, 100%);
   margin: 0 auto 18px;
 }
 
@@ -139,7 +139,7 @@
 }
 
 .app-shell__page-container {
-  width: min(1180px, 100%);
+  width: min(1120px, 100%);
   margin: 0 auto;
 }
 

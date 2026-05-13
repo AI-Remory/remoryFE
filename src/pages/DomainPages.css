@@ -1890,3 +1890,243 @@
     width: fit-content;
   }
 }
+
+/* Layout balance overrides for cards, panels, forms, and state blocks. */
+.target-api-page,
+.domain-page__main-grid,
+.target-card-grid,
+.target-media-grid,
+.mock-feature-list,
+.dashboard-page {
+  min-width: 0;
+}
+
+.target-api-state {
+  display: grid;
+  align-content: start;
+  gap: 10px;
+}
+
+.target-api-state p {
+  max-width: 68ch;
+}
+
+.target-api-state a {
+  width: fit-content;
+  margin-top: 6px;
+}
+
+.domain-page__hero > div,
+.domain-page__panel,
+.target-card__body,
+.target-detail-card,
+.target-form,
+.target-media-card__body,
+.persona-summary-card,
+.persona-action-card,
+.mock-feature-card,
+.mock-feature-panel {
+  min-width: 0;
+}
+
+.domain-page__cards,
+.target-card-grid,
+.target-media-grid,
+.mock-feature-list {
+  align-items: stretch;
+}
+
+.domain-page__card,
+.target-card,
+.target-detail-card,
+.persona-summary-card,
+.persona-action-card,
+.mock-feature-card,
+.target-media-upload-card {
+  min-height: 0;
+}
+
+.domain-page__card,
+.mock-feature-card {
+  grid-template-rows: auto auto minmax(0, 1fr);
+}
+
+.target-card {
+  align-items: start;
+}
+
+.target-card__body,
+.target-detail-card,
+.persona-summary-card,
+.persona-action-card,
+.mock-feature-card {
+  display: grid;
+  align-content: start;
+  gap: 12px;
+}
+
+.target-card__title-row,
+.mock-feature-card__heading,
+.persona-chat-message header,
+.voice-call-message header {
+  min-width: 0;
+}
+
+.target-card__title-row h2,
+.mock-feature-card h3,
+.persona-summary-card h2,
+.persona-action-card h2 {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.target-card p,
+.target-detail-card p,
+.persona-summary-card p,
+.persona-action-card p,
+.mock-feature-card p,
+.domain-page__card p {
+  max-width: 62ch;
+}
+
+.target-card p,
+.target-card dl,
+.target-card a,
+.target-detail-card p,
+.target-detail-card dl,
+.persona-summary-card p,
+.persona-summary-card dl,
+.persona-action-card p,
+.persona-action-card dl,
+.mock-feature-card p,
+.mock-feature-card dl {
+  margin-top: 0;
+}
+
+.target-card a {
+  width: fit-content;
+  align-self: end;
+  margin-top: 4px;
+}
+
+.target-card dl,
+.target-detail-card dl,
+.persona-summary-card dl,
+.persona-action-card dl,
+.mock-feature-card dl {
+  width: 100%;
+}
+
+.target-form {
+  align-content: start;
+}
+
+.target-form__actions {
+  width: 100%;
+  margin-top: 2px;
+  align-items: center;
+}
+
+.target-form__actions a,
+.target-form__actions button,
+.persona-action-card__actions a,
+.persona-action-card__actions button {
+  min-width: 128px;
+}
+
+.target-media-card {
+  min-width: 0;
+}
+
+.target-media-card__body {
+  align-content: start;
+}
+
+.persona-action-card__actions {
+  width: 100%;
+}
+
+.persona-chat-thread,
+.voice-call-messages {
+  min-width: 0;
+}
+
+.mock-feature-panel__heading {
+  align-items: start;
+}
+
+.mock-feature-panel__heading > div {
+  min-width: 0;
+}
+
+.mock-feature-endpoints li {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.mock-feature-endpoints small {
+  grid-column: auto;
+}
+
+@media (min-width: 981px) {
+  .target-card-grid {
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  }
+
+  .target-media-grid {
+    grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
+  }
+
+  .mock-feature-list {
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  }
+}
+
+@media (max-width: 680px) {
+  .target-api-state,
+  .target-detail-card,
+  .target-form,
+  .persona-summary-card,
+  .persona-action-card,
+  .mock-feature-panel,
+  .mock-feature-card {
+    padding: 18px;
+  }
+
+  .target-card {
+    padding: 16px;
+  }
+
+  .target-card__avatar {
+    width: 64px;
+    height: 64px;
+    border-radius: 20px;
+    font-size: 25px;
+  }
+
+  .target-card__title-row,
+  .mock-feature-panel__heading {
+    display: grid;
+    justify-content: stretch;
+  }
+
+  .target-card__title-row span,
+  .domain-page__badge {
+    width: fit-content;
+  }
+
+  .target-card dl div,
+  .target-detail-card dl div,
+  .target-media-card dl div,
+  .mock-feature-card dl div {
+    grid-template-columns: 1fr;
+    gap: 4px;
+  }
+
+  .target-form__actions a,
+  .target-form__actions button,
+  .persona-action-card__actions a,
+  .persona-action-card__actions button,
+  .target-api-state a {
+    width: 100%;
+  }
+}

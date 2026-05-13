@@ -13,9 +13,9 @@
 
 .auth-shell {
   display: grid;
-  width: min(100%, 980px);
-  min-height: min(640px, calc(100dvh - 96px));
-  grid-template-columns: minmax(0, 0.82fr) minmax(360px, 440px);
+  width: min(100%, 1040px);
+  min-height: auto;
+  grid-template-columns: minmax(0, 0.95fr) minmax(340px, 420px);
   align-items: stretch;
   gap: clamp(18px, 4vw, 34px);
 }
@@ -32,7 +32,7 @@
 .auth-intro {
   position: relative;
   display: flex;
-  min-height: 360px;
+  min-height: 0;
   flex-direction: column;
   justify-content: flex-end;
   padding: clamp(28px, 5vw, 54px);
@@ -88,12 +88,11 @@
 }
 
 .auth-card {
-  display: flex;
+  display: grid;
   width: 100%;
   max-width: 440px;
   min-width: 0;
-  flex-direction: column;
-  justify-content: center;
+  align-content: center;
   justify-self: end;
   padding: clamp(22px, 4vw, 34px);
 }
@@ -332,6 +331,13 @@
   .auth-card {
     max-width: none;
     justify-self: stretch;
+  }
+}
+
+@media (min-width: 861px) {
+  .auth-intro,
+  .auth-card {
+    min-height: 620px;
   }
 }
 

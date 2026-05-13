@@ -14,7 +14,8 @@
 }
 
 .account-page__profile {
-  display: flex;
+  display: grid;
+  grid-template-columns: 76px minmax(0, 1fr);
   align-items: center;
   gap: 18px;
   padding: 22px;
@@ -58,6 +59,8 @@
 }
 
 .account-page__section {
+  display: grid;
+  gap: 16px;
   padding: 22px;
 }
 
@@ -66,7 +69,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  margin-bottom: 16px;
+  margin-bottom: 0;
 }
 
 .account-page__section-heading h2 {
@@ -92,6 +95,8 @@
 }
 
 .account-page__details div {
+  display: grid;
+  align-content: start;
   min-width: 0;
   border: 1px solid rgba(221, 205, 194, 0.8);
   border-radius: 16px;
@@ -117,6 +122,7 @@
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
+  justify-content: flex-start;
 }
 
 .account-page__actions a,
@@ -163,6 +169,7 @@
 
 @media (max-width: 700px) {
   .account-page__profile {
+    grid-template-columns: 1fr;
     align-items: flex-start;
   }
 
@@ -173,5 +180,9 @@
   .account-page__section-heading {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .account-page__actions {
+    display: grid;
   }
 }

@@ -290,7 +290,7 @@ function MyPage() {
                 AI로 기록하고 있어요.
               </p>
             </div>
-            <button className="my-page__profile-link" type="button" onClick={() => console.log('view profile')}>
+            <button className="my-page__profile-link" type="button" onClick={() => { window.location.href = '/my' }}>
               프로필 보기 <ChevronIcon />
             </button>
           </div>
@@ -317,7 +317,7 @@ function MyPage() {
         <section className="my-page__persona-section">
           <div className="my-page__section-heading">
             <h2>내 페르소나 관리</h2>
-            <button type="button" onClick={() => console.log('view all personas')}>
+            <button type="button" onClick={() => { window.location.href = '/personas' }}>
               전체 보기 <ChevronIcon />
             </button>
           </div>
@@ -344,14 +344,14 @@ function MyPage() {
               </button>
             ))}
           </div>
-          <button className="my-page__create-persona" type="button" onClick={() => console.log('create persona')}>
+          <button className="my-page__create-persona" type="button" onClick={() => { window.location.href = '/targets' }}>
             + 새 페르소나 만들기
           </button>
         </section>
 
         <section className="my-page__menu-grid" aria-label="설정 메뉴">
           {menuItems.map((item) => (
-            <button className="my-page__menu-card" type="button" key={item.id} onClick={() => console.log('menu click', item.id)}>
+            <button className="my-page__menu-card" type="button" key={item.id} disabled title="API 연결 예정 기능입니다.">
               <span className={`my-page__menu-icon my-page__menu-icon--${item.icon}`} aria-hidden="true">
                 <AppIcon name={item.icon} />
               </span>
@@ -366,7 +366,7 @@ function MyPage() {
 
         <section className="my-page__wide-menu" aria-label="지원 및 보안 메뉴">
           {wideMenuItems.map((item) => (
-            <button className="my-page__wide-card" type="button" key={item.id} onClick={() => console.log('menu click', item.id)}>
+            <button className="my-page__wide-card" type="button" key={item.id} disabled title="API 연결 예정 기능입니다.">
               <span className={`my-page__menu-icon my-page__menu-icon--${item.icon}`} aria-hidden="true">
                 <AppIcon name={item.icon} />
               </span>
@@ -398,7 +398,7 @@ function MyPage() {
               계속 기록하며 소중한 기억을 모아보세요.
             </p>
           </div>
-          <button type="button" onClick={() => console.log('view monthly memories')}>
+          <button type="button" onClick={() => { window.location.href = '/photo-memories' }}>
             기록 보러 가기 <ChevronIcon />
           </button>
           <img
@@ -418,7 +418,7 @@ function MyPage() {
             <AppIcon name="chat" />
             <span>대화</span>
           </button>
-          <button className="my-page__nav-button" type="button" onClick={() => { window.location.href = '/storybook' }}>
+          <button className="my-page__nav-button" type="button" onClick={() => { window.location.href = '/storybooks' }}>
             <AppIcon name="book" />
             <span>스토리북</span>
           </button>

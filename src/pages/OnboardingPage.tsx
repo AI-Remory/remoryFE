@@ -1,30 +1,30 @@
-import './SetupPage.css'
+import './OnboardingPage.css'
 
-type SetupAction = {
+type OnboardingAction = {
   title: string
   description: string
   href: string
   status: string
 }
 
-const setupActions: SetupAction[] = [
+const onboardingActions: OnboardingAction[] = [
   {
     title: 'Target 만들기',
-    description: '기억을 남길 대상의 이름, 설명, 관계 유형을 사용자가 직접 입력합니다.',
+    description: '기억을 남길 대상의 이름과 관계 정보를 직접 입력합니다.',
     href: '/targets/new',
     status: 'required first',
   },
   {
     title: '관계 입증 요청하기',
-    description: 'Target 생성 후 관계 입증 파일을 사용자가 직접 제출합니다.',
+    description: 'Target 생성 후 필요한 관계 입증 자료를 사용자가 직접 제출합니다.',
     href: '/verification',
     status: 'manual',
   },
   {
     title: '동의 관리하기',
-    description: 'Persona, 사진, 음성, 공유 관련 동의를 사용자가 확인하고 관리합니다.',
+    description: 'Persona, 사진, 음성, 공유 관련 동의 상태를 확인하고 관리합니다.',
     href: '/consents',
-    status: 'manual',
+    status: 'API 연결 예정',
   },
   {
     title: '사진/음성 업로드하기',
@@ -34,7 +34,7 @@ const setupActions: SetupAction[] = [
   },
 ]
 
-function SetupPage() {
+function OnboardingPage() {
   return (
     <main className="setup-page">
       <section className="setup-page__container setup-page__container--guide" aria-label="Remory onboarding guide">
@@ -42,13 +42,13 @@ function SetupPage() {
           <span className="setup-page__guide-eyebrow">Onboarding</span>
           <h1>처음 설정은 사용자가 직접 시작합니다</h1>
           <p>
-            회원가입 직후 프론트가 Target, ConsentLog, VerificationRequest, Persona, StoryBook을 자동 생성하지 않습니다.
-            아래 순서대로 필요한 작업을 직접 선택해 진행하세요.
+            회원가입 직후 프론트가 Target, ConsentLog, VerificationRequest, Persona, StoryBook을 자동 생성하지
+            않습니다. 아래 작업 중 필요한 항목을 선택해 진행하세요.
           </p>
         </div>
 
         <section className="setup-page__guide-grid" aria-label="Onboarding actions">
-          {setupActions.map((action) => (
+          {onboardingActions.map((action) => (
             <article className="setup-page__guide-card" key={action.title}>
               <span>{action.status}</span>
               <h2>{action.title}</h2>
@@ -61,8 +61,8 @@ function SetupPage() {
         <section className="setup-page__guide-note" aria-label="Automatic creation policy">
           <h2>자동 생성 제거 정책</h2>
           <ul>
-            <li>회원가입 성공 시 access token과 실제 refresh token만 저장합니다.</li>
-            <li>Target, Persona, StoryBook 생성은 사용자가 해당 화면의 버튼을 눌렀을 때만 요청합니다.</li>
+            <li>회원가입 성공 후 access token과 실제 refresh token만 저장합니다.</li>
+            <li>Target, Persona, StoryBook 생성은 사용자가 해당 화면에서 버튼을 눌렀을 때만 요청합니다.</li>
             <li>mock 데이터를 실제 데이터처럼 localStorage에 저장하지 않습니다.</li>
             <li>백엔드에 없는 기본 캠페인, 기본 프로필, 기본 스토리는 생성하지 않습니다.</li>
           </ul>
@@ -77,4 +77,4 @@ function SetupPage() {
   )
 }
 
-export default SetupPage
+export default OnboardingPage

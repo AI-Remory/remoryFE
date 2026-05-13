@@ -262,14 +262,14 @@ function ChatPage() {
             <ChatIcon name="back" />
           </button>
           <h1 className="chat-page__title">엄마와 대화</h1>
-          <button className="chat-page__history-button" type="button" aria-label="대화 기록 열기" onClick={() => console.log('open chat history')}>
+          <button className="chat-page__history-button" type="button" aria-label="대화 기록 보기" onClick={() => { window.location.href = '/persona-chat' }}>
             <ChatIcon name="history" />
           </button>
         </header>
 
         {errorMessage && <p className="chat-page__error-message" role="alert">{errorMessage}</p>}
 
-        <button className="chat-page__persona-card" type="button" onClick={() => console.log('open persona detail')}>
+        <button className="chat-page__persona-card" type="button" onClick={() => { window.location.href = '/personas' }}>
           <span className="chat-page__persona-avatar">
             <img src={momAvatar} alt="엄마 페르소나" />
           </span>
@@ -315,7 +315,7 @@ function ChatPage() {
         </section>
 
         <section className="chat-page__bottom-area" aria-label="메시지 작성">
-          <button className="chat-page__storybook-button" type="button" onClick={() => console.log('create storybook from chat')}>
+          <button className="chat-page__storybook-button" type="button" disabled title="StoryBook 생성 API 연결 후 사용할 수 있습니다.">
             <ChatIcon name="book" />
             스토리북으로 만들기
           </button>
@@ -352,7 +352,7 @@ function ChatPage() {
             <ChatIcon name="chat" />
             <span>대화</span>
           </button>
-          <button className="chat-page__nav-button" type="button" onClick={() => { window.location.href = '/storybook' }}>
+          <button className="chat-page__nav-button" type="button" onClick={() => { window.location.href = '/storybooks' }}>
             <ChatIcon name="book" />
             <span>스토리북</span>
           </button>

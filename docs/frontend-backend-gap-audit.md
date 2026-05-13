@@ -99,3 +99,16 @@
 | 최초 Home 진입 시 persona 자동 준비 | `src/pages/HomePage.tsx`, `src/services/personaSession.ts` | `ensureMomPersonaId()` 자동 호출 제거. 기존 persona가 없으면 대화 시작 대신 생성 안내를 표시한다. |
 | 특정 이름 target/persona bootstrap | `src/services/personaSession.ts` | `createTarget`, `createPersona` 호출 제거. 기존 persona만 조회한다. |
 | ChatPage 진입 시 채팅방 자동 생성 | `src/pages/ChatPage.tsx` | 기존 채팅방이 없으면 자동 생성하지 않고 `/persona-chat`에서 사용자가 직접 새 채팅을 시작하도록 안내한다. |
+
+## Frontend-Only Cleanup Result
+
+Updated on 2026-05-14.
+
+| Item | Result | Current route/files | Action |
+| --- | --- | --- | --- |
+| CampaignsPage | Removed. Backend docs and OpenAPI do not expose a Campaign domain. Dashboard entry points should use backend-backed Remory domains such as Target, Persona, StoryBook, PhotoMemory, and Interview. | `/campaigns` removed, `src/pages/CampaignsPage.tsx` removed | `remove` |
+| legacy ProfilePage | Removed and folded into MyPage. Backend exposes User me through Auth, not a separate Profile domain. | `/profile` removed, `src/pages/ProfilePage.tsx` removed, MyPage remains `/my` | `merge` |
+| legacy StorybookPage | Removed and folded into the StoryBook domain pages. Backend StoryBook APIs remain represented by `/storybooks`, `/storybooks/create`, `/storybooks/detail`, and `/storybooks/share`. | `/storybook` removed, `src/pages/StorybookPage.tsx` and `src/pages/StorybookPage.css` removed | `merge` |
+| SetupPage | Redefined as OnboardingPage. `/onboarding` is the canonical post-signup route; `/setup` remains as a compatibility alias and renders the same onboarding guide. | `src/pages/OnboardingPage.tsx`, `src/pages/OnboardingPage.css` | `redesign` |
+| Mock-only action buttons | Buttons without connected backend services were either routed to a backend-backed domain page or disabled with an API-connection-planned notice. | Landing Google/guest/info disabled, MyPage menu cards disabled, Chat legacy storybook CTA disabled | `keep` until service connection |
+| Legacy bottom nav StoryBook path | Updated from `/storybook` to `/storybooks`. | HomePage, ChatPage, MyPage | `merge` |

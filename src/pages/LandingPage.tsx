@@ -2,24 +2,11 @@ import './LandingPage.css'
 
 function LandingPage() {
   const handleStartMemory = () => {
-    console.log('start memory')
-  }
-
-  const handleContinueWithGoogle = () => {
-    console.log('continue with google')
-  }
-
-  const handleEmailLogin = () => {
-    console.log('email login')
     window.location.href = '/auth'
   }
 
-  const handleExplore = () => {
-    console.log('explore without account')
-  }
-
-  const handleOpenInfo = () => {
-    console.log('open info')
+  const handleEmailLogin = () => {
+    window.location.href = '/auth'
   }
 
   return (
@@ -38,7 +25,8 @@ function LandingPage() {
             className="remory-onboarding-info"
             type="button"
             aria-label="서비스 안내 보기"
-            onClick={handleOpenInfo}
+            disabled
+            title="서비스 안내 API 연결 후 제공됩니다."
           >
             !
           </button>
@@ -75,7 +63,7 @@ function LandingPage() {
           <button className="remory-onboarding-primary" type="button" onClick={handleStartMemory}>
             기억 시작하기
           </button>
-          <button className="remory-onboarding-secondary" type="button" onClick={handleContinueWithGoogle}>
+          <button className="remory-onboarding-secondary" type="button" disabled title="Google OAuth API가 확인된 뒤 연결합니다.">
             <span className="remory-onboarding-google" aria-hidden="true">
               G
             </span>
@@ -85,7 +73,7 @@ function LandingPage() {
             <span className="remory-onboarding-mail" aria-hidden="true" />
             이메일 로그인
           </button>
-          <button className="remory-onboarding-text-button" type="button" onClick={handleExplore}>
+          <button className="remory-onboarding-text-button" type="button" disabled title="게스트 탐색 API가 확인된 뒤 연결합니다.">
             계정 없이 둘러보기
           </button>
         </section>

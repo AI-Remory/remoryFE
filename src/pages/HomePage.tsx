@@ -215,7 +215,7 @@ function HomePage() {
       <section className="home-page__container" aria-label="Remory home">
         <header className="home-page__header">
           <h1>안녕하세요, {displayName}님</h1>
-          <button className="home-page__notification" type="button" aria-label="알림 열기" onClick={() => console.log('open notifications')}>
+          <button className="home-page__notification" type="button" aria-label="알림 기능 준비 중" disabled title="알림 API 연결 후 제공됩니다.">
             <HomePageIcon name="bell" />
             <span />
           </button>
@@ -245,7 +245,7 @@ function HomePage() {
         <section className="home-page__persona-section">
           <div className="home-page__section-heading">
             <h2>내 페르소나</h2>
-            <button type="button" onClick={() => console.log('view all personas')}>
+            <button type="button" onClick={() => { window.location.href = '/personas' }}>
               전체 보기 <HomePageIcon name="chevron" />
             </button>
           </div>
@@ -274,7 +274,7 @@ function HomePage() {
               </button>
             ))}
 
-            <button className="home-page__persona-item home-page__persona-item--add" type="button" onClick={() => console.log('add persona')}>
+            <button className="home-page__persona-item home-page__persona-item--add" type="button" onClick={() => { window.location.href = '/targets' }}>
               <span className="home-page__add-avatar">
                 <HomePageIcon name="plus" />
               </span>
@@ -316,7 +316,9 @@ function HomePage() {
                 className={`home-page__memory-card home-page__memory-card--${card.id}`}
                 type="button"
                 key={card.id}
-                onClick={() => console.log(card.id === 'interview' ? 'add memory by interview' : 'add memory by photo')}
+                onClick={() => {
+                  window.location.href = card.id === 'interview' ? '/interviews' : '/photo-memories/upload'
+                }}
               >
                 <span className="home-page__memory-icon">
                   <HomePageIcon name={card.icon} />
@@ -340,7 +342,7 @@ function HomePage() {
             <HomePageIcon name="chat" />
             <span>대화</span>
           </button>
-          <button className="home-page__nav-button" type="button" onClick={() => { window.location.href = '/storybook' }}>
+          <button className="home-page__nav-button" type="button" onClick={() => { window.location.href = '/storybooks' }}>
             <HomePageIcon name="book" />
             <span>스토리북</span>
           </button>

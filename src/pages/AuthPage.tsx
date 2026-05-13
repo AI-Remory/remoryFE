@@ -109,7 +109,7 @@ function AuthPage() {
           nickname: name,
           password,
         })
-        window.location.href = '/setup'
+        window.location.href = '/onboarding'
       } else {
         await login({
           email,
@@ -256,7 +256,8 @@ function AuthPage() {
               <button
                 className="auth-detail-button"
                 type="button"
-                onClick={() => console.log('show terms detail')}
+                disabled
+                title="약관 상세 화면은 API 연결 후 제공됩니다."
               >
                 자세히 보기
               </button>

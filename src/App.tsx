@@ -1,5 +1,4 @@
 import AuthPage from './pages/AuthPage'
-import CampaignsPage from './pages/CampaignsPage'
 import ChatPage from './pages/ChatPage'
 import {
   AdminAuditLogsPage,
@@ -33,19 +32,15 @@ import {
 import HomePage from './pages/HomePage'
 import LandingPage from './pages/LandingPage'
 import MyPage from './pages/MyPage'
-import ProfilePage from './pages/ProfilePage'
-import SetupPage from './pages/SetupPage'
-import StorybookPage from './pages/StorybookPage'
+import OnboardingPage from './pages/OnboardingPage'
 import { useAuth } from './hooks/useAuth'
 import './App.css'
 
 const protectedPaths = [
-  '/campaigns',
-  '/profile',
+  '/onboarding',
   '/setup',
   '/home',
   '/chat',
-  '/storybook',
   '/my',
   '/targets',
   '/target-media',
@@ -105,20 +100,12 @@ function App() {
     return <AdminAccessPending />
   }
 
-  if (pathname.startsWith('/campaigns')) {
-    return <CampaignsPage />
-  }
-
-  if (pathname.startsWith('/profile')) {
-    return <ProfilePage />
-  }
-
   if (pathname.startsWith('/auth')) {
     return <AuthPage />
   }
 
-  if (pathname.startsWith('/setup')) {
-    return <SetupPage />
+  if (pathname.startsWith('/onboarding') || pathname.startsWith('/setup')) {
+    return <OnboardingPage />
   }
 
   if (pathname.startsWith('/home')) {
@@ -203,10 +190,6 @@ function App() {
 
   if (pathname.startsWith('/storybooks')) {
     return <StorybookListPage />
-  }
-
-  if (pathname.startsWith('/storybook')) {
-    return <StorybookPage />
   }
 
   if (pathname.startsWith('/groups/detail')) {

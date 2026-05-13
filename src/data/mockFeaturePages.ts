@@ -30,7 +30,7 @@ export const mockFeaturePages = {
         meta: [
           ['consent_type', 'PERSONA_CREATION'],
           ['is_consented', 'true'],
-          ['source', 'SetupPage'],
+          ['source', 'OnboardingPage'],
         ],
       },
       {

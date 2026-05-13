@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react'
+import { ApiError } from '../lib/apiClient'
 import { normalizeAssetUrl } from '../lib/mediaUrl'
 import { authApi } from '../services/authApi'
-import { ensureMomPersonaId, REMORY_PERSONA_ID_KEY } from '../services/personaSession'
+import { personaApi } from '../services/personaApi'
+import { ensureMomPersonaId, REMORY_CHAT_ID_KEY, REMORY_PERSONA_ID_KEY } from '../services/personaSession'
 import { storybookApi } from '../services/storybookApi'
 import { targetApi } from '../services/targetApi'
-import type { Target } from '../types/api'
+import type { Persona, Target } from '../types/api'
 import './HomePage.css'
 
 type IconName = 'bell' | 'chat' | 'check' | 'plus' | 'sparkle' | 'info' | 'mic' | 'photo' | 'home' | 'book' | 'my' | 'chevron'
@@ -14,6 +16,7 @@ type HomePersona = {
   personaId?: string
   name: string
   image: string
+  summary?: string
   active?: boolean
 }
 
@@ -53,12 +56,74 @@ function mapTargetsToPersonas(targets: Target[]): HomePersona[] {
       id: String(target.id),
       personaId: personaId === undefined || personaId === null ? undefined : String(personaId),
       name: target.nickname ?? target.name ?? target.persona?.nickname ?? target.persona?.name ?? `페르소나 ${index + 1}`,
+      summary: target.persona?.personality_summary ?? target.persona?.memory_summary ?? target.description ?? undefined,
       image: normalizeAssetUrl(
         target.image_url ?? target.profile_image_path ?? target.persona?.image_url ?? mockPersonas[index]?.image,
       ) || '/images/my-page/persona-mom.png',
       active: index === 0,
     }
   })
+}
+
+function getPersonaDisplayName(persona: Persona, fallbackName = '페르소나') {
+  return persona.persona_name ?? persona.nickname ?? persona.name ?? fallbackName
+}
+
+function getPersonaImage(persona: Persona, target?: Target, fallbackImage = '/images/my-page/persona-mom.png') {
+  return normalizeAssetUrl(
+    persona.image_url ??
+      persona.image_path ??
+      persona.profile_image_url ??
+      persona.profile_image_path ??
+      target?.image_url ??
+      target?.profile_image_path,
+  ) || fallbackImage
+}
+
+function findTargetForPersona(targets: Target[], persona: Persona, personaId: string) {
+  return targets.find((target) => {
+    const targetPersonaId = target.persona_id ?? target.persona?.id
+
+    if (targetPersonaId !== undefined && targetPersonaId !== null && String(targetPersonaId) === personaId) {
+      return true
+    }
+
+    return persona.target_id !== undefined && persona.target_id !== null && String(target.id) === String(persona.target_id)
+  })
+}
+
+function mapPersonaDetailToHomePersona(persona: Persona, targets: Target[], fallbackIndex = 0): HomePersona {
+  const personaId = String(persona.id)
+  const target = findTargetForPersona(targets, persona, personaId)
+
+  return {
+    id: target ? String(target.id) : personaId,
+    personaId,
+    name: getPersonaDisplayName(persona, target?.nickname ?? target?.name ?? `페르소나 ${fallbackIndex + 1}`),
+    summary: persona.personality_summary ?? persona.memory_summary ?? persona.description ?? target?.description ?? undefined,
+    image: getPersonaImage(persona, target, mockPersonas[fallbackIndex]?.image),
+    active: true,
+  }
+}
+
+function mergePersonaDetailIntoItems(items: HomePersona[], persona: Persona, targets: Target[]) {
+  const detailItem = mapPersonaDetailToHomePersona(persona, targets)
+  const existingIndex = items.findIndex((item) => item.personaId === detailItem.personaId)
+  const nextItems = [...items]
+
+  if (existingIndex >= 0) {
+    nextItems[existingIndex] = {
+      ...nextItems[existingIndex],
+      ...detailItem,
+    }
+  } else {
+    nextItems.unshift(detailItem)
+  }
+
+  return nextItems.slice(0, 3).map((item) => ({
+    ...item,
+    active: item.personaId === detailItem.personaId,
+  }))
 }
 
 function HomePageIcon({ name }: { name: IconName }) {
@@ -149,6 +214,9 @@ function HomePage() {
   const [displayName, setDisplayName] = useState('현규')
   const [personaItems, setPersonaItems] = useState<HomePersona[]>(mockPersonas)
   const [errorMessage, setErrorMessage] = useState('')
+  const activePersona = personaItems.find((persona) => persona.active)
+  const activePersonaName = activePersona?.name ?? '엄마'
+  const activePersonaSummary = activePersona?.summary
 
   useEffect(() => {
     let ignore = false
@@ -167,13 +235,40 @@ function HomePage() {
       try {
         const response = await targetApi.listTargets()
         const targets = response.items
+        const storedPersonaId = window.localStorage.getItem(REMORY_PERSONA_ID_KEY)
+        const targetPersonas = targets.length > 0 ? mapTargetsToPersonas(targets) : []
+        let loadedPersonaDetail = false
+        let stalePersonaId: string | null = null
 
-        if (!ignore && targets.length > 0) {
-          const nextPersonas = mapTargetsToPersonas(targets)
-          setPersonaItems(nextPersonas)
+        if (storedPersonaId) {
+          try {
+            const personaDetail = await personaApi.getPersona(storedPersonaId)
+            loadedPersonaDetail = true
 
-          if (nextPersonas[0].personaId) {
-            window.localStorage.setItem(REMORY_PERSONA_ID_KEY, nextPersonas[0].personaId)
+            if (!ignore) {
+              setPersonaItems(mergePersonaDetailIntoItems(targetPersonas, personaDetail, targets))
+              window.localStorage.setItem(REMORY_PERSONA_ID_KEY, String(personaDetail.id))
+            }
+          } catch (error) {
+            if (!ignore && error instanceof ApiError && error.status === 404) {
+              window.localStorage.removeItem(REMORY_PERSONA_ID_KEY)
+              window.localStorage.removeItem(REMORY_CHAT_ID_KEY)
+              stalePersonaId = storedPersonaId
+              setErrorMessage('이전 페르소나 정보를 초기화했어요. 다시 설정해주세요.')
+            }
+            // Fall back to target-provided persona summaries when persona detail is unavailable.
+          }
+        }
+
+        const fallbackPersonas = stalePersonaId
+          ? targetPersonas.filter((persona) => persona.personaId !== stalePersonaId)
+          : targetPersonas
+
+        if (!ignore && !loadedPersonaDetail && fallbackPersonas.length > 0) {
+          setPersonaItems(fallbackPersonas)
+
+          if (fallbackPersonas[0].personaId) {
+            window.localStorage.setItem(REMORY_PERSONA_ID_KEY, fallbackPersonas[0].personaId)
           }
         }
       } catch {
@@ -243,7 +338,7 @@ function HomePage() {
             </p>
             <button className="home-page__hero-button" type="button" onClick={handleChatNavigation}>
               <HomePageIcon name="chat" />
-              엄마와 대화하기
+              {activePersonaName}와 대화하기
             </button>
           </div>
         </section>
@@ -291,8 +386,11 @@ function HomePage() {
           <div className="home-page__persona-preview">
             <h3>
               <HomePageIcon name="sparkle" />
-              엄마와 대화
+              {activePersonaName}와 대화
             </h3>
+            {activePersonaSummary && (
+              <p className="home-page__persona-summary">{activePersonaSummary}</p>
+            )}
             <div className="home-page__preview-body">
               <div className="home-page__chat-preview">
                 {chatLines.map((line, index) => (

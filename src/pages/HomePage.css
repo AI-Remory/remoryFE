@@ -320,6 +320,13 @@
   height: 22px;
 }
 
+.home-page__persona-summary {
+  margin: 10px 0 0;
+  color: var(--home-muted);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
 .home-page__preview-body {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;

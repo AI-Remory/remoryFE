@@ -88,6 +88,21 @@
   line-height: 1.45;
 }
 
+.chat-page__setup-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 42px;
+  margin: -4px 0 16px;
+  padding: 0 18px;
+  border: 1px solid #e0bea9;
+  border-radius: 999px;
+  background: #fff8f1;
+  color: #8d4c36;
+  font-size: 14px;
+  font-weight: 800;
+}
+
 .chat-page__persona-card {
   display: grid;
   grid-template-columns: 86px minmax(0, 1fr) 28px;

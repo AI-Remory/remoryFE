@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useState, type ChangeEvent, type FormEvent } from 'react'
 import { ApiError } from '../lib/apiClient'
+import { normalizeAssetUrl } from '../lib/mediaUrl'
 import { consentApi, CONSENT_TYPES } from '../services/consentApi'
+import { personaApi } from '../services/personaApi'
 import { REMORY_CHAT_ID_KEY, REMORY_PERSONA_ID_KEY, REMORY_TARGET_ID_KEY } from '../services/personaSession'
 import { targetApi } from '../services/targetApi'
 import { verificationApi } from '../services/verificationApi'
-import type { ApiId, ConsentType, VerificationRequest, VerificationStatus, VerificationType } from '../types/api'
+import type { ApiId, ConsentType, Persona, VerificationRequest, VerificationStatus, VerificationType } from '../types/api'
 import './SetupPage.css'
 
 type SetupStep = 1 | 2 | 3 | 4 | 5
@@ -360,6 +362,7 @@ function SetupPage() {
   const [verificationFile, setVerificationFile] = useState<File | null>(null)
   const [verificationType, setVerificationType] = useState<VerificationType>('SELF_DECLARATION')
   const [verificationRequest, setVerificationRequest] = useState<VerificationRequest | null>(null)
+  const [completedPersona, setCompletedPersona] = useState<Persona | null>(null)
   const [memoryNotes, setMemoryNotes] = useState<string[]>([])
   const [memoryNoteInput, setMemoryNoteInput] = useState('')
   const [isNoteEditorOpen, setIsNoteEditorOpen] = useState(false)
@@ -376,10 +379,23 @@ function SetupPage() {
   const savedPersonaName = personaDraft.name.trim() || '엄마'
   const personaRelationship = personaDraft.relationship.trim() || 'parent'
   const savedPersonaDescription = personaDraft.description.trim() || '따뜻한 조언을 해주는 분'
+  const completePersonaName =
+    completedPersona?.persona_name ?? completedPersona?.nickname ?? completedPersona?.name ?? savedPersonaName
+  const completePersonaSummary =
+    completedPersona?.personality_summary ??
+    completedPersona?.memory_summary ??
+    completedPersona?.description ??
+    savedPersonaDescription
   const memoryNoteCount = memoryNotes.length
   const completePhotoCount = selectedPhotoFiles.length + (profileImageFile ? 1 : 0)
   const completeVoiceCount = selectedVoiceFile ? 1 : 0
-  const completeProfileImageSrc = profileImagePreviewUrl ?? '/images/my-page/persona-mom.png'
+  const completeProfileImageSrc =
+    normalizeAssetUrl(
+      completedPersona?.image_url ??
+        completedPersona?.image_path ??
+        completedPersona?.profile_image_url ??
+        completedPersona?.profile_image_path,
+    ) || profileImagePreviewUrl || '/images/my-page/persona-mom.png'
   const verificationStatus = verificationRequest?.status ?? null
   const canCreatePersona = verificationStatus === 'APPROVED'
   const canSubmitVerification =
@@ -393,6 +409,7 @@ function SetupPage() {
     window.localStorage.removeItem(SETUP_MEMORY_NOTES_KEY)
     setTargetId(null)
     setVerificationRequest(null)
+    setCompletedPersona(null)
     setHasSavedSetupData(false)
     setErrorMessage('')
   }, [])
@@ -754,8 +771,10 @@ function SetupPage() {
     try {
       const nextTargetId = await ensureTargetId()
       const persona = await targetApi.createPersona(nextTargetId)
+      const personaDetail = await personaApi.getPersona(persona.id).catch(() => persona)
 
-      window.localStorage.setItem(REMORY_PERSONA_ID_KEY, String(persona.id))
+      setCompletedPersona(personaDetail)
+      window.localStorage.setItem(REMORY_PERSONA_ID_KEY, String(personaDetail.id))
       window.localStorage.setItem(SETUP_MEMORY_NOTES_KEY, JSON.stringify(memoryNotes))
       window.localStorage.setItem(SETUP_COMPLETED_KEY, 'true')
       setStep(5)
@@ -1325,7 +1344,7 @@ function SetupPage() {
                 <span className="setup-page__tiny-heart" aria-hidden="true">♥</span>
               </h1>
               <p className="setup-page__complete-description">
-                이제 ‘{savedPersonaName}’와 대화를 시작해보세요.
+                이제 ‘{completePersonaName}’와 대화를 시작해보세요.
                 <br />
                 소중한 추억이 다시 살아납니다.
               </p>
@@ -1346,13 +1365,13 @@ function SetupPage() {
                   <img
                     className="setup-page__complete-avatar"
                     src={completeProfileImageSrc}
-                    alt={`${savedPersonaName} 페르소나 프로필`}
+                    alt={`${completePersonaName} 페르소나 프로필`}
                   />
                 </span>
               </div>
 
-              <h2 className="setup-page__complete-name">{savedPersonaName}</h2>
-              <p className="setup-page__complete-summary">{savedPersonaDescription}</p>
+              <h2 className="setup-page__complete-name">{completePersonaName}</h2>
+              <p className="setup-page__complete-summary">{completePersonaSummary}</p>
 
               <div className="setup-page__complete-stats" aria-label="추가된 데이터 요약">
                 <span className="setup-page__complete-stat">
@@ -1380,7 +1399,7 @@ function SetupPage() {
                     aria-hidden="true"
                   />
                   <p className="setup-page__complete-bubble setup-page__complete-bubble--user">
-                    {savedPersonaName}, 우리 제주도 여행 기억나?
+                    {completePersonaName}, 우리 제주도 여행 기억나?
                   </p>
                 </div>
                 <div className="setup-page__complete-chat-row setup-page__complete-chat-row--persona">
@@ -1392,7 +1411,7 @@ function SetupPage() {
                   </span>
                 </div>
                 <p className="setup-page__complete-chat-helper">
-                  이제 {savedPersonaName}와 함께 소중한 이야기를 나눠보세요.
+                  이제 {completePersonaName}와 함께 소중한 이야기를 나눠보세요.
                 </p>
               </section>
 

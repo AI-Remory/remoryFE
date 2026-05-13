@@ -24,10 +24,24 @@ export type AuthResponse = {
   user: User
 }
 
+export type PersonaStatus = 'PENDING' | 'READY' | 'FAILED' | string
+
+export type VoiceProfile = {
+  id?: ApiId
+  persona_id?: ApiId
+  status?: PersonaStatus
+  audio_url?: string | null
+  audio_path?: string | null
+  file_path?: string | null
+  created_at?: string
+  updated_at?: string
+  [key: string]: unknown
+}
+
 export type Persona = {
   id: ApiId
   target_id?: ApiId
-  status?: 'PENDING' | 'READY' | 'FAILED' | string
+  status?: PersonaStatus
   persona_name?: string
   speaking_style?: string
   personality_summary?: string
@@ -35,10 +49,29 @@ export type Persona = {
   system_prompt?: string
   is_voice_profile_created?: boolean
   is_consent_required?: boolean
+  voice_profile?: VoiceProfile | null
   name?: string
   nickname?: string
   description?: string | null
   image_url?: string | null
+  image_path?: string | null
+  profile_image_url?: string | null
+  profile_image_path?: string | null
+  created_at?: string
+  updated_at?: string
+}
+
+export type PersonaStatusResponse = {
+  id?: ApiId
+  persona_id?: ApiId
+  target_id?: ApiId
+  status: PersonaStatus
+  message?: string | null
+  detail?: string | null
+  is_ready?: boolean
+  is_voice_profile_created?: boolean
+  is_consent_required?: boolean
+  voice_profile?: VoiceProfile | null
   created_at?: string
   updated_at?: string
 }

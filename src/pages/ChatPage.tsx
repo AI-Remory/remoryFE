@@ -2,9 +2,10 @@ import { useEffect, useState } from 'react'
 import { ApiError } from '../lib/apiClient'
 import { normalizeAssetUrl } from '../lib/mediaUrl'
 import { chatApi } from '../services/chatApi'
-import { ensureMomPersonaId, REMORY_CHAT_ID_KEY } from '../services/personaSession'
+import { personaApi } from '../services/personaApi'
+import { ensureMomPersonaId, REMORY_CHAT_ID_KEY, REMORY_PERSONA_ID_KEY } from '../services/personaSession'
 import { targetApi } from '../services/targetApi'
-import type { ApiId, ChatMessage as ApiChatMessage } from '../types/api'
+import type { ApiId, ChatMessage as ApiChatMessage, Persona, Target } from '../types/api'
 import './ChatPage.css'
 
 type Sender = 'user' | 'mom'
@@ -31,6 +32,66 @@ const defaultPersona: ChatPersona = {
   subtitle: '따뜻한 조언을 해주는 분',
   description: '가족의 추억과 사랑을 기억하고 있어요.',
   image: '/images/my-page/persona-mom.png',
+}
+
+function getPersonaDisplayName(persona: Persona | null, target: Target | undefined) {
+  return persona?.persona_name ?? persona?.nickname ?? persona?.name ?? target?.nickname ?? target?.name ?? defaultPersona.name
+}
+
+function mapPersonaToChatPersona(persona: Persona | null, target: Target | undefined): ChatPersona {
+  return {
+    name: getPersonaDisplayName(persona, target),
+    subtitle:
+      persona?.speaking_style ??
+      target?.description ??
+      target?.relationship ??
+      target?.target_type ??
+      defaultPersona.subtitle,
+    description:
+      persona?.personality_summary ??
+      persona?.memory_summary ??
+      persona?.description ??
+      target?.persona?.description ??
+      '소중한 기억과 대화를 이어가고 있어요.',
+    image: normalizeAssetUrl(
+      persona?.image_url ??
+        persona?.image_path ??
+        persona?.profile_image_url ??
+        persona?.profile_image_path ??
+        target?.image_url ??
+        target?.profile_image_path ??
+        target?.persona?.image_url,
+    ) || defaultPersona.image,
+  }
+}
+
+async function getReadyPersonaStatus(personaId: ApiId) {
+  try {
+    const response = await personaApi.getPersonaStatus(personaId)
+    const normalizedStatus = String(response.status ?? '').toUpperCase()
+
+    if (normalizedStatus === 'PENDING') {
+      throw new Error('페르소나가 아직 준비 중입니다. 잠시 후 다시 시도해주세요.')
+    }
+
+    if (normalizedStatus === 'FAILED') {
+      throw new Error('페르소나 생성에 실패했습니다. 다시 설정해주세요.')
+    }
+
+    return response
+  } catch (error) {
+    if (error instanceof ApiError) {
+      if (error.status === 404) {
+        window.localStorage.removeItem(REMORY_PERSONA_ID_KEY)
+        window.localStorage.removeItem(REMORY_CHAT_ID_KEY)
+        throw new Error('이전 페르소나 정보를 초기화했어요. 다시 설정해주세요.', { cause: error })
+      }
+
+      return null
+    }
+
+    throw error
+  }
 }
 const MOCK_CHAT_MESSAGES_KEY = 'remory_mock_chat_messages'
 
@@ -192,6 +253,11 @@ function ChatPage() {
   const [isSending, setIsSending] = useState(false)
   const [isPreparingChat, setIsPreparingChat] = useState(false)
   const [errorMessage, setErrorMessage] = useState('')
+  const isChatUnavailable = !chatId && Boolean(errorMessage)
+  const shouldShowSetupAction =
+    errorMessage.includes('다시 설정') ||
+    errorMessage.includes('페르소나를 만들어주세요') ||
+    errorMessage.includes('초기화')
 
   useEffect(() => {
     let ignore = false
@@ -203,27 +269,17 @@ function ChatPage() {
 
       try {
         const personaId = await ensureMomPersonaId()
+        await getReadyPersonaStatus(personaId)
+        const personaDetail = await personaApi.getPersona(personaId).catch(() => null)
         const targets = await targetApi.listTargets().catch(() => null)
         const currentTarget = targets?.items.find((target) => {
           const targetPersonaId = target.persona_id ?? target.persona?.id
           return targetPersonaId !== undefined && targetPersonaId !== null && String(targetPersonaId) === personaId
         })
-        const currentPersonaName =
-          currentTarget?.nickname ??
-          currentTarget?.name ??
-          currentTarget?.persona?.nickname ??
-          currentTarget?.persona?.name ??
-          defaultPersona.name
+        const nextPersona = mapPersonaToChatPersona(personaDetail, currentTarget)
 
-        if (!ignore && currentTarget) {
-          setPersona({
-            name: currentPersonaName,
-            subtitle: currentTarget.description ?? currentTarget.relationship ?? currentTarget.target_type ?? defaultPersona.subtitle,
-            description: currentTarget.persona?.description ?? '소중한 기억과 대화를 이어가고 있어요.',
-            image: normalizeAssetUrl(
-              currentTarget.image_url ?? currentTarget.profile_image_path ?? currentTarget.persona?.image_url,
-            ) || defaultPersona.image,
-          })
+        if (!ignore && (personaDetail || currentTarget)) {
+          setPersona(nextPersona)
         }
 
         let chat
@@ -235,7 +291,7 @@ function ChatPage() {
             ? chats.find((item) => String(item.id) === storedChatId)
             : undefined
 
-          chat = storedChat ?? chats[0] ?? await chatApi.createChat(personaId, `${currentPersonaName}와 대화`)
+          chat = storedChat ?? chats[0] ?? await chatApi.createChat(personaId, `${nextPersona.name}와 대화`)
         } catch (error) {
           throw new Error(getChatErrorMessage(error, '채팅방을 준비하지 못했습니다. 다시 시도해주세요.'), {
             cause: error,
@@ -275,7 +331,7 @@ function ChatPage() {
   const handleSend = async () => {
     const text = input.trim()
 
-    if (!text || isSending || isPreparingChat) {
+    if (!text || isSending || isPreparingChat || isChatUnavailable) {
       return
     }
 
@@ -317,6 +373,11 @@ function ChatPage() {
         </header>
 
         {errorMessage && <p className="chat-page__error-message" role="alert">{errorMessage}</p>}
+        {shouldShowSetupAction && (
+          <button className="chat-page__setup-link" type="button" onClick={() => { window.location.href = '/setup' }}>
+            설정으로 이동
+          </button>
+        )}
 
         <button className="chat-page__persona-card" type="button" onClick={() => console.log('open persona detail')}>
           <span className="chat-page__persona-avatar">
@@ -392,8 +453,8 @@ function ChatPage() {
               className="chat-page__composer-input"
               aria-label="메시지 입력"
               value={input}
-              placeholder={isPreparingChat ? '채팅방을 준비하고 있어요' : '메시지를 입력하세요'}
-              disabled={isPreparingChat}
+              placeholder={isPreparingChat ? '채팅방을 준비하고 있어요' : isChatUnavailable ? '설정을 완료한 뒤 대화할 수 있어요' : '메시지를 입력하세요'}
+              disabled={isPreparingChat || isChatUnavailable}
               onChange={(event) => setInput(event.target.value)}
               onKeyDown={(event) => {
                 if (event.key === 'Enter') {
@@ -401,7 +462,7 @@ function ChatPage() {
                 }
               }}
             />
-            <button className="chat-page__send-button" type="button" aria-label="메시지 보내기" onClick={handleSend} disabled={isSending || isPreparingChat}>
+            <button className="chat-page__send-button" type="button" aria-label="메시지 보내기" onClick={handleSend} disabled={isSending || isPreparingChat || isChatUnavailable}>
               <ChatIcon name="send" />
             </button>
           </div>

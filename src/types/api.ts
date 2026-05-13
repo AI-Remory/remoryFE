@@ -175,6 +175,7 @@ export type PhotoMemory = {
   caption?: string | null
   description?: string | null
   summary?: string | null
+  location?: string | null
   image_url?: string | null
   image_path?: string | null
   photo_url?: string | null

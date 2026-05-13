@@ -94,6 +94,7 @@ async function getReadyPersonaStatus(personaId: ApiId) {
   }
 }
 const MOCK_CHAT_MESSAGES_KEY = 'remory_mock_chat_messages'
+const STORYBOOK_NOTICE_KEY = 'remory_storybook_notice'
 
 const initialMessages: ChatMessage[] = [
   { id: '1', sender: 'user', text: '엄마, 우리 제주도 여행 기억나?', time: '오후 3:21' },
@@ -359,6 +360,11 @@ function ChatPage() {
     }
   }
 
+  const handleStorybookNavigation = () => {
+    window.localStorage.setItem(STORYBOOK_NOTICE_KEY, '사진 기억을 선택하면 스토리북을 만들 수 있어요.')
+    window.location.href = '/storybook'
+  }
+
   return (
     <main className="chat-page">
       <section className="chat-page__container" aria-label={`${persona.name}와 대화`}>
@@ -431,7 +437,7 @@ function ChatPage() {
         </section>
 
         <section className="chat-page__bottom-area" aria-label="메시지 작성">
-          <button className="chat-page__storybook-button" type="button" onClick={() => console.log('create storybook from chat')}>
+          <button className="chat-page__storybook-button" type="button" onClick={handleStorybookNavigation}>
             <ChatIcon name="book" />
             스토리북으로 만들기
           </button>

@@ -1,9 +1,10 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState, type ChangeEvent, type FormEvent } from 'react'
+import { ApiError } from '../lib/apiClient'
 import { normalizeAssetUrl } from '../lib/mediaUrl'
 import { ensureMomPersonaId } from '../services/personaSession'
 import { photoMemoryApi } from '../services/photoMemoryApi'
 import { storybookApi } from '../services/storybookApi'
-import type { PhotoMemory, StoryBook, StoryChapter } from '../types/api'
+import type { ApiId, PhotoMemory, StoryBook, StoryChapter } from '../types/api'
 import './StorybookPage.css'
 
 type IconName =
@@ -25,6 +26,8 @@ type Photo = {
   id: string
   src: string
   alt: string
+  title: string
+  memoryId?: string
 }
 
 type Chapter = {
@@ -35,21 +38,33 @@ type Chapter = {
   icon: 'leaf' | 'meal' | 'mic'
 }
 
+type PhotoUploadForm = {
+  title: string
+  description: string
+  taken_at: string
+  location: string
+}
+
+const STORYBOOK_NOTICE_KEY = 'remory_storybook_notice'
+
 const photos: Photo[] = [
   {
     id: 'young-mom',
     src: '/images/storybook/memory-young-mom.png',
     alt: '산책길에서 찍은 엄마의 젊은 날 사진',
+    title: '산책길 사진',
   },
   {
     id: 'mom-child',
     src: '/images/storybook/memory-mom-child.png',
     alt: '엄마와 아이가 함께 웃고 있는 추억 사진',
+    title: '함께 웃던 날',
   },
   {
     id: 'family-table',
     src: '/images/storybook/memory-family-table.png',
     alt: '가족이 식탁에 모여 있는 추억 사진',
+    title: '가족의 식탁',
   },
 ]
 
@@ -92,6 +107,22 @@ function mapStoryChapters(apiChapters: StoryChapter[]): Chapter[] {
   }))
 }
 
+function getApiErrorMessage(error: unknown, fallbackMessage: string) {
+  if (error instanceof ApiError) {
+    return error.message
+  }
+
+  if (error instanceof Error) {
+    return error.message
+  }
+
+  return fallbackMessage
+}
+
+function getPhotoMemoryTitle(memory: PhotoMemory, index = 0) {
+  return memory.title ?? memory.caption ?? memory.description ?? `추억 사진 ${index + 1}`
+}
+
 function getPhotoMemoryImage(memory: PhotoMemory) {
   return normalizeAssetUrl(
     memory.thumbnail_url ??
@@ -106,7 +137,7 @@ function getPhotoMemoryImage(memory: PhotoMemory) {
 
 function mapPhotoMemories(apiPhotoMemories: PhotoMemory[]): Photo[] {
   return apiPhotoMemories
-    .map((memory, index) => {
+    .map((memory, index): Photo | null => {
       const src = getPhotoMemoryImage(memory)
 
       if (!src) {
@@ -115,8 +146,10 @@ function mapPhotoMemories(apiPhotoMemories: PhotoMemory[]): Photo[] {
 
       return {
         id: String(memory.id),
+        memoryId: String(memory.id),
         src,
-        alt: memory.title ?? memory.caption ?? memory.description ?? `추억 사진 ${index + 1}`,
+        title: getPhotoMemoryTitle(memory, index),
+        alt: getPhotoMemoryTitle(memory, index),
       }
     })
     .filter((photo): photo is Photo => photo !== null)
@@ -213,60 +246,73 @@ function StorybookPage() {
   const [currentStorybook, setCurrentStorybook] = useState<StoryBook | null>(null)
   const [chapterItems, setChapterItems] = useState<Chapter[]>(chapters)
   const [photoItems, setPhotoItems] = useState<Photo[]>(photos)
+  const [photoMemories, setPhotoMemories] = useState<PhotoMemory[]>([])
+  const [selectedPhotoMemoryId, setSelectedPhotoMemoryId] = useState('')
+  const [isPhotoFormOpen, setIsPhotoFormOpen] = useState(false)
+  const [photoUploadForm, setPhotoUploadForm] = useState<PhotoUploadForm>({
+    title: '',
+    description: '',
+    taken_at: '',
+    location: '',
+  })
+  const [photoUploadFile, setPhotoUploadFile] = useState<File | null>(null)
+  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false)
+  const [isCreatingStorybook, setIsCreatingStorybook] = useState(false)
+  const [statusMessage, setStatusMessage] = useState(() => window.localStorage.getItem(STORYBOOK_NOTICE_KEY) ?? '')
+  const [errorMessage, setErrorMessage] = useState('')
 
-  useEffect(() => {
-    let ignore = false
+  const loadStorybook = useCallback(async (storybookId?: ApiId) => {
+    let detail = storybookId ? await storybookApi.getStorybook(storybookId) : null
 
-    async function loadStorybook() {
-      try {
-        const storybooks = await storybookApi.listStorybooks()
-        const firstStorybook = storybooks[0]
+    if (!detail) {
+      const storybooks = await storybookApi.listStorybooks()
+      const firstStorybook = storybooks[0]
 
-        if (!firstStorybook) {
-          return
-        }
-
-        const detail = await storybookApi.getStorybook(firstStorybook.id)
-        const detailChapters = detail.chapters?.length ? detail.chapters : await storybookApi.listChapters(firstStorybook.id)
-
-        if (!ignore) {
-          setCurrentStorybook(detail)
-
-          if (detailChapters.length > 0) {
-            setChapterItems(mapStoryChapters(detailChapters))
-          }
-        }
-      } catch {
-        // Keep the existing mock storybook when storybook APIs are unavailable.
+      if (!firstStorybook) {
+        return null
       }
+
+      detail = await storybookApi.getStorybook(firstStorybook.id)
     }
 
-    async function loadPhotoMemories() {
-      try {
-        const photoMemories = await photoMemoryApi.listPhotoMemories()
+    const detailChapters = detail.chapters?.length ? detail.chapters : await storybookApi.listChapters(detail.id)
 
-        if (ignore || photoMemories.length === 0) {
-          return
-        }
+    setCurrentStorybook(detail)
+    setChapterItems(detailChapters.length > 0 ? mapStoryChapters(detailChapters) : [])
 
-        const nextPhotoItems = mapPhotoMemories(photoMemories)
-
-        if (nextPhotoItems.length > 0) {
-          setPhotoItems(nextPhotoItems)
-        }
-      } catch {
-        // Keep the existing mock photo memories when the API is unavailable.
-      }
-    }
-
-    loadStorybook()
-    loadPhotoMemories()
-
-    return () => {
-      ignore = true
-    }
+    return detail
   }, [])
 
+  const loadPhotoMemories = useCallback(async () => {
+    const nextPhotoMemories = await photoMemoryApi.listPhotoMemories()
+    const nextPhotoItems = mapPhotoMemories(nextPhotoMemories)
+
+    setPhotoMemories(nextPhotoMemories)
+    setPhotoItems(nextPhotoItems.length > 0 ? nextPhotoItems : photos)
+    setSelectedPhotoMemoryId((current) =>
+      current && nextPhotoMemories.some((memory) => String(memory.id) === current) ? current : '',
+    )
+
+    return nextPhotoMemories
+  }, [])
+
+  useEffect(() => {
+    window.localStorage.removeItem(STORYBOOK_NOTICE_KEY)
+
+    const timeoutId = window.setTimeout(() => {
+      loadStorybook().catch(() => {
+        // Keep the existing mock storybook when storybook APIs are unavailable.
+      })
+      loadPhotoMemories().catch(() => {
+        // Keep the existing mock photo memories when the API is unavailable.
+      })
+    }, 0)
+
+    return () => window.clearTimeout(timeoutId)
+  }, [loadPhotoMemories, loadStorybook])
+
+  const selectedPhotoMemory =
+    photoMemories.find((memory) => String(memory.id) === selectedPhotoMemoryId) ?? null
   const coverTitle = currentStorybook?.title ?? '엄마의 따뜻한 말 한마디'
   const coverImageUrl = normalizeAssetUrl(currentStorybook?.cover_image_url) || '/images/storybook/storybook-cover-mom.png'
   const coverTitleLines = coverTitle.split(' ')
@@ -281,6 +327,121 @@ function StorybookPage() {
       window.location.href = '/chat'
     } catch {
       window.location.href = '/setup'
+    }
+  }
+
+  const handlePhotoUploadFormChange = (event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = event.currentTarget
+
+    setPhotoUploadForm((current) => ({
+      ...current,
+      [name]: value,
+    }))
+  }
+
+  const handlePhotoFileChange = (event: ChangeEvent<HTMLInputElement>) => {
+    setPhotoUploadFile(event.currentTarget.files?.[0] ?? null)
+    event.currentTarget.value = ''
+  }
+
+  const resetPhotoUploadForm = () => {
+    setPhotoUploadForm({
+      title: '',
+      description: '',
+      taken_at: '',
+      location: '',
+    })
+    setPhotoUploadFile(null)
+  }
+
+  const handlePhotoUploadSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+
+    if (isUploadingPhoto) {
+      return
+    }
+
+    if (!photoUploadForm.title.trim()) {
+      setErrorMessage('사진 기억 제목을 입력해주세요.')
+      return
+    }
+
+    if (!photoUploadFile) {
+      setErrorMessage('업로드할 사진 파일을 선택해주세요.')
+      return
+    }
+
+    setErrorMessage('')
+    setStatusMessage('')
+    setIsUploadingPhoto(true)
+
+    try {
+      const photoMemory = await photoMemoryApi.createPhotoMemory({
+        title: photoUploadForm.title,
+        description: photoUploadForm.description,
+        taken_at: photoUploadForm.taken_at,
+        location: photoUploadForm.location,
+        file: photoUploadFile,
+      })
+      const nextSelectedId = String(photoMemory.id)
+
+      setSelectedPhotoMemoryId(nextSelectedId)
+      await loadPhotoMemories().catch(() => {
+        const createdPhoto = mapPhotoMemories([photoMemory])[0]
+
+        setPhotoMemories((current) => [photoMemory, ...current])
+
+        if (createdPhoto) {
+          setPhotoItems((current) => [createdPhoto, ...current])
+        }
+      })
+      setSelectedPhotoMemoryId(nextSelectedId)
+      setStatusMessage('사진 기억을 추가했어요. 사진을 선택해 스토리북을 만들 수 있어요.')
+      setIsPhotoFormOpen(false)
+      resetPhotoUploadForm()
+    } catch (error) {
+      setErrorMessage(getApiErrorMessage(error, '사진 기억을 추가하지 못했습니다.'))
+    } finally {
+      setIsUploadingPhoto(false)
+    }
+  }
+
+  const handleCreateStorybookFromPhoto = async () => {
+    if (isCreatingStorybook) {
+      return
+    }
+
+    if (!selectedPhotoMemory) {
+      setErrorMessage('스토리북으로 만들 사진 기억을 선택해주세요.')
+      return
+    }
+
+    setErrorMessage('')
+    setStatusMessage('')
+    setIsCreatingStorybook(true)
+
+    try {
+      const photoMemoryTitle = getPhotoMemoryTitle(selectedPhotoMemory)
+      const storybook = await storybookApi.createStorybook({
+        title: `${photoMemoryTitle} 스토리북`,
+        photo_memory_id: selectedPhotoMemory.id,
+        visibility: 'PRIVATE',
+      })
+
+      await storybookApi.listStorybooks().catch(() => undefined)
+
+      try {
+        await loadStorybook(storybook.id)
+      } catch {
+        setCurrentStorybook(storybook)
+        setChapterItems([])
+      }
+
+      setStatusMessage('선택한 사진으로 스토리북을 만들었어요.')
+    } catch (error) {
+      setErrorMessage(getApiErrorMessage(error, '스토리북을 만들지 못했습니다.'))
+    } finally {
+      setIsCreatingStorybook(false)
     }
   }
 
@@ -331,20 +492,119 @@ function StorybookPage() {
           <StorybookIcon name="chevron" />
         </button>
 
+        {statusMessage && (
+          <p className="storybook-page__status-message" role="status">
+            {statusMessage}
+          </p>
+        )}
+        {errorMessage && (
+          <p className="storybook-page__error-message" role="alert">
+            {errorMessage}
+          </p>
+        )}
+
         <section className="storybook-page__section">
           <div className="storybook-page__section-header">
             <h2>기억 속 사진</h2>
-            <button type="button" onClick={() => console.log('view all photos')}>
-              전체보기 <StorybookIcon name="chevron" />
-            </button>
+            <div className="storybook-page__section-actions">
+              <button type="button" onClick={() => setIsPhotoFormOpen((current) => !current)}>
+                사진 기억 추가
+              </button>
+              <button type="button" onClick={() => console.log('view all photos')}>
+                전체보기 <StorybookIcon name="chevron" />
+              </button>
+            </div>
           </div>
+          {isPhotoFormOpen && (
+            <form className="storybook-page__photo-form" onSubmit={handlePhotoUploadSubmit}>
+              <label>
+                <span>제목</span>
+                <input
+                  name="title"
+                  type="text"
+                  maxLength={60}
+                  value={photoUploadForm.title}
+                  onChange={handlePhotoUploadFormChange}
+                  placeholder="예: 제주도 바닷가에서"
+                />
+              </label>
+              <label>
+                <span>설명</span>
+                <textarea
+                  name="description"
+                  rows={3}
+                  value={photoUploadForm.description}
+                  onChange={handlePhotoUploadFormChange}
+                  placeholder="사진에 담긴 기억을 적어주세요"
+                />
+              </label>
+              <div className="storybook-page__photo-form-grid">
+                <label>
+                  <span>촬영일</span>
+                  <input
+                    name="taken_at"
+                    type="date"
+                    value={photoUploadForm.taken_at}
+                    onChange={handlePhotoUploadFormChange}
+                  />
+                </label>
+                <label>
+                  <span>장소</span>
+                  <input
+                    name="location"
+                    type="text"
+                    maxLength={80}
+                    value={photoUploadForm.location}
+                    onChange={handlePhotoUploadFormChange}
+                    placeholder="예: 제주도"
+                  />
+                </label>
+              </div>
+              <label className="storybook-page__file-picker">
+                <span>사진</span>
+                <input type="file" accept="image/*" onChange={handlePhotoFileChange} />
+                <em>{photoUploadFile?.name ?? '사진 파일을 선택해주세요'}</em>
+              </label>
+              <div className="storybook-page__photo-form-actions">
+                <button type="button" onClick={() => setIsPhotoFormOpen(false)} disabled={isUploadingPhoto}>
+                  취소
+                </button>
+                <button type="submit" disabled={isUploadingPhoto}>
+                  {isUploadingPhoto ? '업로드 중...' : '사진 기억 저장'}
+                </button>
+              </div>
+            </form>
+          )}
           <div className="storybook-page__photo-list">
             {photoItems.map((photo) => (
-              <button className="storybook-page__photo-card" type="button" key={photo.id} onClick={() => console.log('open photo', photo.id)}>
+              <button
+                className={`storybook-page__photo-card${photo.memoryId && photo.memoryId === selectedPhotoMemoryId ? ' is-selected' : ''}`}
+                type="button"
+                key={photo.id}
+                aria-pressed={photo.memoryId ? photo.memoryId === selectedPhotoMemoryId : undefined}
+                onClick={() => {
+                  if (photo.memoryId) {
+                    setSelectedPhotoMemoryId(photo.memoryId)
+                    setStatusMessage(`${photo.title} 사진을 선택했어요.`)
+                    setErrorMessage('')
+                  } else {
+                    setErrorMessage('업로드한 사진 기억을 선택하면 스토리북을 만들 수 있어요.')
+                  }
+                }}
+              >
                 <img src={normalizeAssetUrl(photo.src) || photo.src} alt={photo.alt} />
               </button>
             ))}
           </div>
+          {selectedPhotoMemory && (
+            <div className="storybook-page__selected-photo-action">
+              <p>{getPhotoMemoryTitle(selectedPhotoMemory)} 사진으로 스토리북을 만들 수 있어요.</p>
+              <button type="button" onClick={handleCreateStorybookFromPhoto} disabled={isCreatingStorybook}>
+                <StorybookIcon name="book" />
+                {isCreatingStorybook ? '스토리북 생성 중...' : '이 사진으로 스토리북 만들기'}
+              </button>
+            </div>
+          )}
         </section>
 
         <section className="storybook-page__section">

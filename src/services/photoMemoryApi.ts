@@ -2,33 +2,39 @@ import { apiClient } from '../lib/apiClient'
 import type { ApiId, PaginatedResponse, PhotoMemory } from '../types/api'
 
 type CreatePhotoMemoryPayload = {
-  target_id?: ApiId
-  title?: string
-  caption?: string
+  title: string
   description?: string
-  memory_date?: string
   taken_at?: string
+  location?: string
   file?: File
-  image?: File
 }
 
 function toCreatePhotoMemoryBody(payload: CreatePhotoMemoryPayload) {
-  const file = payload.file ?? payload.image
+  const title = payload.title.trim()
 
-  if (!file) {
-    return payload
+  if (!title) {
+    throw new Error('사진 기억 제목을 입력해주세요.')
+  }
+
+  if (!payload.file) {
+    throw new Error('업로드할 사진 파일을 선택해주세요.')
   }
 
   const formData = new FormData()
-  formData.append('file', file)
+  formData.append('title', title)
+  formData.append('file', payload.file)
 
-  Object.entries(payload).forEach(([key, value]) => {
-    if (key === 'file' || key === 'image' || value === undefined || value === null) {
-      return
-    }
+  if (payload.description?.trim()) {
+    formData.append('description', payload.description.trim())
+  }
 
-    formData.append(key, String(value))
-  })
+  if (payload.taken_at?.trim()) {
+    formData.append('taken_at', payload.taken_at.trim())
+  }
+
+  if (payload.location?.trim()) {
+    formData.append('location', payload.location.trim())
+  }
 
   return formData
 }
@@ -42,7 +48,15 @@ export const photoMemoryApi = {
     return Array.isArray(response) ? response : response.items
   },
 
+  getPhotoMemory(photoMemoryId: ApiId) {
+    return apiClient.get<PhotoMemory>(`/photo-memories/${photoMemoryId}`)
+  },
+
   createPhotoMemory(payload: CreatePhotoMemoryPayload) {
     return apiClient.post<PhotoMemory>('/photo-memories', toCreatePhotoMemoryBody(payload))
+  },
+
+  deletePhotoMemory(photoMemoryId: ApiId) {
+    return apiClient.delete<void>(`/photo-memories/${photoMemoryId}`)
   },
 }

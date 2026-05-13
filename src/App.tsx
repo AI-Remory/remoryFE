@@ -2,6 +2,7 @@ import AuthPage from './pages/AuthPage'
 import CampaignsPage from './pages/CampaignsPage'
 import ChatPage from './pages/ChatPage'
 import HomePage from './pages/HomePage'
+import InterviewPage from './pages/InterviewPage'
 import LandingPage from './pages/LandingPage'
 import MyPage from './pages/MyPage'
 import ProfilePage from './pages/ProfilePage'
@@ -35,6 +36,10 @@ function App() {
 
   if (pathname.startsWith('/chat')) {
     return <ChatPage />
+  }
+
+  if (pathname.startsWith('/interview')) {
+    return <InterviewPage />
   }
 
   if (pathname.startsWith('/share/')) {

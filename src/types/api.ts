@@ -200,6 +200,48 @@ export type PublicSharedStoryBook = {
   chapters: PublicStoryChapter[]
 }
 
+export type InterviewType = 'TARGET_PROFILE' | 'PHOTO_MEMORY' | 'SELF_STORY' | string
+
+export type InterviewStatus = string
+
+export type AIInterviewAnswer = {
+  id: ApiId
+  session_id?: ApiId
+  question_id?: ApiId
+  answer_text?: string | null
+  answer_audio_path?: string | null
+  deleted_at?: string | null
+  created_at?: string
+  updated_at?: string
+}
+
+export type AIInterviewQuestion = {
+  id: ApiId
+  session_id?: ApiId
+  question_text?: string | null
+  question_type?: string | null
+  order_index?: number | null
+  created_at?: string
+  answers?: AIInterviewAnswer[]
+}
+
+export type AIInterviewSession = {
+  id: ApiId
+  user_id?: ApiId
+  target_id?: ApiId | null
+  photo_memory_id?: ApiId | null
+  session_type?: InterviewType
+  title?: string | null
+  status?: InterviewStatus
+  deleted_at?: string | null
+  created_at?: string
+  updated_at?: string
+}
+
+export type AIInterviewSessionDetail = AIInterviewSession & {
+  questions?: AIInterviewQuestion[]
+}
+
 export type PhotoMemory = {
   id: ApiId
   user_id?: ApiId

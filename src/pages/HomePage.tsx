@@ -311,6 +311,15 @@ function HomePage() {
     }
   }
 
+  const handleMemoryCardClick = (cardId: string) => {
+    if (cardId === 'interview') {
+      window.location.assign('/interview')
+      return
+    }
+
+    console.log('add memory by photo')
+  }
+
   return (
     <main className="home-page">
       <section className="home-page__container" aria-label="Remory home">
@@ -420,7 +429,7 @@ function HomePage() {
                 className={`home-page__memory-card home-page__memory-card--${card.id}`}
                 type="button"
                 key={card.id}
-                onClick={() => console.log(card.id === 'interview' ? 'add memory by interview' : 'add memory by photo')}
+                onClick={() => handleMemoryCardClick(card.id)}
               >
                 <span className="home-page__memory-icon">
                   <HomePageIcon name={card.icon} />

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
 import { AppShell } from '../components/layout/AppShell'
+import { useVoiceCall } from '../hooks/useVoiceCall'
 import { ApiError } from '../services/apiClient'
 import { chatService } from '../services/chatService'
 import { mediaService } from '../services/mediaService'
@@ -10,6 +11,7 @@ import type { ChatId, PersonaChatResponse, PersonaMessageResponse, SenderType } 
 import type { MediaType, TargetMediaResponse } from '../types/media'
 import type { PersonaDetailResponse, PersonaStatus, PersonaStatusResponse } from '../types/persona'
 import type { TargetDetailResponse, TargetResponse, TargetType } from '../types/target'
+import type { VoiceCallMessage, VoiceCallStatus } from '../types/voice'
 import { toPlayableFileUrl } from '../utils/fileUrl'
 import './DomainPages.css'
 
@@ -1578,6 +1580,163 @@ function PersonaChatApiPage() {
   )
 }
 
+const voiceStatusLabel: Record<VoiceCallStatus, string> = {
+  disconnected: 'disconnected',
+  connecting: 'connecting',
+  connected: 'connected',
+  recording: 'recording',
+  processing: 'processing',
+  ended: 'ended',
+}
+
+function VoiceCallBubble({ message }: { message: VoiceCallMessage }) {
+  const audioPath = message.audio_url ?? message.audio_file_path
+  const audioUrl = audioPath ? toPlayableFileUrl(audioPath) : null
+
+  return (
+    <article className={`voice-call-message voice-call-message--${message.sender.toLowerCase()}`}>
+      <header>
+        <strong>{message.sender}</strong>
+        <span>{message.message_type}</span>
+      </header>
+      {message.text && <p>{message.text}</p>}
+      {audioUrl && <audio controls preload="metadata" src={audioUrl} />}
+      <small>{formatDateTime(message.created_at)}</small>
+    </article>
+  )
+}
+
+function PersonaVoiceCallApiPage() {
+  const [initialPersonaId] = useState(() => getPersonaIdFromLocation())
+  const [initialChatId] = useState(() => getChatIdFromLocation())
+  const [personaIdInput, setPersonaIdInput] = useState(() => (initialPersonaId ? String(initialPersonaId) : ''))
+  const [chatIdInput, setChatIdInput] = useState(() => (initialChatId ? String(initialChatId) : ''))
+  const voiceCall = useVoiceCall()
+
+  const canConnect = voiceCall.status === 'disconnected' || voiceCall.status === 'ended'
+  const canRecord = voiceCall.status === 'connected'
+  const canEndUtterance = voiceCall.status === 'recording'
+  const canStop = voiceCall.status === 'connected' || voiceCall.status === 'recording' || voiceCall.status === 'processing'
+
+  function handleConnect(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    const personaId = Number(personaIdInput)
+    const chatId = Number(chatIdInput)
+
+    voiceCall.connect({ personaId, chatId })
+  }
+
+  return (
+    <AppShell title="Persona Voice Call" subtitle="Realtime voice conversation over the documented WebSocket endpoint." badge="WebSocket connected">
+      <main className="domain-page target-api-page voice-call-page">
+        <header className="domain-page__hero">
+          <div>
+            <span className="domain-page__eyebrow">PersonaVoiceCallPage</span>
+            <h1>Persona voice call</h1>
+            <p>Uses /ws/personas/{'{persona_id}'}/voice with access token query authentication.</p>
+          </div>
+          <span className="domain-page__badge domain-page__badge--connected">Voice WebSocket</span>
+        </header>
+
+        <section className="voice-call-layout">
+          <div className="voice-call-panel voice-call-panel--controls">
+            <form className="target-form voice-call-form" onSubmit={handleConnect}>
+              <div className="target-form__field">
+                <label htmlFor="voice-persona-id">persona_id</label>
+                <input
+                  disabled={!canConnect}
+                  id="voice-persona-id"
+                  inputMode="numeric"
+                  onChange={(event) => setPersonaIdInput(event.target.value)}
+                  required
+                  type="number"
+                  value={personaIdInput}
+                />
+                <p className="target-form__helper">Path param for the voice WebSocket endpoint.</p>
+              </div>
+
+              <div className="target-form__field">
+                <label htmlFor="voice-chat-id">chat_id</label>
+                <input
+                  disabled={!canConnect}
+                  id="voice-chat-id"
+                  inputMode="numeric"
+                  onChange={(event) => setChatIdInput(event.target.value)}
+                  required
+                  type="number"
+                  value={chatIdInput}
+                />
+                <p className="target-form__helper">Sent in the documented start message body.</p>
+              </div>
+
+              <button disabled={!canConnect || voiceCall.status === 'connecting'} type="submit">
+                {voiceCall.status === 'connecting' ? 'Connecting...' : 'Connect'}
+              </button>
+            </form>
+
+            <div className="voice-call-status-card">
+              <span className={`voice-call-status voice-call-status--${voiceCall.status}`}>{voiceStatusLabel[voiceCall.status]}</span>
+              <dl>
+                <div>
+                  <dt>session_id</dt>
+                  <dd>{voiceCall.sessionId ?? 'Not started'}</dd>
+                </div>
+                <div>
+                  <dt>mime_type</dt>
+                  <dd>audio/webm</dd>
+                </div>
+              </dl>
+            </div>
+
+            {voiceCall.errorMessage && (
+              <p className="target-form__error" role="alert">
+                {voiceCall.errorMessage}
+              </p>
+            )}
+
+            {voiceCall.isMicPermissionDenied && (
+              <p className="target-form__helper" role="status">
+                Browser microphone permission is required before recording audio chunks.
+              </p>
+            )}
+
+            <div className="voice-call-actions" aria-label="Voice call controls">
+              <button disabled={!canRecord} onClick={() => void voiceCall.startRecording()} type="button">
+                Start speaking
+              </button>
+              <button disabled={!canEndUtterance} onClick={voiceCall.endUtterance} type="button">
+                End utterance
+              </button>
+              <button disabled={!canStop} onClick={voiceCall.stopCall} type="button">
+                End call
+              </button>
+            </div>
+          </div>
+
+          <section className="voice-call-panel voice-call-panel--conversation" aria-label="Voice conversation">
+            <div className="voice-call-live-caption">
+              <span>partial_transcript</span>
+              <p>{voiceCall.partialTranscript || 'Waiting for live transcript...'}</p>
+            </div>
+
+            {voiceCall.messages.length === 0 && (
+              <p className="persona-chat-empty">
+                Connect, start speaking, and press End utterance to receive final transcript and persona response events.
+              </p>
+            )}
+
+            <div className="voice-call-messages" aria-live="polite">
+              {voiceCall.messages.map((message) => (
+                <VoiceCallBubble key={message.id} message={message} />
+              ))}
+            </div>
+          </section>
+        </section>
+      </main>
+    </AppShell>
+  )
+}
+
 const priorityBadge = {
   connected: 'API 연결됨',
   next: 'API 연결 예정',
@@ -2145,7 +2304,7 @@ export function PersonaChatPage() {
 }
 
 export function PersonaVoiceCallPage() {
-  return <DomainShell config={configs.voiceCall} />
+  return <PersonaVoiceCallApiPage />
 }
 
 export function InterviewListPage() {

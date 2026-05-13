@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { ApiError } from '../lib/apiClient'
+import { ApiError } from '../services/apiClient'
 import { chatApi } from '../services/chatApi'
 import { ensureMomPersonaId, REMORY_CHAT_ID_KEY } from '../services/personaSession'
 import type { ApiId, ChatMessage as ApiChatMessage } from '../types/api'

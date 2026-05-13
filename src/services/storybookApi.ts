@@ -1,4 +1,4 @@
-import { apiClient } from '../lib/apiClient'
+import { apiClient } from './apiClient'
 import type { ApiId, StoryBook, StoryBookDetail, StoryChapter } from '../types/api'
 
 type CreateStorybookPayload = {

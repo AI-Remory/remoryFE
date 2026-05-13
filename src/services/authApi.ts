@@ -1,4 +1,4 @@
-import { apiClient, clearTokens, setTokens } from '../lib/apiClient'
+import { apiClient, clearTokens, setTokens } from './apiClient'
 import type { AuthResponse, User } from '../types/api'
 
 type RegisterPayload = {

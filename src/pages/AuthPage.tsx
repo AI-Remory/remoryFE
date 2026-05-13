@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react'
-import { ApiError } from '../lib/apiClient'
+import { ApiError } from '../services/apiClient'
 import { authApi } from '../services/authApi'
 import { targetApi } from '../services/targetApi'
 import './AuthPage.css'

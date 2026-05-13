@@ -1,4 +1,4 @@
-import { apiClient } from '../lib/apiClient'
+import { apiClient } from './apiClient'
 import type { ApiId, Chat, ChatMessage, SendMessageResponse } from '../types/api'
 
 export const chatApi = {

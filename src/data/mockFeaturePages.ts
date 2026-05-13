@@ -6,11 +6,11 @@ export const mockFeaturePages = {
     title: '동의 기록',
     eyebrow: 'ConsentLog',
     description: '대상별 동의 이력과 철회 흐름을 확인하는 화면입니다. 실제 쓰기 기능은 API 연결 전까지 비활성화됩니다.',
-    badge: 'API 연결 예정',
+    badge: '준비 중인 기능',
     priority: '5순위 목업 골격',
     detailTitle: '동의 준비 상태',
     detailDescription: '백엔드를 호출하지 않고 동의 상태, 동의 버전, 철회 동작 위치를 미리 보여줍니다.',
-    developerNote: '아래 endpoint 기준으로 consentService 연결이 필요합니다.',
+    developerNote: '서비스 연결을 준비하고 있습니다.',
     metrics: [
       { label: '동의 완료', value: '2' },
       { label: '철회됨', value: '1' },
@@ -18,7 +18,7 @@ export const mockFeaturePages = {
     ],
     actions: [
       { label: '동의 생성', disabledReason: '동의 생성 서비스가 아직 연결되지 않았습니다.' },
-      { label: '동의 철회', disabledReason: '철회 endpoint는 확인됐지만 이 목업 화면에서는 연결하지 않습니다.' },
+      { label: '동의 철회', disabledReason: '아직 준비 중인 기능입니다.' },
     ],
     records: [
       {
@@ -58,19 +58,14 @@ export const mockFeaturePages = {
         ],
       },
     ],
-    endpoints: [
-      { method: 'GET', path: '/consents' },
-      { method: 'POST', path: '/consents' },
-      { method: 'GET', path: '/targets/{target_id}/consents' },
-      { method: 'PATCH', path: '/consents/{consent_id}/revoke' },
-    ],
+    plannedItems: [{ label: '동의 관리' }],
   },
   targetVerificationRequest: {
     key: 'targetVerificationRequest',
     title: '관계 입증 요청',
     eyebrow: 'TargetVerificationRequest',
     description: '관계 입증 요청 목록과 제출 흐름을 보여주는 화면입니다. 파일 업로드 CTA는 아직 비활성화되어 있습니다.',
-    badge: 'API 연결 예정',
+    badge: '준비 중인 기능',
     priority: '5순위 목업 골격',
     detailTitle: '입증 체크리스트',
     detailDescription: 'multipart 업로드와 관리자 검토 API를 연결하기 전 관계 증빙 검토 상태를 미리 보여줍니다.',
@@ -82,7 +77,7 @@ export const mockFeaturePages = {
     ],
     actions: [
       { label: '증빙 파일 업로드', disabledReason: 'multipart 입증 업로드 서비스가 아직 연결되지 않았습니다.' },
-      { label: '요청 상세 보기', disabledReason: '상세 조회 endpoint가 아직 연결되지 않았습니다.' },
+      { label: '요청 상세 보기', disabledReason: '아직 준비 중인 기능입니다.' },
     ],
     records: [
       {
@@ -106,7 +101,7 @@ export const mockFeaturePages = {
         meta: [
           ['verification_type', 'SELF_DECLARATION'],
           ['admin_note', 'Additional document needed'],
-          ['owner_only', 'request owner'],
+          ['owner_only', '요청자'],
         ],
       },
       {
@@ -122,30 +117,26 @@ export const mockFeaturePages = {
         ],
       },
     ],
-    endpoints: [
-      { method: 'POST', path: '/targets/{target_id}/verification-requests' },
-      { method: 'GET', path: '/targets/{target_id}/verification-requests' },
-      { method: 'GET', path: '/verification-requests/{request_id}' },
-    ],
+    plannedItems: [{ label: '관계 입증' }],
   },
   personaVoiceProfile: {
     key: 'personaVoiceProfile',
     title: '페르소나 음성 프로필',
     eyebrow: 'PersonaVoiceProfile',
     description: '음성 프로필 생성, 품질 평가, 사용자 확인 흐름을 보여주는 화면입니다.',
-    badge: 'API 연결 예정',
+    badge: '준비 중인 기능',
     priority: '5순위 목업 골격',
     detailTitle: '음성 프로필 처리 흐름',
     detailDescription: '실제 음성 프로필 서비스 연결 전 샘플 수, 검토 상태, 품질 점수를 보여줍니다.',
-    developerNote: '이 목업 화면에서는 음성 프로필 API를 호출하지 않습니다.',
+    developerNote: '서비스 연결을 준비하고 있습니다.',
     metrics: [
       { label: '준비 완료', value: '1' },
       { label: '샘플 부족', value: '2' },
       { label: '검토 중', value: '3' },
     ],
     actions: [
-      { label: '프로필 생성', disabledReason: '음성 프로필 생성 API가 아직 연결되지 않았습니다.' },
-      { label: '프로필 확인', disabledReason: '사용자 확인 endpoint가 아직 연결되지 않았습니다.' },
+      { label: '프로필 생성', disabledReason: '아직 준비 중인 기능입니다.' },
+      { label: '프로필 확인', disabledReason: '아직 준비 중인 기능입니다.' },
     ],
     records: [
       {
@@ -185,19 +176,14 @@ export const mockFeaturePages = {
         ],
       },
     ],
-    endpoints: [
-      { method: 'POST', path: '/personas/{persona_id}/voice-profile' },
-      { method: 'GET', path: '/personas/{persona_id}/voice-profile' },
-      { method: 'POST', path: '/personas/{persona_id}/voice-profile/evaluate' },
-      { method: 'PATCH', path: '/personas/{persona_id}/voice-profile/user-confirm' },
-    ],
+    plannedItems: [{ label: '음성 프로필' }],
   },
   aiInterviewSession: {
     key: 'aiInterviewSession',
     title: 'AI 인터뷰 세션',
     eyebrow: 'AIInterviewSession',
     description: '인터뷰 세션, 생성 질문, 답변 저장 흐름을 보여주는 화면입니다.',
-    badge: 'API 연결 예정',
+    badge: '준비 중인 기능',
     priority: '5순위 목업 골격',
     detailTitle: '인터뷰 흐름',
     detailDescription: '세션을 만들지 않고 대상 프로필, 사진 기억, 자기 이야기 인터뷰를 미리 보여줍니다.',
@@ -208,8 +194,8 @@ export const mockFeaturePages = {
       { label: '초안', value: '3' },
     ],
     actions: [
-      { label: '인터뷰 시작', disabledReason: '인터뷰 생성 API가 아직 연결되지 않았습니다.' },
-      { label: '답변 저장', disabledReason: '답변 생성 API가 아직 연결되지 않았습니다.' },
+      { label: '인터뷰 시작', disabledReason: '아직 준비 중인 기능입니다.' },
+      { label: '답변 저장', disabledReason: '아직 준비 중인 기능입니다.' },
     ],
     records: [
       {
@@ -220,7 +206,7 @@ export const mockFeaturePages = {
         statusTone: 'pending',
         meta: [
           ['session_type', 'TARGET_PROFILE'],
-          ['target_id', '12'],
+          ['대상', '12'],
           ['questions', '5'],
         ],
       },
@@ -249,19 +235,14 @@ export const mockFeaturePages = {
         ],
       },
     ],
-    endpoints: [
-      { method: 'POST', path: '/interviews' },
-      { method: 'GET', path: '/interviews/{session_id}' },
-      { method: 'POST', path: '/interviews/{session_id}/questions' },
-      { method: 'POST', path: '/interviews/{session_id}/answers' },
-    ],
+    plannedItems: [{ label: '인터뷰' }],
   },
   photoMemory: {
     key: 'photoMemory',
     title: '사진 기억',
     eyebrow: 'PhotoMemory',
     description: '사진 기억 갤러리와 업로드 흐름을 보여주는 화면입니다. 업로드 동작은 아직 비활성화되어 있습니다.',
-    badge: 'API 연결 예정',
+    badge: '준비 중인 기능',
     priority: '5순위 목업 골격',
     detailTitle: '사진 기억 보관함',
     detailDescription: 'multipart 서비스 연결 전 목록, 상세, 업로드, 삭제 흐름을 미리 보여줍니다.',
@@ -273,7 +254,7 @@ export const mockFeaturePages = {
     ],
     actions: [
       { label: '사진 기억 업로드', disabledReason: '사진 기억 multipart 업로드 서비스가 아직 연결되지 않았습니다.' },
-      { label: '기억 삭제', disabledReason: '삭제 endpoint가 아직 연결되지 않았습니다.' },
+      { label: '기억 삭제', disabledReason: '아직 준비 중인 기능입니다.' },
     ],
     records: [
       {
@@ -313,19 +294,14 @@ export const mockFeaturePages = {
         ],
       },
     ],
-    endpoints: [
-      { method: 'GET', path: '/photo-memories' },
-      { method: 'POST', path: '/photo-memories' },
-      { method: 'GET', path: '/photo-memories/{photo_memory_id}' },
-      { method: 'DELETE', path: '/photo-memories/{photo_memory_id}' },
-    ],
+    plannedItems: [{ label: '사진 기억' }],
   },
   storybook: {
     key: 'storybook',
     title: '스토리북',
     eyebrow: 'StoryBook and StoryChapter',
     description: '생성된 챕터 상태를 포함한 스토리북 목록과 상세 화면입니다.',
-    badge: 'API 연결 예정',
+    badge: '준비 중인 기능',
     priority: '5순위 목업 골격',
     detailTitle: '스토리 구성',
     detailDescription: 'REST 호출 없이 공개 범위, 소스 타입, 재생성, 챕터 구성을 보여줍니다.',
@@ -336,8 +312,8 @@ export const mockFeaturePages = {
       { label: '공유됨', value: '2' },
     ],
     actions: [
-      { label: '스토리북 생성', disabledReason: '스토리북 생성 API가 아직 연결되지 않았습니다.' },
-      { label: '챕터 재생성', disabledReason: '재생성 endpoint가 아직 연결되지 않았습니다.' },
+      { label: '스토리북 생성', disabledReason: '아직 준비 중인 기능입니다.' },
+      { label: '챕터 재생성', disabledReason: '아직 준비 중인 기능입니다.' },
     ],
     records: [
       {
@@ -373,24 +349,18 @@ export const mockFeaturePages = {
         meta: [
           ['chapter_order', '1'],
           ['storybook_id', '1'],
-          ['endpoint', '/storybooks/{storybook_id}/chapters'],
+          ['연결 상태', '준비 중'],
         ],
       },
     ],
-    endpoints: [
-      { method: 'GET', path: '/storybooks' },
-      { method: 'POST', path: '/storybooks' },
-      { method: 'GET', path: '/storybooks/{storybook_id}' },
-      { method: 'GET', path: '/storybooks/{storybook_id}/chapters' },
-      { method: 'POST', path: '/storybooks/{storybook_id}/regenerate' },
-    ],
+    plannedItems: [{ label: '스토리북' }],
   },
   storybookCreate: {
     key: 'storybookCreate',
     title: '스토리북 만들기',
     eyebrow: 'StoryBook create',
     description: '사진 기억, 인터뷰 세션, source_type 선택을 위한 생성 폼 골격입니다.',
-    badge: 'API 연결 예정',
+    badge: '준비 중인 기능',
     priority: '5순위 목업 골격',
     detailTitle: '생성 입력값',
     detailDescription: '백엔드에 제출하지 않고 필요한 입력 항목을 보여줍니다.',
@@ -427,18 +397,18 @@ export const mockFeaturePages = {
         ],
       },
     ],
-    endpoints: [{ method: 'POST', path: '/storybooks' }],
+    plannedItems: [{ label: '스토리북 만들기' }],
   },
   shareLink: {
     key: 'shareLink',
     title: '스토리북 공유',
     eyebrow: 'ShareLink',
     description: '공유 링크 관리와 공개 공유 미리보기를 보여주는 화면입니다.',
-    badge: 'API 연결 예정',
+    badge: '준비 중인 기능',
     priority: '5순위 목업 골격',
     detailTitle: '공유 설정',
     detailDescription: '링크 공개 범위, 토큰, 만료일, 비활성화 동작 위치를 보여줍니다.',
-    developerNote: '공개 /share/{token} 경로는 읽기 전용 목업으로 표시합니다.',
+    developerNote: '서비스 연결을 준비하고 있습니다.',
     metrics: [
       { label: '활성 링크', value: '2' },
       { label: '비활성', value: '1' },
@@ -446,7 +416,7 @@ export const mockFeaturePages = {
     ],
     actions: [
       { label: '공유 링크 생성', disabledReason: '공유 링크 생성 서비스가 아직 연결되지 않았습니다.' },
-      { label: '링크 비활성화', disabledReason: '비활성화 endpoint가 아직 연결되지 않았습니다.' },
+      { label: '링크 비활성화', disabledReason: '아직 준비 중인 기능입니다.' },
     ],
     records: [
       {
@@ -468,25 +438,20 @@ export const mockFeaturePages = {
         status: '공개',
         statusTone: 'done',
         meta: [
-          ['path', '/share/{token}'],
+          ['연결 상태', '준비 중'],
           ['auth', 'No'],
-          ['response', 'PublicSharedStoryBookResponse'],
+          ['표시 내용', '공유된 이야기'],
         ],
       },
     ],
-    endpoints: [
-      { method: 'POST', path: '/storybooks/{storybook_id}/share-links' },
-      { method: 'GET', path: '/storybooks/{storybook_id}/share-links' },
-      { method: 'GET', path: '/share/{token}' },
-      { method: 'PATCH', path: '/share-links/{share_link_id}/disable' },
-    ],
+    plannedItems: [{ label: '공유 관리' }],
   },
   memoryGroup: {
     key: 'memoryGroup',
     title: '기억 그룹',
     eyebrow: 'MemoryGroup',
     description: '멤버와 공유 스토리북을 다루는 그룹 작업 공간 골격입니다.',
-    badge: 'API 연결 예정',
+    badge: '준비 중인 기능',
     priority: '5순위 목업 골격',
     detailTitle: '그룹 협업',
     detailDescription: '그룹 소유자, 멤버, 뷰어 역할과 스토리북 공유 흐름을 보여줍니다.',
@@ -526,26 +491,18 @@ export const mockFeaturePages = {
         ],
       },
     ],
-    endpoints: [
-      { method: 'GET', path: '/groups' },
-      { method: 'POST', path: '/groups' },
-      { method: 'GET', path: '/groups/{group_id}' },
-      { method: 'POST', path: '/groups/{group_id}/members' },
-      { method: 'GET', path: '/groups/{group_id}/members' },
-      { method: 'POST', path: '/groups/{group_id}/storybooks/{storybook_id}' },
-      { method: 'GET', path: '/groups/{group_id}/storybooks' },
-    ],
+    plannedItems: [{ label: '그룹 관리' }],
   },
   deletionRequest: {
     key: 'deletionRequest',
     title: '삭제 요청',
     eyebrow: 'DeletionRequest',
     description: '사용자 삭제 요청 목록, 상세, 취소 흐름을 보여주는 화면입니다.',
-    badge: 'API 연결 예정',
+    badge: '준비 중인 기능',
     priority: '5순위 목업 골격',
     detailTitle: '삭제 처리 흐름',
     detailDescription: '데이터 변경 없이 요청 상태와 비활성화된 취소/제출 동작을 보여줍니다.',
-    developerNote: '관리자 삭제 요청 endpoint는 사용자 화면과 분리되어 있습니다.',
+    developerNote: '서비스 연결을 준비하고 있습니다.',
     metrics: [
       { label: '대기', value: '2' },
       { label: '완료', value: '5' },
@@ -553,7 +510,7 @@ export const mockFeaturePages = {
     ],
     actions: [
       { label: '삭제 요청', disabledReason: '삭제 요청 생성 서비스가 아직 연결되지 않았습니다.' },
-      { label: '요청 취소', disabledReason: '취소 endpoint가 아직 연결되지 않았습니다.' },
+      { label: '요청 취소', disabledReason: '아직 준비 중인 기능입니다.' },
     ],
     records: [
       {
@@ -564,7 +521,7 @@ export const mockFeaturePages = {
         statusTone: 'pending',
         meta: [
           ['target_type', 'TARGET'],
-          ['target_id', '12'],
+          ['대상', '12'],
           ['reason', 'User initiated'],
         ],
       },
@@ -576,24 +533,19 @@ export const mockFeaturePages = {
         statusTone: 'review',
         meta: [
           ['target_type', 'VOICE_PROFILE'],
-          ['target_id', '5'],
+          ['대상', '5'],
           ['reason', 'Consent withdrawn'],
         ],
       },
     ],
-    endpoints: [
-      { method: 'GET', path: '/deletion-requests' },
-      { method: 'POST', path: '/deletion-requests' },
-      { method: 'GET', path: '/deletion-requests/{request_id}' },
-      { method: 'PATCH', path: '/deletion-requests/{request_id}/cancel' },
-    ],
+    plannedItems: [{ label: '삭제 요청' }],
   },
   report: {
     key: 'report',
     title: '신고',
     eyebrow: 'Report',
     description: '사용자 신고 제출과 신고 이력을 보여주는 화면입니다.',
-    badge: 'API 연결 예정',
+    badge: '준비 중인 기능',
     priority: '5순위 목업 골격',
     detailTitle: '신고 처리 대기열',
     detailDescription: '신고를 생성하지 않고 사유 유형과 상태를 표시합니다.',
@@ -605,7 +557,7 @@ export const mockFeaturePages = {
     ],
     actions: [
       { label: '신고 제출', disabledReason: '신고 생성 서비스가 아직 연결되지 않았습니다.' },
-      { label: '신고 상세 보기', disabledReason: '신고 상세 endpoint가 아직 연결되지 않았습니다.' },
+      { label: '신고 상세 보기', disabledReason: '아직 준비 중인 기능입니다.' },
     ],
     records: [
       {
@@ -616,7 +568,7 @@ export const mockFeaturePages = {
         statusTone: 'pending',
         meta: [
           ['target_type', 'PERSONA'],
-          ['target_id', '7'],
+          ['대상', '7'],
           ['reason_type', 'UNAUTHORIZED_VOICE_USE'],
         ],
       },
@@ -628,16 +580,12 @@ export const mockFeaturePages = {
         statusTone: 'review',
         meta: [
           ['target_type', 'STORYBOOK'],
-          ['target_id', '3'],
+          ['대상', '3'],
           ['reason_type', 'PRIVACY_VIOLATION'],
         ],
       },
     ],
-    endpoints: [
-      { method: 'POST', path: '/reports' },
-      { method: 'GET', path: '/reports' },
-      { method: 'GET', path: '/reports/{report_id}' },
-    ],
+    plannedItems: [{ label: '신고 관리' }],
   },
 } satisfies Record<string, MockFeaturePageDefinition>
 

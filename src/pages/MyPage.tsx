@@ -30,7 +30,7 @@ function MyPage() {
   }
 
   return (
-    <AppShell title="내 계정" subtitle="현재 로그인한 사용자 정보를 표시합니다." badge="API 연결됨">
+    <AppShell title="내 계정" subtitle="현재 로그인한 사용자 정보를 표시합니다." badge="연결됨">
       <main className="account-page" aria-label="내 계정">
         <section className="account-page__profile">
           <div className="account-page__avatar" aria-hidden="true">
@@ -46,7 +46,7 @@ function MyPage() {
         <section className="account-page__section" aria-label="계정 정보">
           <div className="account-page__section-heading">
             <h2>계정 정보</h2>
-            <span>GET /auth/me</span>
+            <span>로그인 계정</span>
           </div>
 
           <dl className="account-page__details">
@@ -91,7 +91,7 @@ function MyPage() {
             </button>
           </div>
           <p className="account-page__note">
-            알림, 결제, 구독, 저장공간, 외부 계정 연결처럼 백엔드 API가 확인되지 않은 기능은 계정 페이지에 표시하지 않습니다.
+            알림, 결제, 구독, 저장공간, 외부 계정 연결처럼 아직 준비되지 않은 기능은 계정 페이지에 표시하지 않습니다.
           </p>
         </section>
       </main>

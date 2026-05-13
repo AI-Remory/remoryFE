@@ -24,7 +24,7 @@ const onboardingActions: OnboardingAction[] = [
     title: '동의 관리하기',
     description: 'Persona, 사진, 음성, 공유 관련 동의 상태를 확인하고 관리합니다.',
     href: '/consents',
-    status: 'API 연결 예정',
+    status: '준비 중인 기능',
   },
   {
     title: '사진/음성 업로드하기',
@@ -42,7 +42,7 @@ function OnboardingPage() {
           <span className="setup-page__guide-eyebrow">온보딩</span>
           <h1>처음 설정은 사용자가 직접 시작합니다</h1>
           <p>
-            회원가입 직후 프론트가 Target, ConsentLog, VerificationRequest, Persona, StoryBook을 자동 생성하지
+            회원가입 직후 서비스가 기억 대상, 동의, 관계 입증, 페르소나, 스토리북을 자동 생성하지
             않습니다. 아래 작업 중 필요한 항목을 선택해 진행하세요.
           </p>
         </div>
@@ -61,9 +61,9 @@ function OnboardingPage() {
         <section className="setup-page__guide-note" aria-label="자동 생성 방지 정책">
           <h2>자동 생성 제거 정책</h2>
           <ul>
-            <li>회원가입 성공 후 access token과 실제 refresh token만 저장합니다.</li>
-            <li>Target, Persona, StoryBook 생성은 사용자가 해당 화면에서 버튼을 눌렀을 때만 요청합니다.</li>
-            <li>mock 데이터를 실제 데이터처럼 localStorage에 저장하지 않습니다.</li>
+            <li>회원가입 성공 후 필요한 로그인 정보만 저장합니다.</li>
+            <li>기억 대상, 페르소나, 스토리북 생성은 사용자가 해당 화면에서 버튼을 눌렀을 때만 요청합니다.</li>
+            <li>예시 데이터를 실제 데이터처럼 저장하지 않습니다.</li>
             <li>백엔드에 없는 기본 캠페인, 기본 프로필, 기본 스토리는 생성하지 않습니다.</li>
           </ul>
         </section>

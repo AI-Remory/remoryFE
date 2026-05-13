@@ -13,9 +13,8 @@ export type MockDomainKey =
 
 export type MockStatusTone = 'ready' | 'pending' | 'review' | 'blocked' | 'done' | 'admin'
 
-export type MockApiEndpoint = {
-  method: 'GET' | 'POST' | 'PATCH' | 'DELETE'
-  path: string
+export type MockPlannedItem = {
+  label: string
   note?: string
 }
 
@@ -51,7 +50,7 @@ export type MockFeaturePageDefinition = {
   metrics: MockMetric[]
   actions: MockAction[]
   records: MockRecord[]
-  endpoints: MockApiEndpoint[]
+  plannedItems: MockPlannedItem[]
 }
 
 export type ConsentLogMock = MockRecord

@@ -8,6 +8,7 @@ import MyPage from './pages/MyPage'
 import ProfilePage from './pages/ProfilePage'
 import PublicSharePage from './pages/PublicSharePage'
 import SetupPage from './pages/SetupPage'
+import StorybookDetailPage from './pages/StorybookDetailPage'
 import StorybookPage from './pages/StorybookPage'
 import './App.css'
 
@@ -44,6 +45,10 @@ function App() {
 
   if (pathname.startsWith('/share/')) {
     return <PublicSharePage />
+  }
+
+  if (pathname.startsWith('/storybook/')) {
+    return <StorybookDetailPage />
   }
 
   if (pathname.startsWith('/storybook')) {

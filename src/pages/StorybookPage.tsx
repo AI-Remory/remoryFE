@@ -527,6 +527,17 @@ function StorybookPage() {
     }
   }
 
+  const handleOpenStorybookDetail = (chapterId?: string) => {
+    if (!currentStorybook) {
+      setErrorMessage('볼 스토리북이 없습니다.')
+      setStatusMessage('')
+      return
+    }
+
+    const hash = chapterId ? `#chapter-${encodeURIComponent(chapterId)}` : ''
+    window.location.assign(`/storybook/${currentStorybook.id}${hash}`)
+  }
+
   const handleOpenSharePanel = async () => {
     if (!currentStorybook) {
       setErrorMessage('공유할 스토리북이 없습니다.')
@@ -834,7 +845,7 @@ function StorybookPage() {
           </div>
           <div className="storybook-page__chapter-card">
             {chapterItems.map((chapter) => (
-              <button className="storybook-page__chapter-row" type="button" key={chapter.id} onClick={() => console.log('open chapter', chapter.id)}>
+              <button className="storybook-page__chapter-row" type="button" key={chapter.id} onClick={() => handleOpenStorybookDetail(chapter.id)}>
                 <span className="storybook-page__chapter-icon">
                   <StorybookIcon name={chapter.icon} />
                 </span>
@@ -852,7 +863,7 @@ function StorybookPage() {
             <StorybookIcon name="sparkle" />
             AI와 대화 시작
           </button>
-          <button className="storybook-page__secondary-button" type="button" onClick={() => console.log('view storybook')}>
+          <button className="storybook-page__secondary-button" type="button" onClick={() => handleOpenStorybookDetail()}>
             <StorybookIcon name="book" />
             스토리북 보기
           </button>

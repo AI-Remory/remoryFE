@@ -2122,3 +2122,63 @@ input.setup-page__form-input {
     font-size: 20px;
   }
 }
+
+@media (min-width: 900px) {
+  .setup-page__container {
+    max-width: 960px;
+    padding: 48px 48px 80px;
+    background:
+      linear-gradient(180deg, rgba(255, 250, 245, 0.96) 0%, var(--setup-bg) 100%);
+  }
+
+  .setup-page__step {
+    margin-top: 64px;
+  }
+
+  .setup-page__step--welcome {
+    display: grid;
+    grid-template-columns: minmax(0, 0.95fr) minmax(360px, 1.05fr);
+    align-items: start;
+    gap: 34px;
+  }
+
+  .setup-page__step--welcome .setup-page__intro,
+  .setup-page__memory-heading {
+    padding-left: 0;
+  }
+
+  .setup-page__step--welcome .setup-page__hero-card,
+  .setup-page__step--welcome .setup-page__feature-card,
+  .setup-page__step--welcome .setup-page__actions {
+    grid-column: 2;
+  }
+
+  .setup-page__step--welcome .setup-page__intro {
+    grid-column: 1;
+    grid-row: 1 / span 3;
+    position: sticky;
+    top: 32px;
+  }
+
+  .setup-page__choice-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .setup-page__upload-grid,
+  .setup-page__memory-stack {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .setup-page__persona-card,
+  .setup-page__summary-card,
+  .setup-page__complete-card {
+    max-width: 720px;
+    margin-inline: auto;
+  }
+
+  .setup-page__split-actions {
+    max-width: 720px;
+    margin-inline: auto;
+    margin-top: 28px;
+  }
+}

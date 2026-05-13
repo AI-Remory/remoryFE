@@ -563,3 +563,66 @@
     font-size: 19px;
   }
 }
+
+@media (min-width: 900px) {
+  .storybook-page__container {
+    max-width: 1120px;
+    padding: 112px 32px 56px;
+  }
+
+  .storybook-page__header {
+    grid-template-columns: 120px minmax(0, 1fr) 120px;
+  }
+
+  .storybook-page__title {
+    font-size: 44px;
+  }
+
+  .storybook-page__cover {
+    height: 380px;
+    border-radius: 26px;
+  }
+
+  .storybook-page__cover-content {
+    top: 52px;
+    left: 44px;
+    width: min(42%, 380px);
+  }
+
+  .storybook-page__cover-title {
+    font-size: 46px;
+  }
+
+  .storybook-page__ready-card {
+    grid-template-columns: 84px minmax(0, 1fr) 32px;
+    padding: 26px 30px;
+  }
+
+  .storybook-page__ready-icon {
+    width: 84px;
+    height: 84px;
+  }
+
+  .storybook-page__photo-list {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+
+  .storybook-page__photo-card {
+    height: 132px;
+  }
+
+  .storybook-page__actions {
+    max-width: 720px;
+    margin-inline: auto;
+  }
+
+  .storybook-page__bottom-nav {
+    top: 18px;
+    bottom: auto;
+    max-width: 1040px;
+    height: 68px;
+    border: 1px solid #eedcca;
+    border-radius: 20px;
+    box-shadow: 0 12px 28px rgba(84, 52, 32, 0.08);
+  }
+}

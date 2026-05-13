@@ -8,13 +8,9 @@
   --domain-purple: #8068a7;
   --domain-green: #5e9876;
 
-  display: grid;
-  grid-template-columns: 260px minmax(0, 1fr);
-  min-height: 100dvh;
-  background:
-    radial-gradient(circle at top left, rgba(255, 235, 212, 0.72), transparent 32%),
-    radial-gradient(circle at bottom right, rgba(255, 238, 218, 0.7), transparent 36%),
-    linear-gradient(180deg, var(--domain-bg) 0%, #fffdf9 44%, #fff7ed 100%);
+  display: block;
+  min-height: auto;
+  background: transparent;
   color: var(--domain-text);
 }
 
@@ -75,12 +71,6 @@
   background: #fff0e5;
   color: #a94d2e;
   outline: none;
-}
-
-.domain-page__content {
-  width: min(1180px, 100%);
-  margin: 0 auto;
-  padding: 34px clamp(18px, 4vw, 54px) 64px;
 }
 
 .domain-page__hero {
@@ -235,7 +225,7 @@
 }
 
 .domain-page__panel-heading button {
-  min-height: 38px;
+  min-height: 44px;
   padding: 0 14px;
   border-radius: 12px;
   background: #2f2926;
@@ -340,33 +330,6 @@
 }
 
 @media (max-width: 980px) {
-  .domain-page {
-    grid-template-columns: 1fr;
-  }
-
-  .domain-page__nav {
-    position: static;
-    height: auto;
-    flex-direction: row;
-    gap: 14px;
-    overflow-x: auto;
-    padding: 16px;
-    border-right: 0;
-    border-bottom: 1px solid var(--domain-border);
-  }
-
-  .domain-page__brand {
-    flex: 0 0 auto;
-  }
-
-  .domain-page__nav section {
-    min-width: 180px;
-  }
-
-  .domain-page__content {
-    padding: 18px 16px 44px;
-  }
-
   .domain-page__main-grid {
     grid-template-columns: 1fr;
   }

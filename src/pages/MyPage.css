@@ -738,3 +738,77 @@
     width: 170px;
   }
 }
+
+@media (min-width: 900px) {
+  .my-page__container {
+    max-width: 1180px;
+    padding: 112px 32px 56px;
+  }
+
+  .my-page__header {
+    align-items: flex-end;
+    padding-bottom: 28px;
+  }
+
+  .my-page__header h1 {
+    font-size: 42px;
+  }
+
+  .my-page__profile-card {
+    padding: 28px;
+    border-radius: 22px;
+  }
+
+  .my-page__profile-top {
+    align-items: center;
+  }
+
+  .my-page__persona-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+
+  .my-page__persona-section {
+    padding: 22px;
+  }
+
+  .my-page__menu-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .my-page__wide-menu {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+  }
+
+  .my-page__monthly-banner {
+    min-height: 128px;
+    padding: 26px 260px 24px 28px;
+  }
+
+  .my-page__banner-image {
+    width: 250px;
+    height: 118px;
+  }
+
+  .my-page__bottom-nav {
+    top: 18px;
+    bottom: auto;
+    max-width: 1120px;
+    height: 68px;
+    border: 1px solid #ead8c9;
+    border-radius: 20px;
+    box-shadow: 0 12px 28px rgba(84, 52, 32, 0.08);
+  }
+}
+
+@media (min-width: 1180px) {
+  .my-page__persona-list {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .my-page__menu-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}

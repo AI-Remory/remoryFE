@@ -1,3 +1,4 @@
+import { AppShell } from '../components/layout/AppShell'
 import './DomainPages.css'
 
 type BadgeKind = 'connected' | 'next' | 'mock' | 'admin'
@@ -34,38 +35,6 @@ const priorityBadge = {
   mock: 'Mock',
   admin: 'ADMIN',
 } satisfies Record<BadgeKind, string>
-
-const routeGroups = [
-  {
-    title: 'Core',
-    links: [
-      ['/home', 'Dashboard'],
-      ['/targets', 'Targets'],
-      ['/personas', 'Personas'],
-      ['/persona-chat', 'Chat'],
-      ['/persona-voice-call', 'Voice Call'],
-    ],
-  },
-  {
-    title: 'Memory',
-    links: [
-      ['/interviews', 'Interviews'],
-      ['/photo-memories', 'Photos'],
-      ['/storybooks', 'Storybooks'],
-      ['/groups', 'Groups'],
-    ],
-  },
-  {
-    title: 'Trust',
-    links: [
-      ['/consents', 'Consents'],
-      ['/verification', 'Verification'],
-      ['/deletion-requests', 'Deletion'],
-      ['/reports', 'Reports'],
-      ['/admin', 'Admin'],
-    ],
-  },
-]
 
 const baseCards = {
   target: [
@@ -527,25 +496,12 @@ const configs = {
 
 function DomainShell({ config }: { config: DomainPageConfig }) {
   return (
-    <main className="domain-page">
-      <aside className="domain-page__nav" aria-label="Remory domain navigation">
-        <a className="domain-page__brand" href="/home">Remory</a>
-        {routeGroups.map((group) => (
-          <section key={group.title}>
-            <h2>{group.title}</h2>
-            {group.links.map(([href, label]) => (
-              <a href={href} key={href}>{label}</a>
-            ))}
-          </section>
-        ))}
-      </aside>
-
-      <section className="domain-page__content">
+    <AppShell title={config.title} subtitle={config.description} badge={config.badge}>
+      <main className="domain-page">
         <header className="domain-page__hero">
           <div>
             <span className="domain-page__eyebrow">{config.eyebrow}</span>
             <h1>{config.title}</h1>
-            <p>{config.description}</p>
           </div>
           <span className={`domain-page__badge domain-page__badge--${config.badgeKind}`}>{config.badge}</span>
         </header>
@@ -594,8 +550,8 @@ function DomainShell({ config }: { config: DomainPageConfig }) {
             </p>
           </aside>
         </section>
-      </section>
-    </main>
+      </main>
+    </AppShell>
   )
 }
 

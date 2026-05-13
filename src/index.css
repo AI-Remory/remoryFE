@@ -35,4 +35,16 @@ a {
 
 button {
   font: inherit;
+  min-height: 44px;
+}
+
+input,
+select,
+textarea {
+  font: inherit;
+  min-height: 44px;
+}
+
+img {
+  max-width: 100%;
 }

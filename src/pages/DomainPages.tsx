@@ -228,9 +228,9 @@ function getPersonaStatusMessage(status: PersonaStatus) {
     case 'READY':
       return '페르소나가 준비되었습니다. 채팅과 음성 통화를 사용할 수 있습니다.'
     case 'PENDING':
-      return '페르소나 생성이 대기 중입니다. 준비 완료가 될 때까지 상태를 새로고침하세요.'
+      return '페르소나를 만들고 있어요. 잠시 뒤 다시 확인해 주세요.'
     case 'FAILED':
-      return '페르소나 생성에 실패했습니다. 다시 생성할 때 서버 오류 상세를 확인하세요.'
+      return '페르소나를 만들지 못했어요. 잠시 후 다시 시도해 주세요.'
     default:
       return '알 수 없는 페르소나 상태입니다.'
   }
@@ -473,7 +473,7 @@ function TargetCreateApiPage() {
       <main className="domain-page target-api-page">
         <header className="domain-page__hero">
           <div>
-            <span className="domain-page__eyebrow">기억 대상 생성</span>
+            <span className="domain-page__eyebrow">대상 추가</span>
             <h1>기억 대상 만들기</h1>
             <p>요청 본문은 TargetCreateRequest의 name, description, target_type을 따릅니다.</p>
           </div>
@@ -667,7 +667,7 @@ function TargetDetailApiPage() {
   }
 
   async function handleDelete() {
-    if (!targetId || !window.confirm('Delete this Target?')) {
+    if (!targetId || !window.confirm('이 대상을 삭제할까요?')) {
       return
     }
 
@@ -801,7 +801,7 @@ function TargetDetailApiPage() {
                   </div>
                 </dl>
                 <p>
-                  하나 이상의 관계 입증 요청이 APPROVED 상태가 될 때까지 페르소나 생성은 비활성화됩니다. 서버 403 detail은 반환된 그대로 표시됩니다.</p>
+                  페르소나를 만들려면 관계 입증 승인이 필요해요. 승인 후 다시 진행해 주세요.</p>
                 <div className="target-form__actions">
                   <a href={`/verification?target_id=${target.id}`}>입증 열기</a>
                   <a href={`/consents?target_id=${target.id}`}>동의 열기</a>
@@ -866,7 +866,7 @@ function TargetDetailApiPage() {
                   onClick={handleCreatePersona}
                   type="button"
                 >
-                  {isCreatingPersona ? '페르소나 생성 중...' : '페르소나 만들기'}
+                  {isCreatingPersona ? '페르소나를 만들고 있어요...' : '페르소나 만들기'}
                 </button>
               </div>
             </form>
@@ -1022,7 +1022,7 @@ function TargetMediaApiPage() {
   }
 
   async function handleDelete(mediaId: number) {
-    if (!activeTargetId || !window.confirm('Delete this media file?')) {
+    if (!activeTargetId || !window.confirm('이 파일을 삭제할까요?')) {
       return
     }
 
@@ -1068,7 +1068,7 @@ function TargetMediaApiPage() {
         />
 
         {activeTargetId && (
-          <section className="target-media-upload-grid" aria-label="미디어 업로드">
+          <section className="target-media-upload-grid" aria-label="사진·음성 올리기">
             <article className="target-media-upload-card">
               <h2>사진 업로드</h2>
               <div className="target-form__field">
@@ -1761,7 +1761,7 @@ function TargetVerificationApiPage() {
         </section>
 
         {activeTargetId && requests.length === 0 && !isLoading && (
-          <TargetStateMessage title="입증 요청이 없습니다" message="승인 후 페르소나 생성을 열려면 입증 요청을 제출하세요." />
+          <TargetStateMessage title="관계 입증 요청이 없어요" message="페르소나를 만들려면 관계 입증 승인이 필요해요." />
         )}
 
         {selectedRequest && (
@@ -1835,8 +1835,8 @@ function PersonaListApiPage() {
       <main className="domain-page target-api-page">
         <header className="domain-page__hero">
           <div>
-            <span className="domain-page__eyebrow">페르소나 생성</span>
-            <h1>페르소나 생성</h1>
+            <span className="domain-page__eyebrow">페르소나 만들기</span>
+            <h1>페르소나 만들기</h1>
             <p>확인한 서비스에는 페르소나 목록 준비 상태가 없습니다. 대상로 페르소나를 생성하세요.</p>
           </div>
           <span className="domain-page__badge domain-page__badge--connected">대상</span>
@@ -1864,7 +1864,7 @@ function PersonaListApiPage() {
         {!persona && !errorMessage && (
           <TargetStateMessage
             title="목록 서비스 없음"
-            message="서비스에는 페르소나 생성, 상세, 상태 준비 상태가 있지만 목록 준비 상태는 없습니다."
+            message="먼저 대상을 선택하면 페르소나를 만들 수 있어요."
           />
         )}
 
@@ -3576,7 +3576,7 @@ function StorybookDetailApiPage() {
     const storybookId = getStorybookIdFromInput()
 
     if (!storybookId) {
-      setErrorMessage('storybook_id must be a positive integer.')
+      setErrorMessage('스토리북을 선택해 주세요.')
       return
     }
 
@@ -3587,7 +3587,7 @@ function StorybookDetailApiPage() {
     const storybookId = storybook?.id ?? getStorybookIdFromInput()
 
     if (!storybookId) {
-      setErrorMessage('storybook_id must be a positive integer.')
+      setErrorMessage('스토리북을 선택해 주세요.')
       return
     }
 
@@ -3717,7 +3717,7 @@ function StorybookShareApiPage() {
     const storybookId = getStorybookIdFromShareInput()
 
     if (!storybookId) {
-      setErrorMessage('storybook_id must be a positive integer.')
+      setErrorMessage('스토리북을 선택해 주세요.')
       return
     }
 
@@ -3728,7 +3728,7 @@ function StorybookShareApiPage() {
     const storybookId = getStorybookIdFromShareInput()
 
     if (!storybookId) {
-      setErrorMessage('storybook_id must be a positive integer.')
+      setErrorMessage('스토리북을 선택해 주세요.')
       return
     }
 
@@ -4163,7 +4163,7 @@ function MemoryGroupDetailApiPage() {
     }
 
     if (!Number.isInteger(parsedStorybookId) || parsedStorybookId <= 0) {
-      setErrorMessage('storybook_id must be a positive integer.')
+      setErrorMessage('스토리북을 선택해 주세요.')
       return
     }
 
@@ -5127,7 +5127,7 @@ function AdminDashboardApiPage() {
           <article><span>신고</span><strong>{counts.reports}</strong></article>
           <article><span>감사 로그</span><strong>{counts.auditLogs}</strong></article>
           <article><span>사용량 제한</span><strong>{counts.usageLimits}</strong></article>
-          <article><span>Rate limit 이벤트</span><strong>{counts.rateLimitEvents}</strong></article>
+          <article><span>요청 제한 기록</span><strong>{counts.rateLimitEvents}</strong></article>
         </section>
 
         <AdminUsageLimitPanel />
@@ -5501,7 +5501,7 @@ function AdminAuditLogsApiPage() {
   }, [loadLogs])
 
   return (
-    <AppShell title="관리자 감사 로그" subtitle="감사 로그와 rate limit 이벤트를 조회합니다." badge="서비스 연결됨">
+    <AppShell title="활동 기록" subtitle="서비스 활동과 요청 제한 기록을 확인합니다." badge="서비스 연결됨">
       <main className="domain-page target-api-page">
         <header className="domain-page__hero">
           <div>
@@ -5792,7 +5792,7 @@ export function MockFeaturePage({ pageKey }: { pageKey: MockFeaturePageKey }) {
               </div>
             </div>
 
-            <div className="mock-feature-list" aria-label={`${page.title} ?? ??`}>
+            <div className="mock-feature-list" aria-label={`${page.title} 예시 기록`}>
               {page.records.map((record) => (
                 <article className="mock-feature-card" key={record.id}>
                   <div className="mock-feature-card__heading">

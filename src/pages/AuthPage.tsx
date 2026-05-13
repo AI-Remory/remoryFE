@@ -74,17 +74,17 @@ function AuthPage() {
 
     if (isSignup) {
       if (password.length < 8) {
-        setErrorMessage('비밀번호는 8자 이상이어야 합니다.')
+        setErrorMessage('비밀번호는 8자 이상으로 입력해 주세요.')
         return
       }
 
       if (password !== passwordConfirm) {
-        setErrorMessage('비밀번호가 일치하지 않습니다.')
+        setErrorMessage('비밀번호가 서로 달라요. 다시 확인해 주세요.')
         return
       }
 
       if (!agreedToTerms) {
-        setErrorMessage('필수 약관에 동의해 주세요.')
+        setErrorMessage('필수 약관에 동의해야 가입할 수 있어요.')
         return
       }
     }
@@ -93,22 +93,14 @@ function AuthPage() {
 
     try {
       if (isSignup) {
-        await register({
-          email,
-          nickname: name,
-          password,
-        })
+        await register({ email, nickname: name, password })
         window.location.href = '/onboarding'
       } else {
-        await login({
-          email,
-          password,
-        })
+        await login({ email, password })
         window.location.href = '/home'
       }
     } catch (error) {
-      const message = error instanceof ApiError ? error.message : '인증 요청에 실패했습니다.'
-      setErrorMessage(message)
+      setErrorMessage(error instanceof ApiError ? error.message : '로그인 정보를 확인하지 못했어요.')
     } finally {
       setIsSubmitting(false)
     }
@@ -119,23 +111,16 @@ function AuthPage() {
     setErrorMessage('')
   }
 
-  const handleBottomAction = () => {
-    handleSwitchTab(isSignup ? 'login' : 'signup')
-  }
-
   return (
     <main className="auth-page">
-      <section className="auth-shell" aria-label="Remory 인증">
-        <aside className="auth-intro" aria-label="서비스 소개">
+      <section className="auth-shell" aria-label="Remory 계정">
+        <aside className="auth-intro" aria-label="Remory 소개">
           <button className="auth-back-button" type="button" aria-label="이전 화면으로 돌아가기" onClick={() => window.history.back()}>
             <BackIcon />
           </button>
           <p className="auth-kicker">Remory</p>
-          <h1>소중한 기억을 안전하게 이어가세요.</h1>
-          <p>
-            로그인하면 기억 대상, 페르소나, 스토리북을 한 곳에서 관리할 수 있습니다. 회원가입 후에는 사용자가 직접
-            필요한 정보를 추가합니다.
-          </p>
+          <h1>소중한 기억을 천천히 이어갈 수 있도록 도와드릴게요.</h1>
+          <p>계정에 로그인하면 기억 대상, 페르소나, 스토리북을 한곳에서 관리할 수 있어요. 필요한 정보는 사용자가 직접 선택해 추가합니다.</p>
         </aside>
 
         <section className="auth-card" aria-label={isSignup ? '회원가입' : '로그인'}>
@@ -144,23 +129,11 @@ function AuthPage() {
             <h2>{isSignup ? '회원가입' : '로그인'}</h2>
           </div>
 
-          <div className="auth-tab-wrapper" role="tablist" aria-label="인증 방식 선택">
-            <button
-              className={`auth-tab-button${isSignup ? ' active' : ''}`}
-              type="button"
-              role="tab"
-              aria-selected={isSignup}
-              onClick={() => handleSwitchTab('signup')}
-            >
+          <div className="auth-tab-wrapper" role="tablist" aria-label="계정 이용 방법 선택">
+            <button className={`auth-tab-button${isSignup ? ' active' : ''}`} type="button" role="tab" aria-selected={isSignup} onClick={() => handleSwitchTab('signup')}>
               회원가입
             </button>
-            <button
-              className={`auth-tab-button${!isSignup ? ' active' : ''}`}
-              type="button"
-              role="tab"
-              aria-selected={!isSignup}
-              onClick={() => handleSwitchTab('login')}
-            >
+            <button className={`auth-tab-button${!isSignup ? ' active' : ''}`} type="button" role="tab" aria-selected={!isSignup} onClick={() => handleSwitchTab('login')}>
               로그인
             </button>
           </div>
@@ -171,7 +144,7 @@ function AuthPage() {
                 <span className="auth-input-label">이름</span>
                 <span className="auth-input-control">
                   <UserIcon />
-                  <input type="text" placeholder="이름" value={name} onChange={(event) => setName(event.target.value)} required />
+                  <input type="text" placeholder="이름을 입력해 주세요" value={name} onChange={(event) => setName(event.target.value)} required />
                 </span>
               </label>
             )}
@@ -188,20 +161,8 @@ function AuthPage() {
               <span className="auth-input-label">비밀번호</span>
               <span className="auth-input-control">
                 <LockIcon />
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  placeholder="비밀번호"
-                  value={password}
-                  onChange={(event) => setPassword(event.target.value)}
-                  required
-                  minLength={isSignup ? 8 : undefined}
-                />
-                <button
-                  className="auth-eye-button"
-                  type="button"
-                  aria-label={showPassword ? '비밀번호 숨기기' : '비밀번호 보기'}
-                  onClick={() => setShowPassword((current) => !current)}
-                >
+                <input type={showPassword ? 'text' : 'password'} placeholder="비밀번호" value={password} onChange={(event) => setPassword(event.target.value)} required minLength={isSignup ? 8 : undefined} />
+                <button className="auth-eye-button" type="button" aria-label={showPassword ? '비밀번호 숨기기' : '비밀번호 보기'} onClick={() => setShowPassword((current) => !current)}>
                   <EyeIcon />
                 </button>
               </span>
@@ -212,20 +173,8 @@ function AuthPage() {
                 <span className="auth-input-label">비밀번호 확인</span>
                 <span className="auth-input-control">
                   <LockIcon />
-                  <input
-                    type={showPasswordConfirm ? 'text' : 'password'}
-                    placeholder="비밀번호 확인"
-                    value={passwordConfirm}
-                    onChange={(event) => setPasswordConfirm(event.target.value)}
-                    required
-                    minLength={8}
-                  />
-                  <button
-                    className="auth-eye-button"
-                    type="button"
-                    aria-label={showPasswordConfirm ? '비밀번호 확인 숨기기' : '비밀번호 확인 보기'}
-                    onClick={() => setShowPasswordConfirm((current) => !current)}
-                  >
+                  <input type={showPasswordConfirm ? 'text' : 'password'} placeholder="비밀번호를 한 번 더 입력해 주세요" value={passwordConfirm} onChange={(event) => setPasswordConfirm(event.target.value)} required minLength={8} />
+                  <button className="auth-eye-button" type="button" aria-label={showPasswordConfirm ? '비밀번호 확인 숨기기' : '비밀번호 확인 보기'} onClick={() => setShowPasswordConfirm((current) => !current)}>
                     <EyeIcon />
                   </button>
                 </span>
@@ -235,27 +184,23 @@ function AuthPage() {
             {isSignup && (
               <label className="auth-terms-row">
                 <input type="checkbox" checked={agreedToTerms} onChange={(event) => setAgreedToTerms(event.target.checked)} />
-                <span>개인정보 수집 및 서비스 이용에 동의합니다. (필수)</span>
+                <span>개인정보 수집과 서비스 이용에 동의합니다. (필수)</span>
               </label>
             )}
 
             <div className="auth-message-slot">
-              {errorMessage && (
-                <p className="auth-error-message" role="alert">
-                  {errorMessage}
-                </p>
-              )}
+              {errorMessage && <p className="auth-error-message" role="alert">{errorMessage}</p>}
             </div>
 
             <button className="auth-submit-button" type="submit" disabled={isSubmitting}>
-              {isSubmitting ? '처리 중...' : isSignup ? '회원가입 완료' : '로그인'}
+              {isSubmitting ? '확인 중...' : isSignup ? '회원가입 완료' : '로그인'}
             </button>
           </form>
 
           <p className="auth-bottom-text">
             {isSignup ? '이미 계정이 있나요?' : '아직 계정이 없나요?'}{' '}
-            <button className="auth-login-link" type="button" onClick={handleBottomAction}>
-              {isSignup ? '로그인' : '회원가입'}
+            <button className="auth-login-link" type="button" onClick={() => handleSwitchTab(isSignup ? 'login' : 'signup')}>
+              {isSignup ? '로그인하기' : '회원가입하기'}
             </button>
           </p>
         </section>

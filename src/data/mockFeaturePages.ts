@@ -5,7 +5,7 @@ export const mockFeaturePages = {
     key: 'consentLog',
     title: '동의 기록',
     eyebrow: 'ConsentLog',
-    description: '대상별 동의 이력과 철회 흐름을 확인하는 화면입니다. 실제 쓰기 기능은 API 연결 전까지 비활성화됩니다.',
+    description: '대상별 동의 이력과 철회 흐름을 확인하는 화면입니다. 일부 기능은 아직 준비 중이에요.',
     badge: '준비 중인 기능',
     priority: '5순위 목업 골격',
     detailTitle: '동의 준비 상태',
@@ -23,7 +23,7 @@ export const mockFeaturePages = {
     records: [
       {
         id: 'consent-1',
-        title: '페르소나 생성 동의',
+        title: '페르소나 만들기 동의',
         subtitle: '대상 #12, 동의 버전 2026.05',
         status: '동의 완료',
         statusTone: 'ready',
@@ -107,7 +107,7 @@ export const mockFeaturePages = {
       {
         id: 'verification-3',
         title: '신분증 일치 확인',
-        subtitle: '페르소나 생성에 사용할 수 있는 승인된 입증입니다.',
+        subtitle: '페르소나 만들기에 사용할 수 있는 승인된 입증입니다.',
         status: '승인됨',
         statusTone: 'ready',
         meta: [
@@ -290,7 +290,7 @@ export const mockFeaturePages = {
         meta: [
           ['title', 'Family dinner'],
           ['location', 'Home'],
-          ['storybook_id', 'Pending'],
+          ['스토리북', '선택 전'],
         ],
       },
     ],
@@ -305,7 +305,7 @@ export const mockFeaturePages = {
     priority: '5순위 목업 골격',
     detailTitle: '스토리 구성',
     detailDescription: 'REST 호출 없이 공개 범위, 소스 타입, 재생성, 챕터 구성을 보여줍니다.',
-    developerNote: 'StoryChapter는 /storybooks/{storybook_id}/chapters로 표시됩니다.',
+    developerNote: '챕터 목록은 준비가 끝나면 이 화면에서 확인할 수 있어요.',
     metrics: [
       { label: '책', value: '5' },
       { label: '챕터', value: '22' },
@@ -348,7 +348,7 @@ export const mockFeaturePages = {
         statusTone: 'done',
         meta: [
           ['chapter_order', '1'],
-          ['storybook_id', '1'],
+          ['스토리북', '첫 번째 이야기'],
           ['연결 상태', '준비 중'],
         ],
       },
@@ -426,7 +426,7 @@ export const mockFeaturePages = {
         status: '활성',
         statusTone: 'ready',
         meta: [
-          ['storybook_id', '1'],
+          ['스토리북', '첫 번째 이야기'],
           ['visibility', 'LINK'],
           ['expires_at', 'Optional'],
         ],
@@ -509,7 +509,7 @@ export const mockFeaturePages = {
       { label: '취소', value: '1' },
     ],
     actions: [
-      { label: '삭제 요청', disabledReason: '삭제 요청 생성 서비스가 아직 연결되지 않았습니다.' },
+      { label: '데이터 삭제 요청하기', disabledReason: '지금은 준비 중인 기능이에요.' },
       { label: '요청 취소', disabledReason: '아직 준비 중인 기능입니다.' },
     ],
     records: [
@@ -556,7 +556,7 @@ export const mockFeaturePages = {
       { label: '해결', value: '9' },
     ],
     actions: [
-      { label: '신고 제출', disabledReason: '신고 생성 서비스가 아직 연결되지 않았습니다.' },
+      { label: '신고하기', disabledReason: '지금은 준비 중인 기능이에요.' },
       { label: '신고 상세 보기', disabledReason: '아직 준비 중인 기능입니다.' },
     ],
     records: [

@@ -80,7 +80,7 @@ function isBackendPersonaId(personaId: string) {
 
 function getChatErrorMessage(error: unknown, fallbackMessage: string) {
   if (error instanceof ApiError && error.status === 0) {
-    return '백엔드 채팅 서버에 연결할 수 없습니다. 서버 실행 상태를 확인해주세요.'
+    return '대화 연결에 실패했어요. 잠시 후 다시 시도해 주세요.'
   }
 
   return fallbackMessage
@@ -315,7 +315,7 @@ function ChatPage() {
         </section>
 
         <section className="chat-page__bottom-area" aria-label="메시지 작성">
-          <button className="chat-page__storybook-button" type="button" disabled title="StoryBook 생성 API 연결 후 사용할 수 있습니다.">
+          <button className="chat-page__storybook-button" type="button" disabled title="지금은 준비 중인 기능이에요.">
             <ChatIcon name="book" />
             스토리북으로 만들기
           </button>

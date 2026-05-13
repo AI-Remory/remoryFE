@@ -10,8 +10,8 @@ function LandingPage() {
   }
 
   return (
-    <main className="remory-onboarding-page" aria-label="Remory 온보딩">
-      <section className="remory-onboarding-screen" aria-label="Remory 첫 온보딩 화면">
+    <main className="remory-onboarding-page" aria-label="Remory 소개">
+      <section className="remory-onboarding-screen" aria-label="Remory 시작 화면">
         <header className="remory-onboarding-header">
           <div className="remory-onboarding-brand" aria-label="Remory">
             <span className="remory-onboarding-logo" aria-hidden="true">
@@ -26,7 +26,7 @@ function LandingPage() {
             type="button"
             aria-label="서비스 안내 보기"
             disabled
-            title="서비스 안내 API 연결 후 제공됩니다."
+            title="지금은 준비 중인 기능이에요."
           >
             !
           </button>
@@ -36,34 +36,34 @@ function LandingPage() {
           <img
             className="remory-hero-image"
             src="/images/remory-hero.png"
-            alt="소중한 사람의 목소리와 기억을 담은 스토리북"
+            alt="소중한 사람의 사진과 목소리로 남기는 기억"
           />
         </div>
 
         <section className="remory-onboarding-copy">
           <h1 className="remory-onboarding-title">
-            소중한 사람의 목소리와
+            소중한 사람의 기억을
             <br />
-            기억을, 다시 <span>대화로.</span>
+            더 오래 <span>간직해요.</span>
           </h1>
           <p className="remory-onboarding-subtitle">
-            사진과 음성으로 AI 페르소나를 만들고,
+            사진과 음성을 모아 페르소나를 만들고,
             <br />
-            추억을 스토리북으로 남겨보세요.
+            추억을 스토리북으로 정리해 보세요.
           </p>
         </section>
 
-        <div className="remory-onboarding-pager" aria-label="온보딩 1 / 3">
+        <div className="remory-onboarding-pager" aria-label="소개 화면 1 / 3">
           <span className="is-active" />
           <span />
           <span />
         </div>
 
-        <section className="remory-onboarding-actions" aria-label="시작 및 로그인">
+        <section className="remory-onboarding-actions" aria-label="시작하기">
           <button className="remory-onboarding-primary" type="button" onClick={handleStartMemory}>
-            기억 시작하기
+            시작하기
           </button>
-          <button className="remory-onboarding-secondary" type="button" disabled title="Google OAuth API가 확인된 뒤 연결합니다.">
+          <button className="remory-onboarding-secondary" type="button" disabled title="지금은 준비 중인 기능이에요.">
             <span className="remory-onboarding-google" aria-hidden="true">
               G
             </span>
@@ -71,10 +71,10 @@ function LandingPage() {
           </button>
           <button className="remory-onboarding-secondary" type="button" onClick={handleEmailLogin}>
             <span className="remory-onboarding-mail" aria-hidden="true" />
-            이메일 로그인
+            이메일로 로그인
           </button>
-          <button className="remory-onboarding-text-button" type="button" disabled title="게스트 탐색 API가 확인된 뒤 연결합니다.">
-            계정 없이 둘러보기
+          <button className="remory-onboarding-text-button" type="button" disabled title="지금은 준비 중인 기능이에요.">
+            둘러보기
           </button>
         </section>
       </section>

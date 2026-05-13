@@ -144,3 +144,20 @@ Notes:
 - Voice profile status enum is limited to `PENDING`, `PROCESSING`, `READY`, `FAILED`, `NEEDS_MORE_SAMPLES`, `REVOKED`.
 - Voice profile review_status enum is limited to `NOT_REVIEWED`, `USER_CONFIRMED`, `ADMIN_APPROVED`, `REJECTED`.
 - Voice call entry is allowed only when voice profile `status` is `READY` and `review_status` is `USER_CONFIRMED` or `ADMIN_APPROVED`.
+
+## Interview PhotoMemory Connection Update
+
+Updated on 2026-05-14.
+
+| Feature | Previous status | Current status | Frontend files | Action |
+| --- | --- | --- | --- | --- |
+| AIInterviewSession | `mock-only` | `fully-connected` | `src/types/interview.ts`, `src/services/interviewService.ts`, `InterviewListPage`, `InterviewSessionPage` in `src/pages/DomainPages.tsx` | `keep` |
+| PhotoMemory | `mock-only` | `fully-connected` | `src/types/photoMemory.ts`, `src/services/photoMemoryService.ts`, `PhotoMemoryListPage`, `PhotoMemoryUploadPage` in `src/pages/DomainPages.tsx` | `keep` |
+| StoryBook source selection | `mock-only` | `partially-connected` | Interview and PhotoMemory pages link to `/storybooks/create` with documented source ids | `connect` |
+
+Notes:
+- Interview uses `POST /interviews`, `GET /interviews/{session_id}`, `POST /interviews/{session_id}/questions`, and `POST /interviews/{session_id}/answers`.
+- OpenAPI does not expose an interview list endpoint, so `InterviewListPage` does not create a fake list. It provides session creation and source selection only.
+- PhotoMemory uses `GET /photo-memories`, `POST /photo-memories`, `GET /photo-memories/{photo_memory_id}`, and `DELETE /photo-memories/{photo_memory_id}`.
+- PhotoMemory upload uses only the documented multipart field names: `title`, `description`, `taken_at`, `location`, and `file`.
+- No separate interview answer audio upload endpoint is documented; the UI only sends documented `answer_audio_path` when supplied.

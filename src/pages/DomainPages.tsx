@@ -5,17 +5,26 @@ import { useVoiceCall } from '../hooks/useVoiceCall'
 import { ApiError } from '../services/apiClient'
 import { chatService } from '../services/chatService'
 import { consentService } from '../services/consentService'
+import { interviewService } from '../services/interviewService'
 import { mediaService } from '../services/mediaService'
 import { mockFeatureService } from '../services/mock/mockFeatureService'
 import { personaService } from '../services/personaService'
+import { photoMemoryService } from '../services/photoMemoryService'
 import { targetService } from '../services/targetService'
 import { verificationService } from '../services/verificationService'
 import { voiceProfileService } from '../services/voiceProfileService'
 import type { MockFeaturePageKey } from '../data/mockFeaturePages'
 import type { ChatId, PersonaChatResponse, PersonaMessageResponse, SenderType } from '../types/chat'
 import type { ConsentResponse, ConsentType } from '../types/consent'
+import type {
+  AIInterviewQuestionResponse,
+  AIInterviewSessionDetailResponse,
+  AIInterviewSessionResponse,
+  InterviewType,
+} from '../types/interview'
 import type { MediaType, TargetMediaResponse } from '../types/media'
 import type { PersonaDetailResponse, PersonaStatus, PersonaStatusResponse } from '../types/persona'
+import type { PhotoMemoryResponse } from '../types/photoMemory'
 import type { TargetDetailResponse, TargetResponse, TargetType } from '../types/target'
 import type { VerificationRequestResponse, VerificationStatus, VerificationType } from '../types/verification'
 import type { VoiceCallMessage, VoiceCallStatus } from '../types/voice'
@@ -44,6 +53,7 @@ const consentTypeOptions: ConsentType[] = [
   'storybook_share',
 ]
 const verificationTypeOptions: VerificationType[] = ['FAMILY_RELATION_CERTIFICATE', 'ID_CARD', 'SELF_DECLARATION', 'OTHER']
+const interviewTypeOptions: InterviewType[] = ['TARGET_PROFILE', 'PHOTO_MEMORY', 'SELF_STORY']
 
 function getApiErrorMessage(error: unknown) {
   if (error instanceof ApiError) {
@@ -2538,6 +2548,731 @@ function PersonaVoiceProfileApiPage() {
   )
 }
 
+function getSessionIdFromLocation() {
+  const params = new URLSearchParams(window.location.search)
+  const value = params.get('session_id') ?? params.get('id') ?? window.location.pathname.split('/').filter(Boolean).at(-1)
+  const sessionId = Number(value)
+
+  return Number.isInteger(sessionId) && sessionId > 0 ? sessionId : null
+}
+
+function PhotoMemoryPreview({ photoMemory }: { photoMemory: PhotoMemoryResponse }) {
+  return <img alt={photoMemory.title} src={toPlayableFileUrl(photoMemory.file_path)} />
+}
+
+function InterviewSessionCard({ session }: { session: AIInterviewSessionResponse }) {
+  return (
+    <article className="target-card">
+      <div className="target-card__body">
+        <div className="target-card__title-row">
+          <h2>{session.title ?? `Interview ${session.id}`}</h2>
+          <span>{session.status}</span>
+        </div>
+        <dl>
+          <div>
+            <dt>id</dt>
+            <dd>{session.id}</dd>
+          </div>
+          <div>
+            <dt>session_type</dt>
+            <dd>{session.session_type}</dd>
+          </div>
+          <div>
+            <dt>target_id</dt>
+            <dd>{session.target_id ?? 'null'}</dd>
+          </div>
+          <div>
+            <dt>photo_memory_id</dt>
+            <dd>{session.photo_memory_id ?? 'null'}</dd>
+          </div>
+          <div>
+            <dt>created_at</dt>
+            <dd>{formatDateTime(session.created_at)}</dd>
+          </div>
+        </dl>
+        <div className="target-form__actions">
+          <a href={`/interviews/session?session_id=${session.id}`}>Open session</a>
+          <a href={`/storybooks/create?interview_session_id=${session.id}`}>Use for StoryBook</a>
+        </div>
+      </div>
+    </article>
+  )
+}
+
+function InterviewListApiPage() {
+  const [sessionType, setSessionType] = useState<InterviewType>('SELF_STORY')
+  const [title, setTitle] = useState('')
+  const [targetId, setTargetId] = useState('')
+  const [photoMemoryId, setPhotoMemoryId] = useState('')
+  const [createdSession, setCreatedSession] = useState<AIInterviewSessionResponse | null>(null)
+  const [photoMemories, setPhotoMemories] = useState<PhotoMemoryResponse[]>([])
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isLoadingPhotoMemories, setIsLoadingPhotoMemories] = useState(true)
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const [photoMemoryErrorMessage, setPhotoMemoryErrorMessage] = useState<string | null>(null)
+
+  useEffect(() => {
+    let isMounted = true
+
+    photoMemoryService
+      .listPhotoMemories()
+      .then((response) => {
+        if (isMounted) {
+          setPhotoMemories(response)
+        }
+      })
+      .catch((error: unknown) => {
+        if (isMounted) {
+          setPhotoMemoryErrorMessage(getApiErrorMessage(error))
+        }
+      })
+      .finally(() => {
+        if (isMounted) {
+          setIsLoadingPhotoMemories(false)
+        }
+      })
+
+    return () => {
+      isMounted = false
+    }
+  }, [])
+
+  async function handleCreateSession(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    setIsSubmitting(true)
+    setErrorMessage(null)
+
+    const parsedTargetId = targetId ? Number(targetId) : null
+    const parsedPhotoMemoryId = photoMemoryId ? Number(photoMemoryId) : null
+
+    try {
+      const response = await interviewService.createSession({
+        session_type: sessionType,
+        title: title || null,
+        target_id: Number.isInteger(parsedTargetId) ? parsedTargetId : null,
+        photo_memory_id: Number.isInteger(parsedPhotoMemoryId) ? parsedPhotoMemoryId : null,
+      })
+      setCreatedSession(response)
+    } catch (error) {
+      setErrorMessage(getApiErrorMessage(error))
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  return (
+    <AppShell title="Interviews" subtitle="Creates AI interview sessions with the real backend API." badge="API connected">
+      <main className="domain-page target-api-page">
+        <header className="domain-page__hero">
+          <div>
+            <span className="domain-page__eyebrow">InterviewListPage</span>
+            <h1>Create interview session</h1>
+            <p>OpenAPI exposes create and detail endpoints, but no interview list endpoint.</p>
+          </div>
+          <span className="domain-page__badge domain-page__badge--connected">POST /interviews</span>
+        </header>
+
+        <form className="target-form" onSubmit={handleCreateSession}>
+          <div className="target-form__field">
+            <label htmlFor="interview-session-type">session_type</label>
+            <select id="interview-session-type" onChange={(event) => setSessionType(event.target.value as InterviewType)} value={sessionType}>
+              {interviewTypeOptions.map((option) => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="target-form__field">
+            <label htmlFor="interview-title">title</label>
+            <input id="interview-title" maxLength={255} onChange={(event) => setTitle(event.target.value)} value={title} />
+          </div>
+          <div className="target-form__field">
+            <label htmlFor="interview-target-id">target_id</label>
+            <input id="interview-target-id" inputMode="numeric" onChange={(event) => setTargetId(event.target.value)} type="number" value={targetId} />
+          </div>
+          <div className="target-form__field">
+            <label htmlFor="interview-photo-memory-id">photo_memory_id</label>
+            <input
+              id="interview-photo-memory-id"
+              inputMode="numeric"
+              onChange={(event) => setPhotoMemoryId(event.target.value)}
+              type="number"
+              value={photoMemoryId}
+            />
+          </div>
+
+          {errorMessage && <p className="target-form__error" role="alert">{errorMessage}</p>}
+
+          <div className="target-form__actions">
+            <button disabled={isSubmitting} type="submit">
+              {isSubmitting ? 'Creating...' : 'Create session'}
+            </button>
+          </div>
+        </form>
+
+        {createdSession && <InterviewSessionCard session={createdSession} />}
+
+        <section className="target-api-state">
+          <h2>StoryBook source selection</h2>
+          <p>Select a created interview session or a PhotoMemory as source for later StoryBook creation.</p>
+          {createdSession && <a href={`/storybooks/create?interview_session_id=${createdSession.id}`}>Use created interview session</a>}
+        </section>
+
+        {isLoadingPhotoMemories && <TargetStateMessage title="Loading PhotoMemory sources" message="Fetching available photo memories." />}
+        {photoMemoryErrorMessage && <p className="target-form__error" role="alert">{photoMemoryErrorMessage}</p>}
+        {!isLoadingPhotoMemories && photoMemories.length > 0 && (
+          <section className="target-card-grid" aria-label="PhotoMemory StoryBook sources">
+            {photoMemories.map((photoMemory) => (
+              <article className="target-card" key={photoMemory.id}>
+                <div className="target-card__body">
+                  <div className="target-card__title-row">
+                    <h2>{photoMemory.title}</h2>
+                    <span>PhotoMemory</span>
+                  </div>
+                  <p>{photoMemory.description ?? photoMemory.ai_caption ?? 'No description returned.'}</p>
+                  <a href={`/storybooks/create?photo_memory_id=${photoMemory.id}`}>Use for StoryBook</a>
+                </div>
+              </article>
+            ))}
+          </section>
+        )}
+      </main>
+    </AppShell>
+  )
+}
+
+function InterviewSessionApiPage() {
+  const [initialSessionId] = useState(() => getSessionIdFromLocation())
+  const [sessionIdInput, setSessionIdInput] = useState(() => (initialSessionId ? String(initialSessionId) : ''))
+  const [session, setSession] = useState<AIInterviewSessionDetailResponse | null>(null)
+  const [questionType, setQuestionType] = useState('')
+  const [answerQuestionId, setAnswerQuestionId] = useState('')
+  const [answerText, setAnswerText] = useState('')
+  const [answerAudioPath, setAnswerAudioPath] = useState('')
+  const [isLoading, setIsLoading] = useState(false)
+  const [isCreatingQuestion, setIsCreatingQuestion] = useState(false)
+  const [isSavingAnswer, setIsSavingAnswer] = useState(false)
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const [notice, setNotice] = useState<string | null>(null)
+
+  const loadSession = useCallback(async (sessionId: number) => {
+    setIsLoading(true)
+    setErrorMessage(null)
+    setNotice(null)
+
+    try {
+      const response = await interviewService.getSession(sessionId)
+      setSession(response)
+    } catch (error) {
+      setErrorMessage(getApiErrorMessage(error))
+    } finally {
+      setIsLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!initialSessionId) {
+      return
+    }
+
+    const timerId = window.setTimeout(() => {
+      void loadSession(initialSessionId)
+    }, 0)
+
+    return () => {
+      window.clearTimeout(timerId)
+    }
+  }, [initialSessionId, loadSession])
+
+  function getSessionIdFromInput() {
+    const sessionId = Number(sessionIdInput)
+    return Number.isInteger(sessionId) && sessionId > 0 ? sessionId : null
+  }
+
+  function handleLoad(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    const sessionId = getSessionIdFromInput()
+
+    if (!sessionId) {
+      setErrorMessage('session_id must be a positive integer.')
+      return
+    }
+
+    void loadSession(sessionId)
+  }
+
+  async function handleCreateQuestion() {
+    const sessionId = getSessionIdFromInput()
+
+    if (!sessionId) {
+      setErrorMessage('session_id must be a positive integer.')
+      return
+    }
+
+    setIsCreatingQuestion(true)
+    setErrorMessage(null)
+    setNotice(null)
+
+    try {
+      const question = await interviewService.createQuestion(sessionId, questionType ? { question_type: questionType } : null)
+      setNotice(`Question created: ${question.id}`)
+      await loadSession(sessionId)
+    } catch (error) {
+      setErrorMessage(getApiErrorMessage(error))
+    } finally {
+      setIsCreatingQuestion(false)
+    }
+  }
+
+  async function handleCreateAnswer(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    const sessionId = getSessionIdFromInput()
+    const questionId = Number(answerQuestionId)
+
+    if (!sessionId || !Number.isInteger(questionId) || questionId <= 0) {
+      setErrorMessage('session_id and question_id must be positive integers.')
+      return
+    }
+
+    setIsSavingAnswer(true)
+    setErrorMessage(null)
+    setNotice(null)
+
+    try {
+      const answer = await interviewService.createAnswer(sessionId, {
+        question_id: questionId,
+        answer_text: answerText || null,
+        answer_audio_path: answerAudioPath || null,
+      })
+      setNotice(`Answer saved: ${answer.id}`)
+      await loadSession(sessionId)
+    } catch (error) {
+      setErrorMessage(getApiErrorMessage(error))
+    } finally {
+      setIsSavingAnswer(false)
+    }
+  }
+
+  return (
+    <AppShell title="Interview Session" subtitle="Reads session details and stores questions/answers." badge="API connected">
+      <main className="domain-page target-api-page">
+        <header className="domain-page__hero">
+          <div>
+            <span className="domain-page__eyebrow">InterviewSessionPage</span>
+            <h1>Interview session</h1>
+            <p>Detail response includes questions and non-deleted answers.</p>
+          </div>
+          <span className="domain-page__badge domain-page__badge--connected">GET POST</span>
+        </header>
+
+        <form className="target-form" onSubmit={handleLoad}>
+          <div className="target-form__field">
+            <label htmlFor="interview-session-id">session_id</label>
+            <input
+              id="interview-session-id"
+              inputMode="numeric"
+              onChange={(event) => setSessionIdInput(event.target.value)}
+              required
+              type="number"
+              value={sessionIdInput}
+            />
+          </div>
+          <div className="target-form__actions">
+            <button disabled={isLoading} type="submit">
+              {isLoading ? 'Loading...' : 'Load session'}
+            </button>
+            <button disabled={isCreatingQuestion} onClick={() => void handleCreateQuestion()} type="button">
+              {isCreatingQuestion ? 'Creating question...' : 'Create question'}
+            </button>
+          </div>
+          <div className="target-form__field">
+            <label htmlFor="interview-question-type">question_type</label>
+            <input id="interview-question-type" maxLength={100} onChange={(event) => setQuestionType(event.target.value)} value={questionType} />
+            <p className="target-form__helper">Optional AIInterviewQuestionCreateRequest field.</p>
+          </div>
+        </form>
+
+        <form className="target-form" onSubmit={handleCreateAnswer}>
+          <div className="target-form__field">
+            <label htmlFor="answer-question-id">question_id</label>
+            <input
+              id="answer-question-id"
+              inputMode="numeric"
+              onChange={(event) => setAnswerQuestionId(event.target.value)}
+              required
+              type="number"
+              value={answerQuestionId}
+            />
+          </div>
+          <div className="target-form__field">
+            <label htmlFor="answer-text">answer_text</label>
+            <textarea id="answer-text" onChange={(event) => setAnswerText(event.target.value)} rows={4} value={answerText} />
+          </div>
+          <div className="target-form__field">
+            <label htmlFor="answer-audio-path">answer_audio_path</label>
+            <input id="answer-audio-path" onChange={(event) => setAnswerAudioPath(event.target.value)} value={answerAudioPath} />
+            <p className="target-form__helper">No separate audio upload endpoint is documented for interview answers.</p>
+          </div>
+          <button disabled={isSavingAnswer} type="submit">
+            {isSavingAnswer ? 'Saving...' : 'Save answer'}
+          </button>
+        </form>
+
+        {notice && <p className="target-form__notice">{notice}</p>}
+        {errorMessage && <p className="target-form__error" role="alert">{errorMessage}</p>}
+        {isLoading && <TargetStateMessage title="Loading session" message="Fetching interview session detail." />}
+
+        {session && (
+          <section className="target-detail-card">
+            <div className="target-card__title-row">
+              <h2>{session.title ?? `Interview ${session.id}`}</h2>
+              <span>{session.status}</span>
+            </div>
+            <dl>
+              <div>
+                <dt>session_type</dt>
+                <dd>{session.session_type}</dd>
+              </div>
+              <div>
+                <dt>target_id</dt>
+                <dd>{session.target_id ?? 'null'}</dd>
+              </div>
+              <div>
+                <dt>photo_memory_id</dt>
+                <dd>{session.photo_memory_id ?? 'null'}</dd>
+              </div>
+              <div>
+                <dt>created_at</dt>
+                <dd>{formatDateTime(session.created_at)}</dd>
+              </div>
+            </dl>
+            <a href={`/storybooks/create?interview_session_id=${session.id}`}>Use this session for StoryBook</a>
+          </section>
+        )}
+
+        {session?.questions && (
+          <section className="target-card-grid" aria-label="Interview questions">
+            {session.questions.map((question: AIInterviewQuestionResponse) => (
+              <article className="target-card" key={question.id}>
+                <div className="target-card__body">
+                  <div className="target-card__title-row">
+                    <h2>Question #{question.order_index}</h2>
+                    <span>{question.question_type ?? 'null'}</span>
+                  </div>
+                  <p>{question.question_text}</p>
+                  <button onClick={() => setAnswerQuestionId(String(question.id))} type="button">
+                    Answer this question
+                  </button>
+                  {question.answers?.map((answer) => (
+                    <dl key={answer.id}>
+                      <div>
+                        <dt>answer_id</dt>
+                        <dd>{answer.id}</dd>
+                      </div>
+                      <div>
+                        <dt>answer_text</dt>
+                        <dd>{answer.answer_text ?? 'null'}</dd>
+                      </div>
+                      <div>
+                        <dt>answer_audio_path</dt>
+                        <dd>{answer.answer_audio_path ?? 'null'}</dd>
+                      </div>
+                    </dl>
+                  ))}
+                </div>
+              </article>
+            ))}
+          </section>
+        )}
+      </main>
+    </AppShell>
+  )
+}
+
+function PhotoMemoryListApiPage() {
+  const [photoMemories, setPhotoMemories] = useState<PhotoMemoryResponse[]>([])
+  const [selectedPhotoMemory, setSelectedPhotoMemory] = useState<PhotoMemoryResponse | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const [deletingId, setDeletingId] = useState<number | null>(null)
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const [notice, setNotice] = useState<string | null>(null)
+
+  const loadPhotoMemories = useCallback(async () => {
+    setIsLoading(true)
+    setErrorMessage(null)
+
+    try {
+      const response = await photoMemoryService.listPhotoMemories()
+      setPhotoMemories(response)
+    } catch (error) {
+      setErrorMessage(getApiErrorMessage(error))
+    } finally {
+      setIsLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    const timerId = window.setTimeout(() => {
+      void loadPhotoMemories()
+    }, 0)
+
+    return () => {
+      window.clearTimeout(timerId)
+    }
+  }, [loadPhotoMemories])
+
+  async function handleLoadDetail(photoMemoryId: number) {
+    setErrorMessage(null)
+    setNotice(null)
+
+    try {
+      const response = await photoMemoryService.getPhotoMemory(photoMemoryId)
+      setSelectedPhotoMemory(response)
+    } catch (error) {
+      setErrorMessage(getApiErrorMessage(error))
+    }
+  }
+
+  async function handleDelete(photoMemoryId: number) {
+    setDeletingId(photoMemoryId)
+    setErrorMessage(null)
+    setNotice(null)
+
+    try {
+      const response = await photoMemoryService.deletePhotoMemory(photoMemoryId)
+      setNotice(response.message ?? 'Photo memory deleted successfully')
+      await loadPhotoMemories()
+      if (selectedPhotoMemory?.id === photoMemoryId) {
+        setSelectedPhotoMemory(null)
+      }
+    } catch (error) {
+      setErrorMessage(getApiErrorMessage(error))
+    } finally {
+      setDeletingId(null)
+    }
+  }
+
+  return (
+    <AppShell title="Photo Memories" subtitle="Lists, reads, and deletes PhotoMemory records." badge="API connected">
+      <main className="domain-page target-api-page">
+        <header className="domain-page__hero">
+          <div>
+            <span className="domain-page__eyebrow">PhotoMemoryListPage</span>
+            <h1>Photo memories</h1>
+            <p>PhotoMemory records can be selected as StoryBook source.</p>
+          </div>
+          <span className="domain-page__badge domain-page__badge--connected">GET DELETE</span>
+        </header>
+
+        <div className="target-form__actions">
+          <a href="/photo-memories/upload">Upload PhotoMemory</a>
+          <button disabled={isLoading} onClick={() => void loadPhotoMemories()} type="button">
+            Refresh
+          </button>
+        </div>
+
+        {notice && <p className="target-form__notice">{notice}</p>}
+        {errorMessage && <p className="target-form__error" role="alert">{errorMessage}</p>}
+        {isLoading && <TargetStateMessage title="Loading PhotoMemory" message="Fetching photo memories." />}
+        {!isLoading && photoMemories.length === 0 && <TargetStateMessage title="No PhotoMemory" message="Upload a photo memory to create StoryBooks from photos." />}
+
+        <section className="target-media-grid" aria-label="PhotoMemory list">
+          {photoMemories.map((photoMemory) => (
+            <article className="target-media-card" key={photoMemory.id}>
+              <div className="target-media-card__preview">
+                <PhotoMemoryPreview photoMemory={photoMemory} />
+              </div>
+              <div className="target-media-card__body">
+                <div className="target-card__title-row">
+                  <h2>{photoMemory.title}</h2>
+                  <span>{photoMemory.mime_type}</span>
+                </div>
+                <p>{photoMemory.description ?? photoMemory.ai_caption ?? 'No description returned.'}</p>
+                <dl>
+                  <div>
+                    <dt>id</dt>
+                    <dd>{photoMemory.id}</dd>
+                  </div>
+                  <div>
+                    <dt>file_size</dt>
+                    <dd>{formatFileSize(photoMemory.file_size)}</dd>
+                  </div>
+                  <div>
+                    <dt>taken_at</dt>
+                    <dd>{photoMemory.taken_at ? formatDateTime(photoMemory.taken_at) : 'null'}</dd>
+                  </div>
+                  <div>
+                    <dt>location</dt>
+                    <dd>{photoMemory.location ?? 'null'}</dd>
+                  </div>
+                </dl>
+                <div className="target-form__actions">
+                  <button onClick={() => void handleLoadDetail(photoMemory.id)} type="button">
+                    Load detail
+                  </button>
+                  <a href={`/storybooks/create?photo_memory_id=${photoMemory.id}`}>Use for StoryBook</a>
+                  <button disabled={deletingId === photoMemory.id} onClick={() => void handleDelete(photoMemory.id)} type="button">
+                    {deletingId === photoMemory.id ? 'Deleting...' : 'Delete'}
+                  </button>
+                </div>
+              </div>
+            </article>
+          ))}
+        </section>
+
+        {selectedPhotoMemory && (
+          <section className="target-detail-card">
+            <h2>PhotoMemory detail #{selectedPhotoMemory.id}</h2>
+            <dl>
+              <div>
+                <dt>original_filename</dt>
+                <dd>{selectedPhotoMemory.original_filename}</dd>
+              </div>
+              <div>
+                <dt>stored_filename</dt>
+                <dd>{selectedPhotoMemory.stored_filename}</dd>
+              </div>
+              <div>
+                <dt>file_path</dt>
+                <dd>{selectedPhotoMemory.file_path}</dd>
+              </div>
+              <div>
+                <dt>emotion_keywords</dt>
+                <dd>{selectedPhotoMemory.emotion_keywords?.join(', ') ?? 'null'}</dd>
+              </div>
+              <div>
+                <dt>deleted_at</dt>
+                <dd>{selectedPhotoMemory.deleted_at ? formatDateTime(selectedPhotoMemory.deleted_at) : 'null'}</dd>
+              </div>
+            </dl>
+          </section>
+        )}
+      </main>
+    </AppShell>
+  )
+}
+
+function PhotoMemoryUploadApiPage() {
+  const [title, setTitle] = useState('')
+  const [description, setDescription] = useState('')
+  const [takenAt, setTakenAt] = useState('')
+  const [location, setLocation] = useState('')
+  const [file, setFile] = useState<File | null>(null)
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null)
+  const [createdPhotoMemory, setCreatedPhotoMemory] = useState<PhotoMemoryResponse | null>(null)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
+
+  useEffect(() => {
+    return () => {
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl)
+      }
+    }
+  }, [previewUrl])
+
+  function handleFileChange(nextFile: File | null) {
+    if (previewUrl) {
+      URL.revokeObjectURL(previewUrl)
+    }
+
+    setFile(nextFile)
+    setPreviewUrl(nextFile ? URL.createObjectURL(nextFile) : null)
+  }
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+
+    if (!file) {
+      setErrorMessage('file is required.')
+      return
+    }
+
+    setIsSubmitting(true)
+    setErrorMessage(null)
+
+    try {
+      const response = await photoMemoryService.createPhotoMemory({
+        title,
+        description: description || null,
+        taken_at: takenAt ? new Date(takenAt).toISOString() : null,
+        location: location || null,
+        file,
+      })
+      setCreatedPhotoMemory(response)
+    } catch (error) {
+      setErrorMessage(getApiErrorMessage(error))
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  return (
+    <AppShell title="Upload PhotoMemory" subtitle="Uploads a PhotoMemory with documented multipart fields." badge="API connected">
+      <main className="domain-page target-api-page">
+        <header className="domain-page__hero">
+          <div>
+            <span className="domain-page__eyebrow">PhotoMemoryUploadPage</span>
+            <h1>Upload photo memory</h1>
+            <p>Multipart fields: title, description, taken_at, location, file.</p>
+          </div>
+          <span className="domain-page__badge domain-page__badge--connected">POST /photo-memories</span>
+        </header>
+
+        <form className="target-form" onSubmit={handleSubmit}>
+          <div className="target-form__field">
+            <label htmlFor="photo-memory-title">title</label>
+            <input id="photo-memory-title" onChange={(event) => setTitle(event.target.value)} required value={title} />
+          </div>
+          <div className="target-form__field">
+            <label htmlFor="photo-memory-description">description</label>
+            <textarea id="photo-memory-description" onChange={(event) => setDescription(event.target.value)} rows={4} value={description} />
+          </div>
+          <div className="target-form__field">
+            <label htmlFor="photo-memory-taken-at">taken_at</label>
+            <input id="photo-memory-taken-at" onChange={(event) => setTakenAt(event.target.value)} type="datetime-local" value={takenAt} />
+          </div>
+          <div className="target-form__field">
+            <label htmlFor="photo-memory-location">location</label>
+            <input id="photo-memory-location" onChange={(event) => setLocation(event.target.value)} value={location} />
+          </div>
+          <div className="target-form__field">
+            <label htmlFor="photo-memory-file">file</label>
+            <input accept="image/*" id="photo-memory-file" onChange={(event) => handleFileChange(event.target.files?.[0] ?? null)} required type="file" />
+          </div>
+
+          {previewUrl && (
+            <div className="target-media-local-preview">
+              <img alt={file?.name ?? 'Selected photo memory preview'} src={previewUrl} />
+            </div>
+          )}
+
+          {errorMessage && <p className="target-form__error" role="alert">{errorMessage}</p>}
+
+          <div className="target-form__actions">
+            <a href="/photo-memories">Back to list</a>
+            <button disabled={isSubmitting} type="submit">
+              {isSubmitting ? 'Uploading...' : 'Upload'}
+            </button>
+          </div>
+        </form>
+
+        {createdPhotoMemory && (
+          <section className="target-detail-card">
+            <h2>Uploaded PhotoMemory #{createdPhotoMemory.id}</h2>
+            <p>{createdPhotoMemory.title}</p>
+            <div className="target-form__actions">
+              <a href={`/storybooks/create?photo_memory_id=${createdPhotoMemory.id}`}>Use for StoryBook</a>
+              <a href="/photo-memories">Open list</a>
+            </div>
+          </section>
+        )}
+      </main>
+    </AppShell>
+  )
+}
+
 const voiceStatusLabel: Record<VoiceCallStatus, string> = {
   disconnected: 'disconnected',
   connecting: 'connecting',
@@ -2872,19 +3607,19 @@ export function PersonaVoiceCallPage() {
 }
 
 export function InterviewListPage() {
-  return <MockFeaturePage pageKey="aiInterviewSession" />
+  return <InterviewListApiPage />
 }
 
 export function InterviewSessionPage() {
-  return <MockFeaturePage pageKey="aiInterviewSession" />
+  return <InterviewSessionApiPage />
 }
 
 export function PhotoMemoryListPage() {
-  return <MockFeaturePage pageKey="photoMemory" />
+  return <PhotoMemoryListApiPage />
 }
 
 export function PhotoMemoryUploadPage() {
-  return <MockFeaturePage pageKey="photoMemory" />
+  return <PhotoMemoryUploadApiPage />
 }
 
 export function StorybookListPage() {

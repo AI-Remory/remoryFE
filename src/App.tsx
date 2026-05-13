@@ -18,6 +18,7 @@ import {
   PersonaVoiceProfilePage,
   PhotoMemoryListPage,
   PhotoMemoryUploadPage,
+  PublicSharePage,
   ReportPage,
   StorybookCreatePage,
   StorybookDetailPage,
@@ -102,6 +103,10 @@ function App() {
 
   if (pathname.startsWith('/auth')) {
     return <AuthPage />
+  }
+
+  if (pathname.startsWith('/share/')) {
+    return <PublicSharePage />
   }
 
   if (pathname.startsWith('/onboarding') || pathname.startsWith('/setup')) {

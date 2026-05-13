@@ -13,6 +13,8 @@ import { photoMemoryService } from '../services/photoMemoryService'
 import { targetService } from '../services/targetService'
 import { verificationService } from '../services/verificationService'
 import { voiceProfileService } from '../services/voiceProfileService'
+import { shareLinkService } from '../services/shareLinkService'
+import { storybookService } from '../services/storybookService'
 import type { MockFeaturePageKey } from '../data/mockFeaturePages'
 import type { ChatId, PersonaChatResponse, PersonaMessageResponse, SenderType } from '../types/chat'
 import type { ConsentResponse, ConsentType } from '../types/consent'
@@ -25,6 +27,13 @@ import type {
 import type { MediaType, TargetMediaResponse } from '../types/media'
 import type { PersonaDetailResponse, PersonaStatus, PersonaStatusResponse } from '../types/persona'
 import type { PhotoMemoryResponse } from '../types/photoMemory'
+import type { PublicSharedStoryBookResponse, ShareLinkResponse } from '../types/shareLink'
+import type {
+  StoryBookDetailResponse,
+  StoryBookResponse,
+  StoryBookVisibility,
+  StoryChapterResponse,
+} from '../types/storybook'
 import type { TargetDetailResponse, TargetResponse, TargetType } from '../types/target'
 import type { VerificationRequestResponse, VerificationStatus, VerificationType } from '../types/verification'
 import type { VoiceCallMessage, VoiceCallStatus } from '../types/voice'
@@ -54,6 +63,7 @@ const consentTypeOptions: ConsentType[] = [
 ]
 const verificationTypeOptions: VerificationType[] = ['FAMILY_RELATION_CERTIFICATE', 'ID_CARD', 'SELF_DECLARATION', 'OTHER']
 const interviewTypeOptions: InterviewType[] = ['TARGET_PROFILE', 'PHOTO_MEMORY', 'SELF_STORY']
+const storyBookVisibilityOptions: StoryBookVisibility[] = ['PRIVATE', 'LINK', 'GROUP', 'PUBLIC']
 
 function getApiErrorMessage(error: unknown) {
   if (error instanceof ApiError) {
@@ -3273,6 +3283,625 @@ function PhotoMemoryUploadApiPage() {
   )
 }
 
+function getStorybookIdFromLocation() {
+  const params = new URLSearchParams(window.location.search)
+  const value = params.get('storybook_id') ?? params.get('id') ?? window.location.pathname.split('/').filter(Boolean).at(-1)
+  const storybookId = Number(value)
+
+  return Number.isInteger(storybookId) && storybookId > 0 ? storybookId : null
+}
+
+function getShareTokenFromLocation() {
+  const params = new URLSearchParams(window.location.search)
+  return params.get('token') ?? window.location.pathname.split('/').filter(Boolean).at(-1) ?? ''
+}
+
+function StorybookSummaryCard({ storybook }: { storybook: StoryBookResponse }) {
+  return (
+    <article className="target-card">
+      <div className="target-card__body">
+        <div className="target-card__title-row">
+          <h2>{storybook.title}</h2>
+          <span>{storybook.status}</span>
+        </div>
+        <p>{storybook.summary ?? 'No summary returned.'}</p>
+        <dl>
+          <div>
+            <dt>id</dt>
+            <dd>{storybook.id}</dd>
+          </div>
+          <div>
+            <dt>source_type</dt>
+            <dd>{storybook.source_type}</dd>
+          </div>
+          <div>
+            <dt>visibility</dt>
+            <dd>{storybook.visibility}</dd>
+          </div>
+          <div>
+            <dt>interview_session_id</dt>
+            <dd>{storybook.interview_session_id ?? 'null'}</dd>
+          </div>
+          <div>
+            <dt>photo_memory_id</dt>
+            <dd>{storybook.photo_memory_id ?? 'null'}</dd>
+          </div>
+        </dl>
+        <div className="target-form__actions">
+          <a href={`/storybooks/detail?storybook_id=${storybook.id}`}>Open detail</a>
+          <a href={`/storybooks/share?storybook_id=${storybook.id}`}>Share links</a>
+        </div>
+      </div>
+    </article>
+  )
+}
+
+function StorybookListApiPage() {
+  const [storybooks, setStorybooks] = useState<StoryBookResponse[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
+
+  const loadStorybooks = useCallback(async () => {
+    setIsLoading(true)
+    setErrorMessage(null)
+
+    try {
+      const response = await storybookService.listStorybooks()
+      setStorybooks(response)
+    } catch (error) {
+      setErrorMessage(getApiErrorMessage(error))
+    } finally {
+      setIsLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    const timerId = window.setTimeout(() => {
+      void loadStorybooks()
+    }, 0)
+
+    return () => {
+      window.clearTimeout(timerId)
+    }
+  }, [loadStorybooks])
+
+  return (
+    <AppShell title="StoryBooks" subtitle="Lists backend StoryBook records." badge="API connected">
+      <main className="domain-page target-api-page">
+        <header className="domain-page__hero">
+          <div>
+            <span className="domain-page__eyebrow">StorybookListPage</span>
+            <h1>StoryBooks</h1>
+            <p>GET /storybooks returns the current user&apos;s non-deleted storybooks.</p>
+          </div>
+          <span className="domain-page__badge domain-page__badge--connected">GET /storybooks</span>
+        </header>
+
+        <div className="target-form__actions">
+          <a href="/storybooks/create">Create StoryBook</a>
+          <button disabled={isLoading} onClick={() => void loadStorybooks()} type="button">Refresh</button>
+        </div>
+
+        {errorMessage && <p className="target-form__error" role="alert">{errorMessage}</p>}
+        {isLoading && <TargetStateMessage title="Loading StoryBooks" message="Fetching StoryBook list from the backend." />}
+        {!isLoading && storybooks.length === 0 && <TargetStateMessage title="No StoryBooks" message="Create a StoryBook from an interview session or PhotoMemory source." />}
+
+        <section className="target-card-grid" aria-label="StoryBook list">
+          {storybooks.map((storybook) => (
+            <StorybookSummaryCard key={storybook.id} storybook={storybook} />
+          ))}
+        </section>
+      </main>
+    </AppShell>
+  )
+}
+
+function StorybookCreateApiPage() {
+  const params = new URLSearchParams(window.location.search)
+  const [title, setTitle] = useState('')
+  const [interviewSessionId, setInterviewSessionId] = useState(params.get('interview_session_id') ?? '')
+  const [photoMemoryId, setPhotoMemoryId] = useState(params.get('photo_memory_id') ?? '')
+  const [visibility, setVisibility] = useState<StoryBookVisibility>('PRIVATE')
+  const [createdStorybook, setCreatedStorybook] = useState<StoryBookDetailResponse | null>(null)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
+
+  async function handleCreate(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    setIsSubmitting(true)
+    setErrorMessage(null)
+
+    const parsedInterviewSessionId = interviewSessionId ? Number(interviewSessionId) : null
+    const parsedPhotoMemoryId = photoMemoryId ? Number(photoMemoryId) : null
+
+    try {
+      const response = await storybookService.createStorybook({
+        title,
+        interview_session_id: Number.isInteger(parsedInterviewSessionId) ? parsedInterviewSessionId : null,
+        photo_memory_id: Number.isInteger(parsedPhotoMemoryId) ? parsedPhotoMemoryId : null,
+        visibility,
+      })
+      setCreatedStorybook(response)
+    } catch (error) {
+      setErrorMessage(getApiErrorMessage(error))
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  return (
+    <AppShell title="Create StoryBook" subtitle="Creates StoryBook from documented source ids." badge="API connected">
+      <main className="domain-page target-api-page">
+        <header className="domain-page__hero">
+          <div>
+            <span className="domain-page__eyebrow">StorybookCreatePage</span>
+            <h1>Create StoryBook</h1>
+            <p>Request body follows StoryBookCreateRequest.</p>
+          </div>
+          <span className="domain-page__badge domain-page__badge--connected">POST /storybooks</span>
+        </header>
+
+        <form className="target-form" onSubmit={handleCreate}>
+          <div className="target-form__field">
+            <label htmlFor="storybook-title">title</label>
+            <input id="storybook-title" maxLength={255} minLength={1} onChange={(event) => setTitle(event.target.value)} required value={title} />
+          </div>
+          <div className="target-form__field">
+            <label htmlFor="storybook-interview-session-id">interview_session_id</label>
+            <input id="storybook-interview-session-id" inputMode="numeric" onChange={(event) => setInterviewSessionId(event.target.value)} type="number" value={interviewSessionId} />
+          </div>
+          <div className="target-form__field">
+            <label htmlFor="storybook-photo-memory-id">photo_memory_id</label>
+            <input id="storybook-photo-memory-id" inputMode="numeric" onChange={(event) => setPhotoMemoryId(event.target.value)} type="number" value={photoMemoryId} />
+          </div>
+          <div className="target-form__field">
+            <label htmlFor="storybook-visibility">visibility</label>
+            <select id="storybook-visibility" onChange={(event) => setVisibility(event.target.value as StoryBookVisibility)} value={visibility}>
+              {storyBookVisibilityOptions.map((option) => (
+                <option key={option} value={option}>{option}</option>
+              ))}
+            </select>
+          </div>
+
+          {errorMessage && <p className="target-form__error" role="alert">{errorMessage}</p>}
+          <div className="target-form__actions">
+            <a href="/storybooks">Back to list</a>
+            <button disabled={isSubmitting} type="submit">{isSubmitting ? 'Creating...' : 'Create StoryBook'}</button>
+          </div>
+        </form>
+
+        {createdStorybook && (
+          <section className="target-detail-card">
+            <h2>Created StoryBook #{createdStorybook.id}</h2>
+            <p>{createdStorybook.summary ?? createdStorybook.title}</p>
+            <div className="target-form__actions">
+              <a href={`/storybooks/detail?storybook_id=${createdStorybook.id}`}>Open detail</a>
+              <a href={`/storybooks/share?storybook_id=${createdStorybook.id}`}>Create share link</a>
+            </div>
+          </section>
+        )}
+      </main>
+    </AppShell>
+  )
+}
+
+function StoryChapterList({ chapters }: { chapters: StoryChapterResponse[] }) {
+  return (
+    <section className="target-card-grid" aria-label="Story chapters">
+      {chapters.map((chapter) => (
+        <article className="target-card" key={chapter.id}>
+          <div className="target-card__body">
+            <div className="target-card__title-row">
+              <h2>{chapter.title}</h2>
+              <span>#{chapter.order_index}</span>
+            </div>
+            {chapter.summary && <p>{chapter.summary}</p>}
+            <p>{chapter.content}</p>
+            <dl>
+              <div>
+                <dt>id</dt>
+                <dd>{chapter.id}</dd>
+              </div>
+              <div>
+                <dt>updated_at</dt>
+                <dd>{formatDateTime(chapter.updated_at)}</dd>
+              </div>
+            </dl>
+          </div>
+        </article>
+      ))}
+    </section>
+  )
+}
+
+function StorybookDetailApiPage() {
+  const [initialStorybookId] = useState(() => getStorybookIdFromLocation())
+  const [storybookIdInput, setStorybookIdInput] = useState(() => (initialStorybookId ? String(initialStorybookId) : ''))
+  const [storybook, setStorybook] = useState<StoryBookDetailResponse | null>(null)
+  const [chapters, setChapters] = useState<StoryChapterResponse[]>([])
+  const [isLoading, setIsLoading] = useState(false)
+  const [isRegenerating, setIsRegenerating] = useState(false)
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const [notice, setNotice] = useState<string | null>(null)
+
+  const loadStorybook = useCallback(async (storybookId: number) => {
+    setIsLoading(true)
+    setErrorMessage(null)
+    setNotice(null)
+
+    try {
+      const [detail, chapterList] = await Promise.all([
+        storybookService.getStorybook(storybookId),
+        storybookService.listChapters(storybookId),
+      ])
+      setStorybook(detail)
+      setChapters(chapterList)
+    } catch (error) {
+      setErrorMessage(getApiErrorMessage(error))
+    } finally {
+      setIsLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!initialStorybookId) {
+      return
+    }
+
+    const timerId = window.setTimeout(() => {
+      void loadStorybook(initialStorybookId)
+    }, 0)
+
+    return () => window.clearTimeout(timerId)
+  }, [initialStorybookId, loadStorybook])
+
+  function getStorybookIdFromInput() {
+    const storybookId = Number(storybookIdInput)
+    return Number.isInteger(storybookId) && storybookId > 0 ? storybookId : null
+  }
+
+  function handleLoad(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    const storybookId = getStorybookIdFromInput()
+
+    if (!storybookId) {
+      setErrorMessage('storybook_id must be a positive integer.')
+      return
+    }
+
+    void loadStorybook(storybookId)
+  }
+
+  async function handleRegenerate() {
+    const storybookId = storybook?.id ?? getStorybookIdFromInput()
+
+    if (!storybookId) {
+      setErrorMessage('storybook_id must be a positive integer.')
+      return
+    }
+
+    setIsRegenerating(true)
+    setErrorMessage(null)
+    setNotice(null)
+
+    try {
+      const response = await storybookService.regenerateStorybook(storybookId)
+      setStorybook(response)
+      setChapters(response.chapters ?? (await storybookService.listChapters(storybookId)))
+      setNotice('StoryBook regenerated.')
+    } catch (error) {
+      setErrorMessage(getApiErrorMessage(error))
+    } finally {
+      setIsRegenerating(false)
+    }
+  }
+
+  return (
+    <AppShell title="StoryBook Detail" subtitle="Reads StoryBook detail and chapter list." badge="API connected">
+      <main className="domain-page target-api-page">
+        <header className="domain-page__hero">
+          <div>
+            <span className="domain-page__eyebrow">StorybookDetailPage</span>
+            <h1>StoryBook detail</h1>
+            <p>Renders StoryBookDetailResponse and StoryChapterResponse fields.</p>
+          </div>
+          <span className="domain-page__badge domain-page__badge--connected">GET chapters</span>
+        </header>
+
+        <form className="target-form" onSubmit={handleLoad}>
+          <div className="target-form__field">
+            <label htmlFor="storybook-detail-id">storybook_id</label>
+            <input id="storybook-detail-id" inputMode="numeric" onChange={(event) => setStorybookIdInput(event.target.value)} required type="number" value={storybookIdInput} />
+          </div>
+          <div className="target-form__actions">
+            <button disabled={isLoading} type="submit">{isLoading ? 'Loading...' : 'Load StoryBook'}</button>
+            <button disabled={isRegenerating} onClick={() => void handleRegenerate()} type="button">{isRegenerating ? 'Regenerating...' : 'Regenerate'}</button>
+          </div>
+        </form>
+
+        {notice && <p className="target-form__notice">{notice}</p>}
+        {errorMessage && <p className="target-form__error" role="alert">{errorMessage}</p>}
+        {isLoading && <TargetStateMessage title="Loading StoryBook" message="Fetching StoryBook and chapters." />}
+
+        {storybook && (
+          <section className="target-detail-card">
+            <div className="target-card__title-row">
+              <h2>{storybook.title}</h2>
+              <span>{storybook.status}</span>
+            </div>
+            <p>{storybook.summary ?? 'No summary returned.'}</p>
+            <dl>
+              <div>
+                <dt>source_type</dt>
+                <dd>{storybook.source_type}</dd>
+              </div>
+              <div>
+                <dt>visibility</dt>
+                <dd>{storybook.visibility}</dd>
+              </div>
+              <div>
+                <dt>created_at</dt>
+                <dd>{formatDateTime(storybook.created_at)}</dd>
+              </div>
+            </dl>
+            <div className="target-form__actions">
+              <a href={`/storybooks/share?storybook_id=${storybook.id}`}>Share links</a>
+            </div>
+          </section>
+        )}
+
+        <StoryChapterList chapters={chapters} />
+      </main>
+    </AppShell>
+  )
+}
+
+function StorybookShareApiPage() {
+  const [initialStorybookId] = useState(() => getStorybookIdFromLocation())
+  const [storybookIdInput, setStorybookIdInput] = useState(() => (initialStorybookId ? String(initialStorybookId) : ''))
+  const [expiresAt, setExpiresAt] = useState('')
+  const [shareLinks, setShareLinks] = useState<ShareLinkResponse[]>([])
+  const [isLoading, setIsLoading] = useState(false)
+  const [isCreating, setIsCreating] = useState(false)
+  const [disablingId, setDisablingId] = useState<number | null>(null)
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const [notice, setNotice] = useState<string | null>(null)
+
+  const loadShareLinks = useCallback(async (storybookId: number) => {
+    setIsLoading(true)
+    setErrorMessage(null)
+
+    try {
+      const response = await shareLinkService.listShareLinks(storybookId)
+      setShareLinks(response)
+    } catch (error) {
+      setErrorMessage(getApiErrorMessage(error))
+    } finally {
+      setIsLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!initialStorybookId) {
+      return
+    }
+
+    const timerId = window.setTimeout(() => {
+      void loadShareLinks(initialStorybookId)
+    }, 0)
+
+    return () => window.clearTimeout(timerId)
+  }, [initialStorybookId, loadShareLinks])
+
+  function getStorybookIdFromShareInput() {
+    const storybookId = Number(storybookIdInput)
+    return Number.isInteger(storybookId) && storybookId > 0 ? storybookId : null
+  }
+
+  function handleLoad(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    const storybookId = getStorybookIdFromShareInput()
+
+    if (!storybookId) {
+      setErrorMessage('storybook_id must be a positive integer.')
+      return
+    }
+
+    void loadShareLinks(storybookId)
+  }
+
+  async function handleCreateShareLink() {
+    const storybookId = getStorybookIdFromShareInput()
+
+    if (!storybookId) {
+      setErrorMessage('storybook_id must be a positive integer.')
+      return
+    }
+
+    setIsCreating(true)
+    setErrorMessage(null)
+    setNotice(null)
+
+    try {
+      await shareLinkService.createShareLink(storybookId, expiresAt ? { expires_at: new Date(expiresAt).toISOString() } : null)
+      setNotice('Share link created.')
+      await loadShareLinks(storybookId)
+    } catch (error) {
+      setErrorMessage(getApiErrorMessage(error))
+    } finally {
+      setIsCreating(false)
+    }
+  }
+
+  async function handleDisableShareLink(shareLinkId: number) {
+    const storybookId = getStorybookIdFromShareInput()
+    setDisablingId(shareLinkId)
+    setErrorMessage(null)
+    setNotice(null)
+
+    try {
+      await shareLinkService.disableShareLink(shareLinkId)
+      setNotice('Share link disabled.')
+      if (storybookId) {
+        await loadShareLinks(storybookId)
+      }
+    } catch (error) {
+      setErrorMessage(getApiErrorMessage(error))
+    } finally {
+      setDisablingId(null)
+    }
+  }
+
+  return (
+    <AppShell title="StoryBook Share" subtitle="Creates and manages StoryBook share links." badge="API connected">
+      <main className="domain-page target-api-page">
+        <header className="domain-page__hero">
+          <div>
+            <span className="domain-page__eyebrow">StorybookSharePage</span>
+            <h1>Share links</h1>
+            <p>Create, list, and disable ShareLink records for a StoryBook.</p>
+          </div>
+          <span className="domain-page__badge domain-page__badge--connected">ShareLink</span>
+        </header>
+
+        <form className="target-form" onSubmit={handleLoad}>
+          <div className="target-form__field">
+            <label htmlFor="share-storybook-id">storybook_id</label>
+            <input id="share-storybook-id" inputMode="numeric" onChange={(event) => setStorybookIdInput(event.target.value)} required type="number" value={storybookIdInput} />
+          </div>
+          <div className="target-form__field">
+            <label htmlFor="share-expires-at">expires_at</label>
+            <input id="share-expires-at" onChange={(event) => setExpiresAt(event.target.value)} type="datetime-local" value={expiresAt} />
+          </div>
+          <div className="target-form__actions">
+            <button disabled={isLoading} type="submit">{isLoading ? 'Loading...' : 'Load share links'}</button>
+            <button disabled={isCreating} onClick={() => void handleCreateShareLink()} type="button">{isCreating ? 'Creating...' : 'Create share link'}</button>
+          </div>
+        </form>
+
+        {notice && <p className="target-form__notice">{notice}</p>}
+        {errorMessage && <p className="target-form__error" role="alert">{errorMessage}</p>}
+
+        <section className="target-card-grid" aria-label="Share links">
+          {shareLinks.map((shareLink) => (
+            <article className="target-card" key={shareLink.id}>
+              <div className="target-card__body">
+                <div className="target-card__title-row">
+                  <h2>{shareLink.token}</h2>
+                  <span>{shareLink.is_active ? 'ACTIVE' : 'DISABLED'}</span>
+                </div>
+                <dl>
+                  <div>
+                    <dt>share_url</dt>
+                    <dd>{shareLink.share_url}</dd>
+                  </div>
+                  <div>
+                    <dt>expires_at</dt>
+                    <dd>{shareLink.expires_at ? formatDateTime(shareLink.expires_at) : 'null'}</dd>
+                  </div>
+                  <div>
+                    <dt>disabled_at</dt>
+                    <dd>{shareLink.disabled_at ? formatDateTime(shareLink.disabled_at) : 'null'}</dd>
+                  </div>
+                </dl>
+                <div className="target-form__actions">
+                  <a href={`/share/${shareLink.token}`}>Open public page</a>
+                  <button disabled={!shareLink.is_active || disablingId === shareLink.id} onClick={() => void handleDisableShareLink(shareLink.id)} type="button">
+                    {disablingId === shareLink.id ? 'Disabling...' : 'Disable'}
+                  </button>
+                </div>
+              </div>
+            </article>
+          ))}
+        </section>
+      </main>
+    </AppShell>
+  )
+}
+
+function PublicShareApiPage() {
+  const [token] = useState(() => getShareTokenFromLocation())
+  const [sharedStorybook, setSharedStorybook] = useState<PublicSharedStoryBookResponse | null>(null)
+  const [isLoading, setIsLoading] = useState(Boolean(token))
+  const [errorMessage, setErrorMessage] = useState<string | null>(() => (token ? null : 'share token is required.'))
+
+  useEffect(() => {
+    if (!token) {
+      return
+    }
+
+    let isMounted = true
+
+    shareLinkService
+      .getPublicSharedStorybook(token)
+      .then((response) => {
+        if (isMounted) {
+          setSharedStorybook(response)
+        }
+      })
+      .catch((error: unknown) => {
+        if (isMounted) {
+          setErrorMessage(getApiErrorMessage(error))
+        }
+      })
+      .finally(() => {
+        if (isMounted) {
+          setIsLoading(false)
+        }
+      })
+
+    return () => {
+      isMounted = false
+    }
+  }, [token])
+
+  return (
+    <main className="domain-page target-api-page">
+      <header className="domain-page__hero">
+        <div>
+          <span className="domain-page__eyebrow">Public Share</span>
+          <h1>{sharedStorybook?.title ?? 'Shared StoryBook'}</h1>
+          <p>{sharedStorybook?.summary ?? 'Public shared StoryBook token page.'}</p>
+        </div>
+        <span className="domain-page__badge domain-page__badge--connected">No auth</span>
+      </header>
+
+      {isLoading && <TargetStateMessage title="Loading shared StoryBook" message="Fetching public StoryBook by share token." />}
+      {errorMessage && <p className="target-form__error" role="alert">{errorMessage}</p>}
+
+      {sharedStorybook && (
+        <>
+          <section className="target-detail-card">
+            <h2>{sharedStorybook.title}</h2>
+            <p>{sharedStorybook.summary ?? 'No summary returned.'}</p>
+            <dl>
+              <div>
+                <dt>visibility</dt>
+                <dd>{sharedStorybook.visibility}</dd>
+              </div>
+            </dl>
+          </section>
+
+          <section className="target-card-grid" aria-label="Public story chapters">
+            {sharedStorybook.chapters.map((chapter) => (
+              <article className="target-card" key={`${chapter.order_index}-${chapter.title}`}>
+                <div className="target-card__body">
+                  <div className="target-card__title-row">
+                    <h2>{chapter.title}</h2>
+                    <span>#{chapter.order_index}</span>
+                  </div>
+                  {chapter.summary && <p>{chapter.summary}</p>}
+                  <p>{chapter.content}</p>
+                </div>
+              </article>
+            ))}
+          </section>
+        </>
+      )}
+    </main>
+  )
+}
+
 const voiceStatusLabel: Record<VoiceCallStatus, string> = {
   disconnected: 'disconnected',
   connecting: 'connecting',
@@ -3623,19 +4252,23 @@ export function PhotoMemoryUploadPage() {
 }
 
 export function StorybookListPage() {
-  return <MockFeaturePage pageKey="storybook" />
+  return <StorybookListApiPage />
 }
 
 export function StorybookDetailPage() {
-  return <MockFeaturePage pageKey="storybook" />
+  return <StorybookDetailApiPage />
 }
 
 export function StorybookCreatePage() {
-  return <MockFeaturePage pageKey="storybookCreate" />
+  return <StorybookCreateApiPage />
 }
 
 export function StorybookSharePage() {
-  return <MockFeaturePage pageKey="shareLink" />
+  return <StorybookShareApiPage />
+}
+
+export function PublicSharePage() {
+  return <PublicShareApiPage />
 }
 
 export function MemoryGroupListPage() {

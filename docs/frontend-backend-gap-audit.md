@@ -161,3 +161,21 @@ Notes:
 - PhotoMemory uses `GET /photo-memories`, `POST /photo-memories`, `GET /photo-memories/{photo_memory_id}`, and `DELETE /photo-memories/{photo_memory_id}`.
 - PhotoMemory upload uses only the documented multipart field names: `title`, `description`, `taken_at`, `location`, and `file`.
 - No separate interview answer audio upload endpoint is documented; the UI only sends documented `answer_audio_path` when supplied.
+
+## StoryBook ShareLink Connection Update
+
+Updated on 2026-05-14.
+
+| Feature | Previous status | Current status | Frontend files | Action |
+| --- | --- | --- | --- | --- |
+| StoryBook | `partially-connected` | `fully-connected` | `src/types/storybook.ts`, `src/services/storybookService.ts`, `StorybookListPage`, `StorybookCreatePage`, `StorybookDetailPage` in `src/pages/DomainPages.tsx` | `keep` |
+| StoryChapter | `partially-connected` | `fully-connected` | `StoryChapterResponse` in `src/types/storybook.ts`, chapter list rendering in `StorybookDetailPage` | `keep` |
+| ShareLink | `mock-only` | `fully-connected` | `src/types/shareLink.ts`, `src/services/shareLinkService.ts`, `StorybookSharePage`, `PublicSharePage` in `src/pages/DomainPages.tsx` | `keep` |
+| Public share route | `missing` | `fully-connected` | `/share/{token}` route in `src/App.tsx`, public API call with `auth: false` | `keep` |
+
+Notes:
+- StoryBook now uses `GET /storybooks`, `POST /storybooks`, `GET /storybooks/{storybook_id}`, `GET /storybooks/{storybook_id}/chapters`, and `POST /storybooks/{storybook_id}/regenerate`.
+- StoryBook visibility enum is limited to `PRIVATE`, `LINK`, `GROUP`, `PUBLIC`.
+- StoryBook source_type enum is limited to `INTERVIEW`, `PHOTO_MEMORY`, `SELF_STORY`.
+- ShareLink now uses `POST /storybooks/{storybook_id}/share-links`, `GET /storybooks/{storybook_id}/share-links`, public `GET /share/{token}`, and `PATCH /share-links/{share_link_id}/disable`.
+- `src/services/storybookApi.ts` remains only as a compatibility wrapper over `storybookService`; legacy `StorybookPage` and `/storybook` route remain removed.

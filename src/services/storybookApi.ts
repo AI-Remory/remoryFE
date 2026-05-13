@@ -1,27 +1,29 @@
-import { apiClient } from './apiClient'
-import type { ApiId, StoryBook, StoryBookDetail, StoryChapter } from '../types/api'
-
-type CreateStorybookPayload = {
-  title: string
-  interview_session_id?: ApiId | null
-  photo_memory_id?: ApiId | null
-  visibility?: 'PRIVATE' | 'LINK' | 'GROUP' | 'PUBLIC'
-}
+import { storybookService } from './storybookService'
+import type {
+  StoryBookCreateRequest,
+  StoryBookDetailResponse,
+  StoryBookResponse,
+  StoryChapterResponse,
+} from '../types/storybook'
 
 export const storybookApi = {
   listStorybooks() {
-    return apiClient.get<StoryBook[]>('/storybooks')
+    return storybookService.listStorybooks()
   },
 
-  getStorybook(storybookId: ApiId) {
-    return apiClient.get<StoryBookDetail>(`/storybooks/${storybookId}`)
+  getStorybook(storybookId: number) {
+    return storybookService.getStorybook(storybookId)
   },
 
-  listChapters(storybookId: ApiId) {
-    return apiClient.get<StoryChapter[]>(`/storybooks/${storybookId}/chapters`)
+  listChapters(storybookId: number) {
+    return storybookService.listChapters(storybookId)
   },
 
-  createStorybook(payload: CreateStorybookPayload) {
-    return apiClient.post<StoryBook>('/storybooks', payload)
+  createStorybook(payload: StoryBookCreateRequest) {
+    return storybookService.createStorybook(payload)
   },
 }
+
+export type StoryBook = StoryBookResponse
+export type StoryBookDetail = StoryBookDetailResponse
+export type StoryChapter = StoryChapterResponse

@@ -402,6 +402,19 @@
   padding: 18px;
 }
 
+.target-selector-card {
+  appearance: none;
+  cursor: pointer;
+  display: block;
+  text-align: left;
+  width: 100%;
+}
+
+.target-selector-card--selected {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.16);
+}
+
 .target-card__avatar {
   display: grid;
   width: 76px;

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
 import { AppShell } from '../components/layout/AppShell'
+import { MemoryGroupSelector, StorybookSelector, TargetSelector } from '../components/selectors/EntitySelectors'
 import { useVoiceCall } from '../hooks/useVoiceCall'
 import { adminService } from '../services/adminService'
 import { ApiError } from '../services/apiClient'
@@ -1042,6 +1043,8 @@ function TargetMediaApiPage() {
     }
   }
 
+  void handleTargetSubmit
+
   return (
     <AppShell title="기억 대상 미디어" subtitle="실제 multipart 서비스로 대상 미디어를 업로드하고 조회합니다." badge="서비스 연결됨">
       <main className="domain-page target-api-page">
@@ -1054,24 +1057,15 @@ function TargetMediaApiPage() {
           <span className="domain-page__badge domain-page__badge--connected"></span>
         </header>
 
-        <form className="target-form target-media-target-form" onSubmit={handleTargetSubmit}>
-          <div className="target-form__field">
-            <label htmlFor="media-target-id">대상</label>
-            <input
-              id="media-target-id"
-              inputMode="numeric"
-              onChange={(event) => setTargetIdInput(event.target.value)}
-              required
-              type="number"
-              value={targetIdInput}
-            />
-            <p className="target-form__helper">대상을 선택해 주세요.</p>
-          </div>
-          <div className="target-form__actions">
-            <a href="">기억 대상 목록 열기</a>
-            <button type="submit">미디어 불러오기</button>
-          </div>
-        </form>
+        <TargetSelector
+          selectedId={activeTargetId}
+          title="???? ??? ??? ??? ???"
+          onSelect={(target) => {
+            setTargetIdInput(String(target.id))
+            setActiveTargetId(target.id)
+            void loadMedia(target.id)
+          }}
+        />
 
         {activeTargetId && (
           <section className="target-media-upload-grid" aria-label="미디어 업로드">
@@ -1222,7 +1216,7 @@ function PersonaDetailCard({
           </div>
           <div>
             <dt>대상</dt>
-            <dd>{persona.target_id}</dd>
+            <dd>???</dd>
           </div>
           <div>
             <dt>persona_name</dt>
@@ -1425,6 +1419,8 @@ function ConsentApiPage() {
     }
   }
 
+  void handleSelectTarget
+
   return (
     <AppShell title="동의" subtitle="ConsentLog 서비스에 연결된 화면입니다." badge="서비스 연결됨">
       <main className="domain-page target-api-page">
@@ -1437,25 +1433,14 @@ function ConsentApiPage() {
           <span className="domain-page__badge domain-page__badge--connected"></span>
         </header>
 
-        <form className="target-form" onSubmit={handleSelectTarget}>
-          <div className="target-form__field">
-            <label htmlFor="consent-target-id">대상</label>
-            <input
-              id="consent-target-id"
-              inputMode="numeric"
-              onChange={(event) => setTargetIdInput(event.target.value)}
-              required
-              type="number"
-              value={targetIdInput}
-            />
-            <p className="target-form__helper">대상</p>
-          </div>
-          <div className="target-form__actions">
-            <button disabled={isLoading} type="submit">
-              {isLoading ? '불러오는 중...' : '동의 불러오기'}
-            </button>
-          </div>
-        </form>
+        <TargetSelector
+          selectedId={activeTargetId}
+          title="?? ??? ??? ??? ??? ???"
+          onSelect={(target) => {
+            setTargetIdInput(String(target.id))
+            void loadConsents(target.id)
+          }}
+        />
 
         <form className="target-form" onSubmit={handleCreateConsent}>
           <div className="target-form__field">
@@ -1671,6 +1656,8 @@ function TargetVerificationApiPage() {
     }
   }
 
+  void handleSelectTarget
+
   return (
     <AppShell title="관계 입증" subtitle="관계 입증 기록을 확인하고 처리합니다." badge="서비스 연결됨">
       <main className="domain-page target-api-page">
@@ -1683,25 +1670,14 @@ function TargetVerificationApiPage() {
           <span className="domain-page__badge domain-page__badge--connected">multipart</span>
         </header>
 
-        <form className="target-form" onSubmit={handleSelectTarget}>
-          <div className="target-form__field">
-            <label htmlFor="verification-target-id">대상</label>
-            <input
-              id="verification-target-id"
-              inputMode="numeric"
-              onChange={(event) => setTargetIdInput(event.target.value)}
-              required
-              type="number"
-              value={targetIdInput}
-            />
-            <p className="target-form__helper">대상</p>
-          </div>
-          <div className="target-form__actions">
-            <button disabled={isLoading} type="submit">
-              {isLoading ? '불러오는 중...' : '요청 불러오기'}
-            </button>
-          </div>
-        </form>
+        <TargetSelector
+          selectedId={activeTargetId}
+          title="?? ??? ??? ??? ??? ???"
+          onSelect={(target) => {
+            setTargetIdInput(String(target.id))
+            void loadRequests(target.id)
+          }}
+        />
 
         <form className="target-form" onSubmit={handleSubmitVerification}>
           <div className="target-form__field">
@@ -1866,26 +1842,18 @@ function PersonaListApiPage() {
           <span className="domain-page__badge domain-page__badge--connected">대상</span>
         </header>
 
-        <form className="target-form target-media-target-form" onSubmit={handleCreatePersona}>
-          <div className="target-form__field">
-            <label htmlFor="persona-target-id">대상</label>
-            <input
-              id="persona-target-id"
-              inputMode="numeric"
-              onChange={(event) => setTargetIdInput(event.target.value)}
-              required
-              type="number"
-              value={targetIdInput}
-            />
-            <p className="target-form__helper">The backend validates verification, consent, media, and ownership conditions.</p>
-          </div>
-          <div className="target-form__actions">
-            <a href="">기억 대상 열기</a>
-            <button disabled={isCreating} type="submit">
-              {isCreating ? '생성 중...' : '페르소나 만들기'}
-            </button>
-          </div>
-        </form>
+        <TargetSelector
+          selectedId={Number(targetIdInput) || null}
+          title="??? ????? ?????"
+          onSelect={(target) => setTargetIdInput(String(target.id))}
+        />
+
+        <div className="target-form__actions">
+          <a href="/targets">?? ?? ??</a>
+          <button disabled={isCreating || !targetIdInput} onClick={(event) => void handleCreatePersona(event as unknown as FormEvent<HTMLFormElement>)} type="button">
+            {isCreating ? '?? ?...' : '???? ???'}
+          </button>
+        </div>
 
         {errorMessage && (
           <p className="target-form__error" role="alert">
@@ -2032,7 +2000,7 @@ function ChatMessageBubble({ message }: { message: PersonaMessageResponse }) {
 function PersonaChatApiPage() {
   const [initialPersonaId] = useState(() => getPersonaIdFromLocation())
   const [initialChatId] = useState(() => getChatIdFromLocation())
-  const [personaIdInput, setPersonaIdInput] = useState(() => (initialPersonaId ? String(initialPersonaId) : ''))
+  const [personaIdInput] = useState(() => (initialPersonaId ? String(initialPersonaId) : ''))
   const [activePersonaId, setActivePersonaId] = useState<number | null>(null)
   const [chats, setChats] = useState<PersonaChatResponse[]>([])
   const [activeChatId, setActiveChatId] = useState<ChatId | null>(initialChatId)
@@ -2184,6 +2152,8 @@ function PersonaChatApiPage() {
     void sendTextMessage(content)
   }
 
+  void handlePersonaSubmit
+
   return (
     <AppShell title="페르소나 채팅" subtitle="백엔드 서비스로 채팅방을 만들고 페르소나 메시지를 전송합니다." badge="서비스 연결됨">
       <main className="domain-page target-api-page persona-chat-page">
@@ -2196,26 +2166,13 @@ function PersonaChatApiPage() {
           <span className="domain-page__badge domain-page__badge--connected">채팅 서비스</span>
         </header>
 
-        <form className="target-form target-media-target-form" onSubmit={handlePersonaSubmit}>
-          <div className="target-form__field">
-            <label htmlFor="chat-persona-id">페르소나</label>
-            <input
-              id="chat-persona-id"
-              inputMode="numeric"
-              onChange={(event) => setPersonaIdInput(event.target.value)}
-              required
-              type="number"
-              value={personaIdInput}
-            />
-            <p className="target-form__helper">페르소나를 선택해 주세요.</p>
-          </div>
-          <div className="target-form__actions">
-            <a href="">페르소나 만들기</a>
-            <button disabled={isLoadingChats} type="submit">
-              {isLoadingChats ? '불러오는 중...' : '채팅방 불러오기'}
-            </button>
-          </div>
-        </form>
+        {!activePersonaId && (
+          <TargetStateMessage
+            action={{ href: '/personas', label: '???? ???' }}
+            title="??? ????? ??? ???"
+            message="???? ?? ???? ??? ?? ???? ??? ? ????."
+          />
+        )}
 
         {errorMessage && (
           <p className="target-form__error" role="alert">
@@ -2340,11 +2297,11 @@ function VoiceProfileDetailCard({ profile }: { profile: PersonaVoiceProfileRespo
       <dl>
         <div>
           <dt>페르소나</dt>
-          <dd>{profile.persona_id}</dd>
+          <dd>???</dd>
         </div>
         <div>
           <dt>대상</dt>
-          <dd>{profile.target_id ?? 'null'}</dd>
+          <dd>???</dd>
         </div>
         <div>
           <dt>review_status</dt>
@@ -2569,6 +2526,13 @@ function PersonaVoiceProfileApiPage() {
 
   const canEnterVoiceCall = isVoiceProfileReadyForCall(profile)
 
+  void setPersonaIdInput
+  void isCreating
+  void isEvaluating
+  void handleLoad
+  void handleCreate
+  void handleEvaluate
+
   return (
     <AppShell title="페르소나 음성 프로필" subtitle="PersonaVoiceProfile 서비스에 연결된 화면입니다." badge="서비스 연결됨">
       <main className="domain-page target-api-page">
@@ -2580,32 +2544,6 @@ function PersonaVoiceProfileApiPage() {
           </div>
           <span className="domain-page__badge domain-page__badge--connected"></span>
         </header>
-
-        <form className="target-form" onSubmit={handleLoad}>
-          <div className="target-form__field">
-            <label htmlFor="voice-profile-persona-id">페르소나</label>
-            <input
-              id="voice-profile-persona-id"
-              inputMode="numeric"
-              onChange={(event) => setPersonaIdInput(event.target.value)}
-              required
-              type="number"
-              value={personaIdInput}
-            />
-            <p className="target-form__helper">페르소나를 선택해 주세요.</p>
-          </div>
-          <div className="target-form__actions">
-            <button disabled={isLoading} type="submit">
-              {isLoading ? '불러오는 중...' : '프로필 불러오기'}
-            </button>
-            <button disabled={isCreating} onClick={() => void handleCreate()} type="button">
-              {isCreating ? '생성 중...' : '프로필 생성'}
-            </button>
-            <button disabled={isEvaluating} onClick={() => void handleEvaluate()} type="button">
-              {isEvaluating ? 'Evaluating...' : 'Evaluate'}
-            </button>
-          </div>
-        </form>
 
         <form className="target-form" onSubmit={handleConfirm}>
           <div className="target-form__field">
@@ -2677,7 +2615,7 @@ function InterviewSessionCard({ session }: { session: AIInterviewSessionResponse
           </div>
           <div>
             <dt>대상</dt>
-            <dd>{session.target_id ?? 'null'}</dd>
+            <dd>???</dd>
           </div>
           <div>
             <dt>photo_memory_id</dt>
@@ -2785,10 +2723,11 @@ function InterviewListApiPage() {
             <label htmlFor="interview-title">제목</label>
             <input id="interview-title" maxLength={255} onChange={(event) => setTitle(event.target.value)} value={title} />
           </div>
-          <div className="target-form__field">
-            <label htmlFor="interview-target-id">대상</label>
-            <input id="interview-target-id" inputMode="numeric" onChange={(event) => setTargetId(event.target.value)} type="number" value={targetId} />
-          </div>
+          <TargetSelector
+            selectedId={Number(targetId) || null}
+            title="???? ??? ??? ???"
+            onSelect={(target) => setTargetId(String(target.id))}
+          />
           <div className="target-form__field">
             <label htmlFor="interview-photo-memory-id">photo_memory_id</label>
             <input
@@ -2952,6 +2891,12 @@ function InterviewSessionApiPage() {
     }
   }
 
+  void setSessionIdInput
+  void setQuestionType
+  void isCreatingQuestion
+  void handleLoad
+  void handleCreateQuestion
+
   return (
     <AppShell title="인터뷰 세션" subtitle="세션 상세를 조회하고 질문 저장합니다." badge="서비스 연결됨">
       <main className="domain-page target-api-page">
@@ -2963,33 +2908,6 @@ function InterviewSessionApiPage() {
           </div>
           <span className="domain-page__badge domain-page__badge--connected"></span>
         </header>
-
-        <form className="target-form" onSubmit={handleLoad}>
-          <div className="target-form__field">
-            <label htmlFor="interview-session-id">session_id</label>
-            <input
-              id="interview-session-id"
-              inputMode="numeric"
-              onChange={(event) => setSessionIdInput(event.target.value)}
-              required
-              type="number"
-              value={sessionIdInput}
-            />
-          </div>
-          <div className="target-form__actions">
-            <button disabled={isLoading} type="submit">
-              {isLoading ? '불러오는 중...' : '세션 불러오기'}
-            </button>
-            <button disabled={isCreatingQuestion} onClick={() => void handleCreateQuestion()} type="button">
-              {isCreatingQuestion ? '질문 생성 중...' : '질문 생성'}
-            </button>
-          </div>
-          <div className="target-form__field">
-            <label htmlFor="interview-question-type">question_type</label>
-            <input id="interview-question-type" maxLength={100} onChange={(event) => setQuestionType(event.target.value)} value={questionType} />
-            <p className="target-form__helper">Optional AIInterviewQuestionCreateRequest field.</p>
-          </div>
-        </form>
 
         <form className="target-form" onSubmit={handleCreateAnswer}>
           <div className="target-form__field">
@@ -3034,7 +2952,7 @@ function InterviewSessionApiPage() {
               </div>
               <div>
                 <dt>대상</dt>
-                <dd>{session.target_id ?? 'null'}</dd>
+                <dd>???</dd>
               </div>
               <div>
                 <dt>photo_memory_id</dt>
@@ -3689,6 +3607,8 @@ function StorybookDetailApiPage() {
     }
   }
 
+  void handleLoad
+
   return (
     <AppShell title="스토리북 상세" subtitle="StoryBook 상세와 챕터 목록을 조회합니다." badge="서비스 연결됨">
       <main className="domain-page target-api-page">
@@ -3701,16 +3621,17 @@ function StorybookDetailApiPage() {
           <span className="domain-page__badge domain-page__badge--connected">chapters</span>
         </header>
 
-        <form className="target-form" onSubmit={handleLoad}>
-          <div className="target-form__field">
-            <label htmlFor="storybook-detail-id">storybook_id</label>
-            <input id="storybook-detail-id" inputMode="numeric" onChange={(event) => setStorybookIdInput(event.target.value)} required type="number" value={storybookIdInput} />
-          </div>
-          <div className="target-form__actions">
-            <button disabled={isLoading} type="submit">{isLoading ? 'Loading...' : '스토리북 불러오기'}</button>
-            <button disabled={isRegenerating} onClick={() => void handleRegenerate()} type="button">{isRegenerating ? '재생성 중...' : '재생성'}</button>
-          </div>
-        </form>
+        <StorybookSelector
+          selectedId={Number(storybookIdInput) || null}
+          title="??? ????? ??? ???"
+          onSelect={(selectedStorybook) => {
+            setStorybookIdInput(String(selectedStorybook.id))
+            void loadStorybook(selectedStorybook.id)
+          }}
+        />
+        <div className="target-form__actions">
+          <button disabled={!storybook || isRegenerating} onClick={() => void handleRegenerate()} type="button">{isRegenerating ? '??? ?...' : '?? ??'}</button>
+        </div>
 
         {notice && <p className="target-form__notice">{notice}</p>}
         {errorMessage && <p className="target-form__error" role="alert">{errorMessage}</p>}
@@ -3845,6 +3766,9 @@ function StorybookShareApiPage() {
     }
   }
 
+  void isLoading
+  void handleLoad
+
   return (
     <AppShell title="스토리북 공유" subtitle="스토리북 공유 링크를 생성하고 관리합니다." badge="서비스 연결됨">
       <main className="domain-page target-api-page">
@@ -3857,18 +3781,21 @@ function StorybookShareApiPage() {
           <span className="domain-page__badge domain-page__badge--connected">ShareLink</span>
         </header>
 
-        <form className="target-form" onSubmit={handleLoad}>
+        <StorybookSelector
+          selectedId={Number(storybookIdInput) || null}
+          title="??? ????? ??? ???"
+          onSelect={(selectedStorybook) => {
+            setStorybookIdInput(String(selectedStorybook.id))
+            void loadShareLinks(selectedStorybook.id)
+          }}
+        />
+        <form className="target-form" onSubmit={(event) => { event.preventDefault(); void handleCreateShareLink() }}>
           <div className="target-form__field">
-            <label htmlFor="share-storybook-id">storybook_id</label>
-            <input id="share-storybook-id" inputMode="numeric" onChange={(event) => setStorybookIdInput(event.target.value)} required type="number" value={storybookIdInput} />
-          </div>
-          <div className="target-form__field">
-            <label htmlFor="share-expires-at">expires_at</label>
+            <label htmlFor="share-expires-at">???</label>
             <input id="share-expires-at" onChange={(event) => setExpiresAt(event.target.value)} type="datetime-local" value={expiresAt} />
           </div>
           <div className="target-form__actions">
-            <button disabled={isLoading} type="submit">{isLoading ? 'Loading...' : '공유 링크 불러오기'}</button>
-            <button disabled={isCreating} onClick={() => void handleCreateShareLink()} type="button">{isCreating ? '생성 중...' : '공유 링크 생성'}</button>
+            <button disabled={!storybookIdInput || isCreating} type="submit">{isCreating ? '?? ?...' : '?? ?? ??'}</button>
           </div>
         </form>
 
@@ -4256,6 +4183,8 @@ function MemoryGroupDetailApiPage() {
     }
   }
 
+  void handleLoadGroup
+
   return (
     <AppShell title="기억 그룹 상세" subtitle="그룹 상세, 멤버, 공유된 스토리북을 조회합니다." badge="서비스 연결됨">
       <main className="domain-page target-api-page">
@@ -4268,16 +4197,14 @@ function MemoryGroupDetailApiPage() {
           <span className="domain-page__badge domain-page__badge--connected">GroupMemberRole</span>
         </header>
 
-        <form className="target-form" onSubmit={handleLoadGroup}>
-          <div className="target-form__field">
-            <label htmlFor="group-detail-id">group_id</label>
-            <input id="group-detail-id" inputMode="numeric" onChange={(event) => setGroupIdInput(event.target.value)} required type="number" value={groupIdInput} />
-          </div>
-          <div className="target-form__actions">
-            <a href="">그룹 목록으로 돌아가기</a>
-            <button disabled={isLoading} type="submit">{isLoading ? 'Loading...' : 'Load group'}</button>
-          </div>
-        </form>
+        <MemoryGroupSelector
+          selectedId={group?.id ?? (Number(groupIdInput) || null)}
+          title="??? ??? ??? ???"
+          onSelect={(selectedGroup) => {
+            setGroupIdInput(String(selectedGroup.id))
+            void loadGroup(selectedGroup.id)
+          }}
+        />
 
         {notice && <p className="target-form__notice">{notice}</p>}
         {errorMessage && <p className="target-form__error" role="alert">{errorMessage}</p>}
@@ -4336,14 +4263,14 @@ function MemoryGroupDetailApiPage() {
           </form>
 
           <form className="target-form" onSubmit={handleShareStorybook}>
-            <h2>스토리북 공유</h2>
-            <p className="target-form__helper">{'{group_id}'}{'{storybook_id}'}는 request body가 없습니다.</p>
-            <div className="target-form__field">
-              <label htmlFor="group-storybook-id">storybook_id</label>
-              <input id="group-storybook-id" inputMode="numeric" onChange={(event) => setStorybookId(event.target.value)} required type="number" value={storybookId} />
-            </div>
+            <h2>???? ??</h2>
+            <StorybookSelector
+              selectedId={Number(storybookId) || null}
+              title="??? ??? ????? ??? ???"
+              onSelect={(selectedStorybook) => setStorybookId(String(selectedStorybook.id))}
+            />
             <div className="target-form__actions">
-              <button disabled={!group || isSharingStorybook} type="submit">{isSharingStorybook ? '공유 중...' : '그룹에 공유'}</button>
+              <button disabled={!group || !storybookId || isSharingStorybook} type="submit">{isSharingStorybook ? '?? ?...' : '??? ??'}</button>
             </div>
           </form>
         </section>
@@ -4442,7 +4369,7 @@ function DeletionRequestCard({
           </div>
           <div>
             <dt>대상</dt>
-            <dd>{request.target_id ?? 'null'}</dd>
+            <dd>???</dd>
           </div>
           <div>
             <dt>requested_at</dt>
@@ -4604,11 +4531,11 @@ function DeletionRequestApiPage() {
               ))}
             </select>
           </div>
-          <div className="target-form__field">
-            <label htmlFor="deletion-target-id">대상</label>
-            <input id="deletion-target-id" inputMode="numeric" onChange={(event) => setTargetId(event.target.value)} type="number" value={targetId} />
-            <p className="target-form__helper">Optional in DeletionRequestCreateRequest; leave empty only when the backend accepts null for the selected target_type.</p>
-          </div>
+          <TargetSelector
+            selectedId={Number(targetId) || null}
+            title="??? ??? ??? ??? ???"
+            onSelect={(target) => setTargetId(String(target.id))}
+          />
           <div className="target-form__field">
             <label htmlFor="deletion-reason">사유</label>
             <textarea id="deletion-reason" onChange={(event) => setReason(event.target.value)} value={reason} />
@@ -4647,7 +4574,7 @@ function DeletionRequestApiPage() {
               </div>
               <div>
                 <dt>대상</dt>
-                <dd>{selectedRequest.target_id ?? 'null'}</dd>
+                <dd>???</dd>
               </div>
               <div>
                 <dt>updated_at</dt>
@@ -4683,7 +4610,7 @@ function ReportCard({ report }: { report: ReportResponse }) {
     <article className="target-card">
       <div className="target-card__body">
         <div className="target-card__title-row">
-          <h2>{report.target_type} #{report.target_id}</h2>
+          <h2>{getDisplayLabel(report.target_type)}</h2>
           <ReportStatusBadge status={report.status} />
         </div>
         <p>{report.reason_detail ?? report.reason_type}</p>
@@ -4838,10 +4765,11 @@ function ReportApiPage() {
               ))}
             </select>
           </div>
-          <div className="target-form__field">
-            <label htmlFor="report-target-id">대상</label>
-            <input id="report-target-id" inputMode="numeric" onChange={(event) => setTargetId(event.target.value)} required type="number" value={targetId} />
-          </div>
+          <TargetSelector
+            selectedId={Number(targetId) || null}
+            title="??? ??? ??? ???"
+            onSelect={(target) => setTargetId(String(target.id))}
+          />
           <div className="target-form__field">
             <label htmlFor="report-reason-type">reason_type</label>
             <select id="report-reason-type" onChange={(event) => setReasonType(event.target.value as ReportReasonType)} value={reasonType}>
@@ -4916,7 +4844,7 @@ function ReportApiPage() {
               </div>
               <div>
                 <dt>대상</dt>
-                <dd>{selectedReport.target_id}</dd>
+                <dd>???</dd>
               </div>
               <div>
                 <dt>updated_at</dt>
@@ -4966,9 +4894,7 @@ function VoiceCallBubble({ message }: { message: VoiceCallMessage }) {
 
 function PersonaVoiceCallApiPage() {
   const [initialPersonaId] = useState(() => getPersonaIdFromLocation())
-  const [initialChatId] = useState(() => getChatIdFromLocation())
-  const [personaIdInput, setPersonaIdInput] = useState(() => (initialPersonaId ? String(initialPersonaId) : ''))
-  const [chatIdInput, setChatIdInput] = useState(() => (initialChatId ? String(initialChatId) : ''))
+  const [personaIdInput] = useState(() => (initialPersonaId ? String(initialPersonaId) : ''))
   const [voiceProfileGate, setVoiceProfileGate] = useState<PersonaVoiceProfileResponse | null>(null)
   const [voiceProfileGateError, setVoiceProfileGateError] = useState<string | null>(null)
   const [isCheckingVoiceProfile, setIsCheckingVoiceProfile] = useState(false)
@@ -4979,10 +4905,8 @@ function PersonaVoiceCallApiPage() {
   const canEndUtterance = voiceCall.status === 'recording'
   const canStop = voiceCall.status === 'connected' || voiceCall.status === 'recording' || voiceCall.status === 'processing'
 
-  async function handleConnect(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault()
+  async function handleConnect() {
     const personaId = Number(personaIdInput)
-    const chatId = Number(chatIdInput)
 
     if (!Number.isInteger(personaId) || personaId <= 0) {
       setVoiceProfileGateError('페르소나를 올바르게 선택해 주세요.')
@@ -5001,7 +4925,9 @@ function PersonaVoiceCallApiPage() {
         return
       }
 
-      voiceCall.connect({ personaId, chatId })
+      const chats = await chatService.listPersonaChats(personaId)
+      const chat = chats[0] ?? (await chatService.createPersonaChat(personaId, { title: '?? ??' }))
+      voiceCall.connect({ personaId, chatId: chat.id })
     } catch (error) {
       setVoiceProfileGate(null)
       setVoiceProfileGateError(getApiErrorMessage(error))
@@ -5024,39 +4950,16 @@ function PersonaVoiceCallApiPage() {
 
         <section className="voice-call-layout">
           <div className="voice-call-panel voice-call-panel--controls">
-            <form className="target-form voice-call-form" onSubmit={handleConnect}>
-              <div className="target-form__field">
-                <label htmlFor="voice-persona-id">페르소나</label>
-                <input
-                  disabled={!canConnect}
-                  id="voice-persona-id"
-                  inputMode="numeric"
-                  onChange={(event) => setPersonaIdInput(event.target.value)}
-                  required
-                  type="number"
-                  value={personaIdInput}
-                />
-                <p className="target-form__helper">음성 음성 대화 준비 상태의 path param입니다.</p>
-              </div>
-
-              <div className="target-form__field">
-                <label htmlFor="voice-chat-id">대화방</label>
-                <input
-                  disabled={!canConnect}
-                  id="voice-chat-id"
-                  inputMode="numeric"
-                  onChange={(event) => setChatIdInput(event.target.value)}
-                  required
-                  type="number"
-                  value={chatIdInput}
-                />
-                <p className="target-form__helper">문서화된 start 메시지 본문으로 전송됩니다.</p>
-              </div>
-
-              <button disabled={!canConnect || voiceCall.status === 'connecting' || isCheckingVoiceProfile} type="submit">
-                {isCheckingVoiceProfile ? '음성 프로필 확인 중...' : voiceCall.status === 'connecting' ? '연결 중...' : '연결'}
-              </button>
-            </form>
+                {canConnect && !personaIdInput && (
+              <TargetStateMessage
+                action={{ href: '/personas', label: '???? ????' }}
+                title="?? ??? ????? ??? ???"
+                message="???? ?? ???? ?? ??? ?? ?? ??? ? ????."
+              />
+            )}
+            <button disabled={!canConnect || !personaIdInput || voiceCall.status === 'connecting' || isCheckingVoiceProfile} onClick={() => void handleConnect()} type="button">
+              {isCheckingVoiceProfile ? '?? ?? ?? ?? ?...' : voiceCall.status === 'connecting' ? '?? ?...' : '??'}
+            </button>
 
             <div className="voice-call-status-card">
               <span className={`voice-call-status voice-call-status--${voiceCall.status}`}>{voiceStatusLabel[voiceCall.status]}</span>
@@ -5244,7 +5147,7 @@ function AdminVerificationCard({ request }: { request: VerificationRequestAdminR
         <p>{request.original_filename}</p>
         <dl>
           <div><dt>사용자</dt><dd>{request.user_id}</dd></div>
-          <div><dt>대상</dt><dd>{request.target_id}</dd></div>
+          <div><dt>대상</dt><dd>???</dd></div>
           <div><dt>입증 방법</dt><dd>{getDisplayLabel(request.verification_type)}</dd></div>
           <div><dt>파일 형식</dt><dd>{request.mime_type}</dd></div>
           <div><dt>파일 크기</dt><dd>{formatFileSize(request.file_size)}</dd></div>
@@ -5637,7 +5540,7 @@ function AdminAuditLogsApiPage() {
                 <dl>
                   <div><dt>actor_user_id</dt><dd>{log.actor_user_id ?? 'null'}</dd></div>
                   <div><dt>target_type</dt><dd>{log.target_type ?? 'null'}</dd></div>
-                  <div><dt>대상</dt><dd>{log.target_id ?? 'null'}</dd></div>
+                  <div><dt>대상</dt><dd>???</dd></div>
                   <div><dt>created_at</dt><dd>{formatDateTime(log.created_at)}</dd></div>
                 </dl>
               </div>

@@ -1,12 +1,36 @@
-const DEFAULT_API_BASE_URL = '/api/v1'
+function getRequiredEnv(name: 'VITE_API_BASE_URL' | 'VITE_WS_BASE_URL') {
+  const value = import.meta.env[name]
 
-function normalizeApiBaseUrl(baseUrl: string) {
-  const normalizedBase = baseUrl.replace(/\/+$/, '')
+  if (!value) {
+    throw new Error(`${name} is required. Check your Vite environment files.`)
+  }
 
-  return normalizedBase.endsWith('/api/v1') ? normalizedBase : `${normalizedBase}/api/v1`
+  return value
 }
 
-export const API_BASE_URL = normalizeApiBaseUrl(import.meta.env.VITE_API_BASE_URL || DEFAULT_API_BASE_URL)
+function trimTrailingSlashes(baseUrl: string) {
+  return baseUrl.replace(/\/+$/, '')
+}
+
+function normalizeWebSocketBaseUrl(baseUrl: string) {
+  const normalizedBase = trimTrailingSlashes(baseUrl)
+
+  if (/^wss?:\/\//i.test(normalizedBase)) {
+    return normalizedBase
+  }
+
+  if (typeof window === 'undefined') {
+    return normalizedBase
+  }
+
+  const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
+  const path = normalizedBase.startsWith('/') ? normalizedBase : `/${normalizedBase}`
+
+  return `${protocol}//${window.location.host}${path}`
+}
+
+export const API_BASE_URL = trimTrailingSlashes(getRequiredEnv('VITE_API_BASE_URL'))
+export const WS_BASE_URL = normalizeWebSocketBaseUrl(getRequiredEnv('VITE_WS_BASE_URL'))
 
 export const ACCESS_TOKEN_KEY = 'remory_access_token'
 export const REFRESH_TOKEN_KEY = 'remory_refresh_token'

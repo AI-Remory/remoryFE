@@ -3,8 +3,10 @@ import type { FormEvent } from 'react'
 import { AppShell } from '../components/layout/AppShell'
 import { ApiError } from '../services/apiClient'
 import { mediaService } from '../services/mediaService'
+import { personaService } from '../services/personaService'
 import { targetService } from '../services/targetService'
 import type { MediaType, TargetMediaResponse } from '../types/media'
+import type { PersonaDetailResponse, PersonaStatus, PersonaStatusResponse } from '../types/persona'
 import type { TargetDetailResponse, TargetResponse, TargetType } from '../types/target'
 import { toPlayableFileUrl } from '../utils/fileUrl'
 import './DomainPages.css'
@@ -64,6 +66,15 @@ function getTargetIdFromLocation() {
   return Number.isInteger(targetId) && targetId > 0 ? targetId : null
 }
 
+function getPersonaIdFromLocation() {
+  const { pathname, search } = window.location
+  const params = new URLSearchParams(search)
+  const value = params.get('persona_id') ?? params.get('id') ?? pathname.split('/').filter(Boolean).at(-1)
+  const personaId = Number(value)
+
+  return Number.isInteger(personaId) && personaId > 0 ? personaId : null
+}
+
 function formatDateTime(value: string) {
   return new Intl.DateTimeFormat('ko-KR', {
     dateStyle: 'medium',
@@ -81,6 +92,23 @@ function formatFileSize(bytes: number) {
   }
 
   return `${(bytes / 1024 / 1024).toFixed(1)} MB`
+}
+
+function getPersonaStatusMessage(status: PersonaStatus) {
+  switch (status) {
+    case 'READY':
+      return 'Persona is ready. Chat and voice call entry points are available.'
+    case 'PENDING':
+      return 'Persona generation is pending. Refresh status until it becomes READY.'
+    case 'FAILED':
+      return 'Persona generation failed. Check server error detail when creating again.'
+    default:
+      return 'Unknown persona status.'
+  }
+}
+
+function PersonaStatusBadge({ status }: { status: PersonaStatus }) {
+  return <span className={`persona-status-badge persona-status-badge--${status.toLowerCase()}`}>{status}</span>
 }
 
 function TargetImage({ target }: { target: TargetResponse }) {
@@ -337,6 +365,7 @@ function TargetDetailApiPage() {
   const [isLoading, setIsLoading] = useState(() => Boolean(targetId))
   const [isSaving, setIsSaving] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
+  const [isCreatingPersona, setIsCreatingPersona] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(() => (targetId ? null : 'target_id is required.'))
   const [notice, setNotice] = useState<string | null>(null)
   const [isPermissionError, setIsPermissionError] = useState(false)
@@ -427,6 +456,27 @@ function TargetDetailApiPage() {
       setIsPermissionError(isOwnerOnlyError(error))
       setErrorMessage(getApiErrorMessage(error))
       setIsDeleting(false)
+    }
+  }
+
+  async function handleCreatePersona() {
+    if (!targetId) {
+      return
+    }
+
+    setIsCreatingPersona(true)
+    setErrorMessage(null)
+    setNotice(null)
+    setIsPermissionError(false)
+
+    try {
+      const persona = await personaService.createPersona(targetId)
+      window.location.href = `/personas/detail?persona_id=${persona.id}`
+    } catch (error) {
+      setIsPermissionError(isOwnerOnlyError(error))
+      setErrorMessage(getApiErrorMessage(error))
+    } finally {
+      setIsCreatingPersona(false)
     }
   }
 
@@ -557,6 +607,9 @@ function TargetDetailApiPage() {
                 </button>
                 <button disabled={isDeleting} onClick={handleDelete} type="button">
                   {isDeleting ? 'Deleting...' : 'Delete'}
+                </button>
+                <button disabled={isCreatingPersona} onClick={handleCreatePersona} type="button">
+                  {isCreatingPersona ? 'Creating persona...' : 'Create persona'}
                 </button>
               </div>
             </form>
@@ -877,6 +930,310 @@ function TargetMediaApiPage() {
               </article>
             ))}
           </section>
+        )}
+      </main>
+    </AppShell>
+  )
+}
+
+function PersonaDetailCard({
+  persona,
+  status,
+  onRefreshStatus,
+  isRefreshingStatus,
+}: {
+  persona: PersonaDetailResponse
+  status?: PersonaStatusResponse | null
+  onRefreshStatus?: () => void
+  isRefreshingStatus?: boolean
+}) {
+  const currentStatus = status?.status ?? persona.status
+  const isReady = currentStatus === 'READY'
+
+  return (
+    <section className="persona-detail-layout">
+      <article className="persona-summary-card">
+        <div className="target-card__title-row">
+          <h2>{persona.persona_name ?? `Persona ${persona.id}`}</h2>
+          <PersonaStatusBadge status={currentStatus} />
+        </div>
+        <p>{getPersonaStatusMessage(currentStatus)}</p>
+        <dl>
+          <div>
+            <dt>id</dt>
+            <dd>{persona.id}</dd>
+          </div>
+          <div>
+            <dt>target_id</dt>
+            <dd>{persona.target_id}</dd>
+          </div>
+          <div>
+            <dt>persona_name</dt>
+            <dd>{persona.persona_name ?? 'null'}</dd>
+          </div>
+          <div>
+            <dt>speaking_style</dt>
+            <dd>{persona.speaking_style ?? 'null'}</dd>
+          </div>
+          <div>
+            <dt>personality_summary</dt>
+            <dd>{persona.personality_summary ?? 'null'}</dd>
+          </div>
+          <div>
+            <dt>memory_summary</dt>
+            <dd>{persona.memory_summary ?? 'null'}</dd>
+          </div>
+          <div>
+            <dt>system_prompt</dt>
+            <dd>{persona.system_prompt ?? 'null'}</dd>
+          </div>
+          <div>
+            <dt>is_voice_profile_created</dt>
+            <dd>{String(persona.is_voice_profile_created)}</dd>
+          </div>
+          <div>
+            <dt>is_consent_required</dt>
+            <dd>{String(persona.is_consent_required)}</dd>
+          </div>
+          <div>
+            <dt>created_at</dt>
+            <dd>{formatDateTime(persona.created_at)}</dd>
+          </div>
+          <div>
+            <dt>updated_at</dt>
+            <dd>{formatDateTime(persona.updated_at)}</dd>
+          </div>
+        </dl>
+      </article>
+
+      <aside className="persona-action-card">
+        <h2>Actions</h2>
+        <p>{isReady ? 'READY status enables chat and voice call routes.' : 'Chat and voice call are disabled until status is READY.'}</p>
+        <div className="persona-action-card__actions">
+          <a aria-disabled={!isReady} href={isReady ? `/persona-chat?persona_id=${persona.id}` : undefined}>
+            Open chat
+          </a>
+          <a aria-disabled={!isReady} href={isReady ? `/persona-voice-call?persona_id=${persona.id}` : undefined}>
+            Voice call
+          </a>
+          {onRefreshStatus && (
+            <button disabled={isRefreshingStatus} onClick={onRefreshStatus} type="button">
+              {isRefreshingStatus ? 'Refreshing...' : 'Refresh status'}
+            </button>
+          )}
+        </div>
+
+        {persona.voice_profile && (
+          <dl>
+            <div>
+              <dt>voice_profile.id</dt>
+              <dd>{persona.voice_profile.id}</dd>
+            </div>
+            <div>
+              <dt>voice_profile.status</dt>
+              <dd>{persona.voice_profile.status ?? 'null'}</dd>
+            </div>
+            <div>
+              <dt>review_status</dt>
+              <dd>{persona.voice_profile.review_status ?? 'null'}</dd>
+            </div>
+            <div>
+              <dt>quality_score</dt>
+              <dd>{persona.voice_profile.quality_score ?? 'null'}</dd>
+            </div>
+          </dl>
+        )}
+      </aside>
+    </section>
+  )
+}
+
+function PersonaListApiPage() {
+  const [targetIdInput, setTargetIdInput] = useState(() => {
+    const targetId = getTargetIdFromLocation()
+    return targetId ? String(targetId) : ''
+  })
+  const [persona, setPersona] = useState<PersonaDetailResponse | null>(null)
+  const [isCreating, setIsCreating] = useState(false)
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const [isPermissionError, setIsPermissionError] = useState(false)
+
+  async function handleCreatePersona(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    const targetId = Number(targetIdInput)
+
+    if (!Number.isInteger(targetId) || targetId <= 0) {
+      setErrorMessage('target_id must be a positive integer.')
+      return
+    }
+
+    setIsCreating(true)
+    setErrorMessage(null)
+    setIsPermissionError(false)
+
+    try {
+      const response = await personaService.createPersona(targetId)
+      setPersona(response)
+    } catch (error) {
+      setIsPermissionError(isOwnerOnlyError(error))
+      setErrorMessage(getApiErrorMessage(error))
+    } finally {
+      setIsCreating(false)
+    }
+  }
+
+  return (
+    <AppShell title="Personas" subtitle="Persona list endpoint is not present in OpenAPI; creation uses Target." badge="API connected">
+      <main className="domain-page target-api-page">
+        <header className="domain-page__hero">
+          <div>
+            <span className="domain-page__eyebrow">PersonaListPage</span>
+            <h1>Persona creation</h1>
+            <p>No Persona list endpoint exists in the checked OpenAPI. Use target_id to create a Persona.</p>
+          </div>
+          <span className="domain-page__badge domain-page__badge--connected">POST /targets/{'{target_id}'}/persona</span>
+        </header>
+
+        <form className="target-form target-media-target-form" onSubmit={handleCreatePersona}>
+          <div className="target-form__field">
+            <label htmlFor="persona-target-id">target_id</label>
+            <input
+              id="persona-target-id"
+              inputMode="numeric"
+              onChange={(event) => setTargetIdInput(event.target.value)}
+              required
+              type="number"
+              value={targetIdInput}
+            />
+            <p className="target-form__helper">The backend validates verification, consent, media, and ownership conditions.</p>
+          </div>
+          <div className="target-form__actions">
+            <a href="/targets">Open targets</a>
+            <button disabled={isCreating} type="submit">
+              {isCreating ? 'Creating...' : 'Create persona'}
+            </button>
+          </div>
+        </form>
+
+        {errorMessage && (
+          <p className="target-form__error" role="alert">
+            {isPermissionError ? 'You do not have permission to create a Persona for this Target.' : errorMessage}
+          </p>
+        )}
+
+        {!persona && !errorMessage && (
+          <TargetStateMessage
+            title="No list API"
+            message="OpenAPI exposes create, detail, and status endpoints for Persona, but no Persona collection endpoint."
+          />
+        )}
+
+        {persona && <PersonaDetailCard persona={persona} />}
+      </main>
+    </AppShell>
+  )
+}
+
+function PersonaDetailApiPage() {
+  const [personaId] = useState(() => getPersonaIdFromLocation())
+  const [persona, setPersona] = useState<PersonaDetailResponse | null>(null)
+  const [status, setStatus] = useState<PersonaStatusResponse | null>(null)
+  const [isLoading, setIsLoading] = useState(() => Boolean(personaId))
+  const [isRefreshingStatus, setIsRefreshingStatus] = useState(false)
+  const [errorMessage, setErrorMessage] = useState<string | null>(() => (personaId ? null : 'persona_id is required.'))
+  const [isPermissionError, setIsPermissionError] = useState(false)
+
+  const refreshStatus = useCallback(async () => {
+    if (!personaId) {
+      return
+    }
+
+    setIsRefreshingStatus(true)
+    setErrorMessage(null)
+    setIsPermissionError(false)
+
+    try {
+      const response = await personaService.getPersonaStatus(personaId)
+      setStatus(response)
+    } catch (error) {
+      setIsPermissionError(isOwnerOnlyError(error))
+      setErrorMessage(getApiErrorMessage(error))
+    } finally {
+      setIsRefreshingStatus(false)
+    }
+  }, [personaId])
+
+  useEffect(() => {
+    if (!personaId) {
+      return
+    }
+
+    let isMounted = true
+
+    personaService
+      .getPersona(personaId)
+      .then((response) => {
+        if (!isMounted) {
+          return
+        }
+
+        setPersona(response)
+        setStatus({ persona_id: response.id, target_id: response.target_id, status: response.status })
+      })
+      .catch((error: unknown) => {
+        if (!isMounted) {
+          return
+        }
+
+        setIsPermissionError(isOwnerOnlyError(error))
+        setErrorMessage(getApiErrorMessage(error))
+      })
+      .finally(() => {
+        if (isMounted) {
+          setIsLoading(false)
+        }
+      })
+
+    return () => {
+      isMounted = false
+    }
+  }, [personaId])
+
+  return (
+    <AppShell title="Persona Detail" subtitle="Reads Persona detail and status from real backend APIs." badge="API connected">
+      <main className="domain-page target-api-page">
+        <header className="domain-page__hero">
+          <div>
+            <span className="domain-page__eyebrow">PersonaDetailPage</span>
+            <h1>Persona detail</h1>
+            <p>Response fields follow PersonaDetailResponse and PersonaStatusResponse.</p>
+          </div>
+          <span className="domain-page__badge domain-page__badge--connected">GET /personas/{'{persona_id}'}</span>
+        </header>
+
+        {isLoading && <TargetStateMessage title="Loading persona" message="Fetching Persona detail from the backend." />}
+
+        {!isLoading && errorMessage && !persona && (
+          <TargetStateMessage
+            action={{ href: '/personas', label: 'Back to Persona creation' }}
+            title={isPermissionError ? 'No permission' : 'Persona detail failed'}
+            message={isPermissionError ? 'You do not have permission to access this Persona.' : errorMessage}
+          />
+        )}
+
+        {errorMessage && persona && (
+          <p className="target-form__error" role="alert">
+            {isPermissionError ? 'You do not have permission to refresh this Persona status.' : errorMessage}
+          </p>
+        )}
+
+        {!isLoading && persona && (
+          <PersonaDetailCard
+            isRefreshingStatus={isRefreshingStatus}
+            onRefreshStatus={() => void refreshStatus()}
+            persona={persona}
+            status={status}
+          />
         )}
       </main>
     </AppShell>
@@ -1434,11 +1791,11 @@ export function TargetVerificationPage() {
 }
 
 export function PersonaListPage() {
-  return <DomainShell config={configs.personaList} />
+  return <PersonaListApiPage />
 }
 
 export function PersonaDetailPage() {
-  return <DomainShell config={configs.personaDetail} />
+  return <PersonaDetailApiPage />
 }
 
 export function PersonaVoiceProfilePage() {

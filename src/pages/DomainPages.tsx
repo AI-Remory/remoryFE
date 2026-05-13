@@ -1,4 +1,9 @@
+import { useEffect, useState } from 'react'
+import type { FormEvent } from 'react'
 import { AppShell } from '../components/layout/AppShell'
+import { ApiError } from '../services/apiClient'
+import { targetService } from '../services/targetService'
+import type { TargetDetailResponse, TargetResponse, TargetType } from '../types/target'
 import './DomainPages.css'
 
 type BadgeKind = 'connected' | 'next' | 'mock' | 'admin'
@@ -27,6 +32,524 @@ type DomainPageConfig = {
   cards: TimelineItem[]
   detailTitle: string
   detailRows: Array<[string, string]>
+}
+
+const targetTypeOptions: TargetType[] = ['parent', 'grandparent', 'friend', 'romantic', 'self', 'other']
+
+function getApiErrorMessage(error: unknown) {
+  if (error instanceof ApiError) {
+    return error.message
+  }
+
+  if (error instanceof Error) {
+    return error.message
+  }
+
+  return 'Request failed.'
+}
+
+function isOwnerOnlyError(error: unknown) {
+  return error instanceof ApiError && error.status === 403
+}
+
+function getTargetIdFromLocation() {
+  const { pathname, search } = window.location
+  const params = new URLSearchParams(search)
+  const value = params.get('target_id') ?? params.get('id') ?? pathname.split('/').filter(Boolean).at(-1)
+  const targetId = Number(value)
+
+  return Number.isInteger(targetId) && targetId > 0 ? targetId : null
+}
+
+function formatDateTime(value: string) {
+  return new Intl.DateTimeFormat('ko-KR', {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  }).format(new Date(value))
+}
+
+function TargetImage({ target }: { target: TargetResponse }) {
+  if (target.profile_image_path) {
+    return <img alt={target.name} src={target.profile_image_path} />
+  }
+
+  return <span aria-hidden="true">{target.name.slice(0, 1).toUpperCase()}</span>
+}
+
+function TargetStateMessage({
+  title,
+  message,
+  action,
+}: {
+  title: string
+  message: string
+  action?: { href: string; label: string }
+}) {
+  return (
+    <section className="target-api-state">
+      <h2>{title}</h2>
+      <p>{message}</p>
+      {action && <a href={action.href}>{action.label}</a>}
+    </section>
+  )
+}
+
+function TargetListApiPage() {
+  const [targets, setTargets] = useState<TargetResponse[]>([])
+  const [total, setTotal] = useState(0)
+  const [isLoading, setIsLoading] = useState(true)
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const [isPermissionError, setIsPermissionError] = useState(false)
+
+  useEffect(() => {
+    let isMounted = true
+
+    targetService
+      .listTargets({ skip: 0, limit: 20 })
+      .then((response) => {
+        if (!isMounted) {
+          return
+        }
+
+        setTargets(response.items)
+        setTotal(response.total)
+      })
+      .catch((error: unknown) => {
+        if (!isMounted) {
+          return
+        }
+
+        setIsPermissionError(isOwnerOnlyError(error))
+        setErrorMessage(getApiErrorMessage(error))
+      })
+      .finally(() => {
+        if (isMounted) {
+          setIsLoading(false)
+        }
+      })
+
+    return () => {
+      isMounted = false
+    }
+  }, [])
+
+  return (
+    <AppShell title="Targets" subtitle="Targets returned by GET /targets." badge="API connected">
+      <main className="domain-page target-api-page">
+        <header className="domain-page__hero">
+          <div>
+            <span className="domain-page__eyebrow">TargetListPage</span>
+            <h1>Target list</h1>
+            <p>Response fields are rendered as provided by TargetResponse.</p>
+          </div>
+          <span className="domain-page__badge domain-page__badge--connected">GET /targets</span>
+        </header>
+
+        {isLoading && <TargetStateMessage title="Loading targets" message="Fetching your Target list from the backend." />}
+
+        {!isLoading && errorMessage && (
+          <TargetStateMessage
+            title={isPermissionError ? 'No permission' : 'Target list failed'}
+            message={isPermissionError ? 'You do not have permission to access these targets.' : errorMessage}
+          />
+        )}
+
+        {!isLoading && !errorMessage && targets.length === 0 && (
+          <TargetStateMessage
+            action={{ href: '/targets/new', label: 'Create target' }}
+            title="No targets yet"
+            message="Create your first Target to prepare media, consent, verification, and persona flows."
+          />
+        )}
+
+        {!isLoading && !errorMessage && targets.length > 0 && (
+          <>
+            <section className="domain-page__metrics" aria-label="Target summary">
+              <article>
+                <span>total</span>
+                <strong>{total}</strong>
+              </article>
+              <article>
+                <span>loaded</span>
+                <strong>{targets.length}</strong>
+              </article>
+              <article>
+                <span>endpoint</span>
+                <strong>GET</strong>
+              </article>
+            </section>
+
+            <section className="target-card-grid" aria-label="Target cards">
+              {targets.map((target) => (
+                <article className="target-card" key={target.id}>
+                  <div className="target-card__avatar">
+                    <TargetImage target={target} />
+                  </div>
+                  <div className="target-card__body">
+                    <div className="target-card__title-row">
+                      <h2>{target.name}</h2>
+                      <span>{target.target_type}</span>
+                    </div>
+                    {target.description && <p>{target.description}</p>}
+                    <dl>
+                      <div>
+                        <dt>id</dt>
+                        <dd>{target.id}</dd>
+                      </div>
+                      <div>
+                        <dt>is_deleted</dt>
+                        <dd>{String(target.is_deleted)}</dd>
+                      </div>
+                      <div>
+                        <dt>updated_at</dt>
+                        <dd>{formatDateTime(target.updated_at)}</dd>
+                      </div>
+                    </dl>
+                    <a href={`/targets/detail?target_id=${target.id}`}>Open detail</a>
+                  </div>
+                </article>
+              ))}
+            </section>
+          </>
+        )}
+      </main>
+    </AppShell>
+  )
+}
+
+function TargetCreateApiPage() {
+  const [name, setName] = useState('')
+  const [description, setDescription] = useState('')
+  const [targetType, setTargetType] = useState<TargetType>('other')
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const [isPermissionError, setIsPermissionError] = useState(false)
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    setErrorMessage(null)
+    setIsPermissionError(false)
+    setIsSubmitting(true)
+
+    try {
+      const createdTarget = await targetService.createTarget({
+        name,
+        description: description || null,
+        target_type: targetType,
+      })
+
+      window.location.href = `/targets/detail?target_id=${createdTarget.id}`
+    } catch (error) {
+      setIsPermissionError(isOwnerOnlyError(error))
+      setErrorMessage(getApiErrorMessage(error))
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  return (
+    <AppShell title="Create Target" subtitle="Creates a Target with POST /targets." badge="API connected">
+      <main className="domain-page target-api-page">
+        <header className="domain-page__hero">
+          <div>
+            <span className="domain-page__eyebrow">TargetCreatePage</span>
+            <h1>Create target</h1>
+            <p>Request body follows TargetCreateRequest: name, description, target_type.</p>
+          </div>
+          <span className="domain-page__badge domain-page__badge--connected">POST /targets</span>
+        </header>
+
+        <form className="target-form" onSubmit={handleSubmit}>
+          <div className="target-form__field">
+            <label htmlFor="target-name">name</label>
+            <input
+              id="target-name"
+              minLength={1}
+              maxLength={255}
+              onChange={(event) => setName(event.target.value)}
+              required
+              type="text"
+              value={name}
+            />
+            <p className="target-form__helper">Required. 1 to 255 characters.</p>
+          </div>
+
+          <div className="target-form__field">
+            <label htmlFor="target-description">description</label>
+            <textarea
+              id="target-description"
+              onChange={(event) => setDescription(event.target.value)}
+              rows={5}
+              value={description}
+            />
+            <p className="target-form__helper">Optional. Sent as null when empty.</p>
+          </div>
+
+          <div className="target-form__field">
+            <label htmlFor="target-type">target_type</label>
+            <select id="target-type" onChange={(event) => setTargetType(event.target.value as TargetType)} value={targetType}>
+              {targetTypeOptions.map((option) => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
+            </select>
+            <p className="target-form__helper">OpenAPI TargetType enum.</p>
+          </div>
+
+          {errorMessage && (
+            <p className="target-form__error" role="alert">
+              {isPermissionError ? 'You do not have permission to create this Target.' : errorMessage}
+            </p>
+          )}
+
+          <div className="target-form__actions">
+            <a href="/targets">Cancel</a>
+            <button disabled={isSubmitting} type="submit">
+              {isSubmitting ? 'Creating...' : 'Create target'}
+            </button>
+          </div>
+        </form>
+      </main>
+    </AppShell>
+  )
+}
+
+function TargetDetailApiPage() {
+  const [targetId] = useState(() => getTargetIdFromLocation())
+  const [target, setTarget] = useState<TargetDetailResponse | null>(null)
+  const [formValues, setFormValues] = useState({ name: '', description: '', target_type: 'other' as TargetType })
+  const [isLoading, setIsLoading] = useState(() => Boolean(targetId))
+  const [isSaving, setIsSaving] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
+  const [errorMessage, setErrorMessage] = useState<string | null>(() => (targetId ? null : 'target_id is required.'))
+  const [notice, setNotice] = useState<string | null>(null)
+  const [isPermissionError, setIsPermissionError] = useState(false)
+
+  useEffect(() => {
+    if (!targetId) {
+      return
+    }
+
+    let isMounted = true
+
+    targetService
+      .getTarget(targetId)
+      .then((response) => {
+        if (!isMounted) {
+          return
+        }
+
+        setTarget(response)
+        setFormValues({
+          name: response.name,
+          description: response.description ?? '',
+          target_type: response.target_type,
+        })
+      })
+      .catch((error: unknown) => {
+        if (!isMounted) {
+          return
+        }
+
+        setIsPermissionError(isOwnerOnlyError(error))
+        setErrorMessage(getApiErrorMessage(error))
+      })
+      .finally(() => {
+        if (isMounted) {
+          setIsLoading(false)
+        }
+      })
+
+    return () => {
+      isMounted = false
+    }
+  }, [targetId])
+
+  async function handleUpdate(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+
+    if (!targetId) {
+      return
+    }
+
+    setIsSaving(true)
+    setErrorMessage(null)
+    setNotice(null)
+    setIsPermissionError(false)
+
+    try {
+      const updatedTarget = await targetService.updateTarget(targetId, {
+        name: formValues.name,
+        description: formValues.description || null,
+        target_type: formValues.target_type,
+      })
+
+      setTarget((current) => (current ? { ...current, ...updatedTarget } : { ...updatedTarget }))
+      setNotice('Target updated.')
+    } catch (error) {
+      setIsPermissionError(isOwnerOnlyError(error))
+      setErrorMessage(getApiErrorMessage(error))
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  async function handleDelete() {
+    if (!targetId || !window.confirm('Delete this Target?')) {
+      return
+    }
+
+    setIsDeleting(true)
+    setErrorMessage(null)
+    setNotice(null)
+    setIsPermissionError(false)
+
+    try {
+      await targetService.deleteTarget(targetId)
+      window.location.href = '/targets'
+    } catch (error) {
+      setIsPermissionError(isOwnerOnlyError(error))
+      setErrorMessage(getApiErrorMessage(error))
+      setIsDeleting(false)
+    }
+  }
+
+  return (
+    <AppShell title="Target Detail" subtitle="Reads, updates, and deletes an owned Target." badge="API connected">
+      <main className="domain-page target-api-page">
+        <header className="domain-page__hero">
+          <div>
+            <span className="domain-page__eyebrow">TargetDetailPage</span>
+            <h1>Target detail</h1>
+            <p>Detail response uses TargetDetailResponse fields.</p>
+          </div>
+          <span className="domain-page__badge domain-page__badge--connected">GET PUT DELETE</span>
+        </header>
+
+        {isLoading && <TargetStateMessage title="Loading target" message="Fetching Target detail from the backend." />}
+
+        {!isLoading && errorMessage && !target && (
+          <TargetStateMessage
+            action={{ href: '/targets', label: 'Back to list' }}
+            title={isPermissionError ? 'No permission' : 'Target detail failed'}
+            message={isPermissionError ? 'You do not have permission to access this Target.' : errorMessage}
+          />
+        )}
+
+        {!isLoading && target && (
+          <section className="target-detail-layout">
+            <article className="target-detail-card">
+              <div className="target-card__avatar">
+                <TargetImage target={target} />
+              </div>
+              <h2>{target.name}</h2>
+              {target.description && <p>{target.description}</p>}
+              <dl>
+                <div>
+                  <dt>id</dt>
+                  <dd>{target.id}</dd>
+                </div>
+                <div>
+                  <dt>user_id</dt>
+                  <dd>{target.user_id}</dd>
+                </div>
+                <div>
+                  <dt>target_type</dt>
+                  <dd>{target.target_type}</dd>
+                </div>
+                <div>
+                  <dt>profile_image_path</dt>
+                  <dd>{target.profile_image_path ?? 'null'}</dd>
+                </div>
+                <div>
+                  <dt>is_deleted</dt>
+                  <dd>{String(target.is_deleted)}</dd>
+                </div>
+                {target.media_count !== undefined && (
+                  <div>
+                    <dt>media_count</dt>
+                    <dd>{target.media_count}</dd>
+                  </div>
+                )}
+                {target.has_persona !== undefined && (
+                  <div>
+                    <dt>has_persona</dt>
+                    <dd>{String(target.has_persona)}</dd>
+                  </div>
+                )}
+                <div>
+                  <dt>created_at</dt>
+                  <dd>{formatDateTime(target.created_at)}</dd>
+                </div>
+                <div>
+                  <dt>updated_at</dt>
+                  <dd>{formatDateTime(target.updated_at)}</dd>
+                </div>
+              </dl>
+            </article>
+
+            <form className="target-form" onSubmit={handleUpdate}>
+              <div className="target-form__field">
+                <label htmlFor="detail-target-name">name</label>
+                <input
+                  id="detail-target-name"
+                  onChange={(event) => setFormValues((current) => ({ ...current, name: event.target.value }))}
+                  required
+                  type="text"
+                  value={formValues.name}
+                />
+              </div>
+
+              <div className="target-form__field">
+                <label htmlFor="detail-target-description">description</label>
+                <textarea
+                  id="detail-target-description"
+                  onChange={(event) => setFormValues((current) => ({ ...current, description: event.target.value }))}
+                  rows={5}
+                  value={formValues.description}
+                />
+              </div>
+
+              <div className="target-form__field">
+                <label htmlFor="detail-target-type">target_type</label>
+                <select
+                  id="detail-target-type"
+                  onChange={(event) =>
+                    setFormValues((current) => ({ ...current, target_type: event.target.value as TargetType }))
+                  }
+                  value={formValues.target_type}
+                >
+                  {targetTypeOptions.map((option) => (
+                    <option key={option} value={option}>
+                      {option}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {notice && <p className="target-form__notice">{notice}</p>}
+              {errorMessage && (
+                <p className="target-form__error" role="alert">
+                  {isPermissionError ? 'You do not have permission to change this Target.' : errorMessage}
+                </p>
+              )}
+
+              <div className="target-form__actions">
+                <a href="/targets">Back to list</a>
+                <button disabled={isSaving} type="submit">
+                  {isSaving ? 'Saving...' : 'Save changes'}
+                </button>
+                <button disabled={isDeleting} onClick={handleDelete} type="button">
+                  {isDeleting ? 'Deleting...' : 'Delete'}
+                </button>
+              </div>
+            </form>
+          </section>
+        )}
+      </main>
+    </AppShell>
+  )
 }
 
 const priorityBadge = {
@@ -556,15 +1079,15 @@ function DomainShell({ config }: { config: DomainPageConfig }) {
 }
 
 export function TargetListPage() {
-  return <DomainShell config={configs.targetList} />
+  return <TargetListApiPage />
 }
 
 export function TargetCreatePage() {
-  return <DomainShell config={configs.targetCreate} />
+  return <TargetCreateApiPage />
 }
 
 export function TargetDetailPage() {
-  return <DomainShell config={configs.targetDetail} />
+  return <TargetDetailApiPage />
 }
 
 export function TargetMediaPage() {

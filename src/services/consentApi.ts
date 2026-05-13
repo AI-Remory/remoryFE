@@ -17,15 +17,34 @@ export const CONSENT_TYPES = {
 type CreateConsentPayload = {
   target_id?: ApiId
   consent_type: ConsentType
+  consent_version?: string
+  consent_text_snapshot?: string
+  is_agreed?: boolean
   is_consented?: boolean
+  details?: string | null
 }
+
+const DEFAULT_CONSENT_TEXT =
+  'Remory 서비스 이용을 위해 개인정보, 사진, 음성, AI 페르소나 생성, AI 응답 고지, 데이터 보관 및 외부 AI 처리에 동의합니다.'
 
 export const consentApi = {
   createConsent(payload: CreateConsentPayload) {
-    return apiClient.post<Consent>('/consents', {
-      is_consented: true,
-      ...payload,
-    })
+    const body = {
+      target_id: payload.target_id,
+      consent_type: payload.consent_type,
+      consent_version: payload.consent_version ?? 'v1',
+      consent_text_snapshot: payload.consent_text_snapshot ?? DEFAULT_CONSENT_TEXT,
+      is_agreed: payload.is_agreed ?? true,
+      is_consented: payload.is_consented ?? true,
+      details:
+        payload.details ??
+        JSON.stringify({
+          source: 'setup',
+          agreed_at: new Date().toISOString(),
+        }),
+    }
+
+    return apiClient.post<Consent>('/consents', body)
   },
 
   listConsents() {

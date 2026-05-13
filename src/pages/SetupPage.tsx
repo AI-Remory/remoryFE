@@ -272,6 +272,10 @@ function getApiErrorMessage(error: unknown, fallbackMessage: string) {
     return error.message
   }
 
+  if (error instanceof Error) {
+    return error.message
+  }
+
   return fallbackMessage
 }
 
@@ -543,16 +547,42 @@ function SetupPage() {
   }
 
   const saveConsents = async (nextTargetId: ApiId) => {
-    await Promise.all(
-      consentItems
-        .filter((item) => consents[item.key])
-        .map((item) =>
-          consentApi.createConsent({
-            target_id: nextTargetId,
-            consent_type: item.type,
+    let existingConsentTypes: Set<string>
+
+    try {
+      const existingConsents = await consentApi.listTargetConsents(nextTargetId)
+      existingConsentTypes = new Set(existingConsents.map((consent) => consent.consent_type))
+    } catch (error) {
+      const message = getApiErrorMessage(error, '기존 동의 목록을 확인하지 못했습니다.')
+      throw new Error(`기존 동의 확인에 실패했습니다: ${message}`, { cause: error })
+    }
+
+    for (const item of consentItems) {
+      if (!consents[item.key] || existingConsentTypes.has(item.type)) {
+        continue
+      }
+
+      try {
+        await consentApi.createConsent({
+          target_id: nextTargetId,
+          consent_type: item.type,
+          consent_version: 'v1',
+          consent_text_snapshot: `${item.label}에 동의합니다.`,
+          is_agreed: true,
+          is_consented: true,
+          details: JSON.stringify({
+            source: 'setup',
+            label: item.label,
+            target_id: String(nextTargetId),
+            agreed_at: new Date().toISOString(),
           }),
-        ),
-    )
+        })
+        existingConsentTypes.add(item.type)
+      } catch (error) {
+        const message = getApiErrorMessage(error, 'API 요청에 실패했습니다.')
+        throw new Error(`동의 저장에 실패했습니다 (${item.type}): ${message}`, { cause: error })
+      }
+    }
   }
 
   const uploadSelectedMedia = async (nextTargetId: ApiId) => {

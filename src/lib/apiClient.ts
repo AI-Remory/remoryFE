@@ -108,6 +108,10 @@ function getDetailMessage(detail: ApiErrorDetail) {
 }
 
 function extractErrorDetail(parsed: unknown): ApiErrorDetail {
+  if (typeof parsed === 'string') {
+    return parsed
+  }
+
   if (!isRecord(parsed)) {
     return null
   }

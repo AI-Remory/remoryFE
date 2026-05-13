@@ -232,3 +232,22 @@ Notes:
 - Audit log, usage limit, user usage limit update, persona usage limit update, and rate limit event APIs are connected through `adminService`.
 - Admin voice profile detail/approve/reject/revoke is connected through `AdminVoiceProfileReviewPage`.
 - OpenAPI `UserResponse` does not expose a role field. Client-side admin role inference was removed; backend 403 responses now provide the actual authorization result.
+
+## IA Route Update
+
+Updated on 2026-05-14.
+
+| Area | Current route group | Frontend files | Action |
+| --- | --- | --- | --- |
+| Dashboard | `/dashboard` with legacy `/home` | `src/routes.tsx`, `src/pages/HomePage.tsx` | `keep` |
+| Targets | `/targets/*` | `src/pages/targets/TargetsPages.ts` | `keep` |
+| Verification & Consent | `/compliance/*` with legacy `/consents`, `/verification` | `src/pages/compliance/CompliancePages.ts`, `src/pages/hubs/HubPages.tsx` | `keep` |
+| Personas / Conversations / Voice Call | `/personas/*`, `/conversations/*`, `/voice-call` | `src/pages/personas`, `src/pages/conversations` | `keep` |
+| Memories / StoryBooks / Sharing / Groups | `/memories/*`, `/storybooks/*`, `/sharing`, `/groups/*` | `src/pages/memories`, `src/pages/storybooks`, `src/pages/sharing`, `src/pages/groups`, `src/pages/hubs/HubPages.tsx` | `keep` |
+| Safety Center | `/safety/*` with legacy `/deletion-requests`, `/reports` | `src/pages/safety/SafetyPages.ts`, `src/pages/hubs/HubPages.tsx` | `keep` |
+| Account / Admin | `/account`, `/admin/*` | `src/pages/account`, `src/pages/admin` | `keep` |
+
+Notes:
+- `src/routes.tsx` is now the route config and `App.tsx` no longer uses a long string-if route chain.
+- Desktop navigation follows the requested IA, and mobile bottom tabs use Dashboard, People, Conversations, Memories, and My Account.
+- Dashboard now presents next actions, Persona gate checklist, and StoryBook source choices for PhotoMemory and AIInterviewSession.

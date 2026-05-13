@@ -1,10 +1,13 @@
 import type React from 'react'
+import { navItems as defaultNavItems } from '../../navigation'
 import './AppShell.css'
 
 type NavItem = {
   href: string
   label: string
   group?: string
+  mobile?: boolean
+  admin?: boolean
 }
 
 type AppShellProps = {
@@ -14,22 +17,6 @@ type AppShellProps = {
   badge?: string
   navItems?: NavItem[]
 }
-
-const defaultNavItems: NavItem[] = [
-  { href: '/home', label: 'Dashboard', group: 'Core' },
-  { href: '/targets', label: 'Targets', group: 'Core' },
-  { href: '/personas', label: 'Personas', group: 'Core' },
-  { href: '/persona-chat', label: 'Chat', group: 'Core' },
-  { href: '/persona-voice-call', label: 'Voice Call', group: 'Core' },
-  { href: '/interviews', label: 'Interviews', group: 'Memory' },
-  { href: '/photo-memories', label: 'Photos', group: 'Memory' },
-  { href: '/storybooks', label: 'Storybooks', group: 'Memory' },
-  { href: '/groups', label: 'Groups', group: 'Memory' },
-  { href: '/consents', label: 'Consents', group: 'Trust' },
-  { href: '/verification', label: 'Verification', group: 'Trust' },
-  { href: '/reports', label: 'Reports', group: 'Trust' },
-  { href: '/admin', label: 'Admin', group: 'Admin' },
-]
 
 function getGroupedNav(items: NavItem[]) {
   return items.reduce<Record<string, NavItem[]>>((groups, item) => {
@@ -77,7 +64,7 @@ export function DesktopNav({ items = defaultNavItems }: { items?: NavItem[] }) {
   )
 }
 
-export function BottomNav({ items = defaultNavItems.slice(0, 5) }: { items?: NavItem[] }) {
+export function BottomNav({ items = defaultNavItems.filter((item) => item.mobile) }: { items?: NavItem[] }) {
   const pathname = typeof window === 'undefined' ? '' : window.location.pathname
 
   return (
@@ -104,7 +91,7 @@ export function AppShell({ children, title, subtitle, badge, navItems = defaultN
         <Header title={title} subtitle={subtitle} badge={badge} />
         <PageContainer>{children}</PageContainer>
       </div>
-      <BottomNav items={navItems.slice(0, 5)} />
+      <BottomNav items={navItems.filter((item) => item.mobile)} />
     </main>
   )
 }

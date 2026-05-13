@@ -1,5 +1,5 @@
 import { apiClient } from '../lib/apiClient'
-import type { ApiId, StoryBook, StoryBookDetail, StoryChapter } from '../types/api'
+import type { ApiId, PaginatedResponse, StoryBook, StoryBookDetail, StoryChapter } from '../types/api'
 
 type CreateStorybookPayload = {
   title: string
@@ -9,16 +9,24 @@ type CreateStorybookPayload = {
 }
 
 export const storybookApi = {
-  listStorybooks() {
-    return apiClient.get<StoryBook[]>('/storybooks')
+  async listStorybooks(skip = 0, limit = 20) {
+    const response = await apiClient.get<PaginatedResponse<StoryBook> | StoryBook[]>(
+      `/storybooks?skip=${skip}&limit=${limit}`,
+    )
+
+    return Array.isArray(response) ? response : response.items
   },
 
   getStorybook(storybookId: ApiId) {
     return apiClient.get<StoryBookDetail>(`/storybooks/${storybookId}`)
   },
 
-  listChapters(storybookId: ApiId) {
-    return apiClient.get<StoryChapter[]>(`/storybooks/${storybookId}/chapters`)
+  async listChapters(storybookId: ApiId) {
+    const response = await apiClient.get<PaginatedResponse<StoryChapter> | StoryChapter[]>(
+      `/storybooks/${storybookId}/chapters`,
+    )
+
+    return Array.isArray(response) ? response : response.items
   },
 
   createStorybook(payload: CreateStorybookPayload) {

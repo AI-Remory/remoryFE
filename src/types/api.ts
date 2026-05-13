@@ -134,6 +134,27 @@ export type StoryBookDetail = StoryBook & {
   chapters?: StoryChapter[]
 }
 
+export type PhotoMemory = {
+  id: ApiId
+  user_id?: ApiId
+  target_id?: ApiId | null
+  title?: string | null
+  caption?: string | null
+  description?: string | null
+  summary?: string | null
+  image_url?: string | null
+  image_path?: string | null
+  photo_url?: string | null
+  photo_path?: string | null
+  thumbnail_url?: string | null
+  thumbnail_path?: string | null
+  file_path?: string | null
+  taken_at?: string | null
+  memory_date?: string | null
+  created_at?: string
+  updated_at?: string
+}
+
 export type TargetMediaUploadResponse = {
   file_id: ApiId
   target_id: ApiId

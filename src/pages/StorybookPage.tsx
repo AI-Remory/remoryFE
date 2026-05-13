@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
 import { normalizeAssetUrl } from '../lib/mediaUrl'
 import { ensureMomPersonaId } from '../services/personaSession'
+import { photoMemoryApi } from '../services/photoMemoryApi'
 import { storybookApi } from '../services/storybookApi'
-import type { StoryBook, StoryChapter } from '../types/api'
+import type { PhotoMemory, StoryBook, StoryChapter } from '../types/api'
 import './StorybookPage.css'
 
 type IconName =
@@ -89,6 +90,36 @@ function mapStoryChapters(apiChapters: StoryChapter[]): Chapter[] {
     duration: chapter.duration ? String(chapter.duration) : '0:00',
     icon: getChapterIcon(index),
   }))
+}
+
+function getPhotoMemoryImage(memory: PhotoMemory) {
+  return normalizeAssetUrl(
+    memory.thumbnail_url ??
+      memory.thumbnail_path ??
+      memory.image_url ??
+      memory.image_path ??
+      memory.photo_url ??
+      memory.photo_path ??
+      memory.file_path,
+  )
+}
+
+function mapPhotoMemories(apiPhotoMemories: PhotoMemory[]): Photo[] {
+  return apiPhotoMemories
+    .map((memory, index) => {
+      const src = getPhotoMemoryImage(memory)
+
+      if (!src) {
+        return null
+      }
+
+      return {
+        id: String(memory.id),
+        src,
+        alt: memory.title ?? memory.caption ?? memory.description ?? `추억 사진 ${index + 1}`,
+      }
+    })
+    .filter((photo): photo is Photo => photo !== null)
 }
 
 function StorybookIcon({ name }: { name: IconName }) {
@@ -181,6 +212,7 @@ function StorybookIcon({ name }: { name: IconName }) {
 function StorybookPage() {
   const [currentStorybook, setCurrentStorybook] = useState<StoryBook | null>(null)
   const [chapterItems, setChapterItems] = useState<Chapter[]>(chapters)
+  const [photoItems, setPhotoItems] = useState<Photo[]>(photos)
 
   useEffect(() => {
     let ignore = false
@@ -209,7 +241,26 @@ function StorybookPage() {
       }
     }
 
+    async function loadPhotoMemories() {
+      try {
+        const photoMemories = await photoMemoryApi.listPhotoMemories()
+
+        if (ignore || photoMemories.length === 0) {
+          return
+        }
+
+        const nextPhotoItems = mapPhotoMemories(photoMemories)
+
+        if (nextPhotoItems.length > 0) {
+          setPhotoItems(nextPhotoItems)
+        }
+      } catch {
+        // Keep the existing mock photo memories when the API is unavailable.
+      }
+    }
+
     loadStorybook()
+    loadPhotoMemories()
 
     return () => {
       ignore = true
@@ -288,7 +339,7 @@ function StorybookPage() {
             </button>
           </div>
           <div className="storybook-page__photo-list">
-            {photos.map((photo) => (
+            {photoItems.map((photo) => (
               <button className="storybook-page__photo-card" type="button" key={photo.id} onClick={() => console.log('open photo', photo.id)}>
                 <img src={normalizeAssetUrl(photo.src) || photo.src} alt={photo.alt} />
               </button>

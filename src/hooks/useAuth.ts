@@ -6,6 +6,7 @@ import type { AuthResponse, LoginRequest, RegisterRequest, UserResponse } from '
 type AuthContextValue = {
   user: UserResponse | null
   isAuthenticated: boolean
+  isAdmin: boolean
   isLoading: boolean
   login: (payload: LoginRequest) => Promise<AuthResponse>
   register: (payload: RegisterRequest) => Promise<AuthResponse>
@@ -97,6 +98,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     () => ({
       user,
       isAuthenticated: Boolean(user && getAccessToken()),
+      isAdmin: user?.role === 'admin' || user?.role === 'ADMIN',
       isLoading,
       login,
       register,

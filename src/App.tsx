@@ -2,9 +2,19 @@ import { useAuth } from './hooks/useAuth'
 import { matchRoute } from './routes'
 import './App.css'
 
+function AdminAccessDenied() {
+  return (
+    <main className="app-loading" role="alert">
+      관리자 권한이 없습니다. 관리자 기능은 /auth/me 응답의 role이 ADMIN 또는 admin일 때만 사용할 수 있습니다.
+      <br />
+      <a href="/dashboard">대시보드로 이동</a>
+    </main>
+  )
+}
+
 function App() {
   const { pathname } = window.location
-  const { isAuthenticated, isLoading } = useAuth()
+  const { isAuthenticated, isLoading, isAdmin } = useAuth()
   const route = matchRoute(pathname)
 
   if (isLoading) {
@@ -21,8 +31,9 @@ function App() {
     return <main className="app-loading">로그인 화면으로 이동하는 중...</main>
   }
 
-  // TODO: Backend docs say admin APIs require User.role == "admin", but OpenAPI UserResponse has no role field.
-  // Do not infer admin rights client-side; /admin/* endpoints return 403 for non-admin tokens.
+  if (route?.group === 'admin' && !isAdmin) {
+    return <AdminAccessDenied />
+  }
 
   const Page = route?.component
 

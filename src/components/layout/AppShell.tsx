@@ -1,4 +1,5 @@
 import type React from 'react'
+import { useAuth } from '../../hooks/useAuth'
 import { navItems as defaultNavItems } from '../../navigation'
 import './AppShell.css'
 
@@ -50,11 +51,7 @@ export function DesktopNav({ items = defaultNavItems }: { items?: NavItem[] }) {
         <section key={group}>
           <h2>{group}</h2>
           {groupItems.map((item) => (
-            <a
-              aria-current={pathname.startsWith(item.href) ? 'page' : undefined}
-              href={item.href}
-              key={item.href}
-            >
+            <a aria-current={pathname.startsWith(item.href) ? 'page' : undefined} href={item.href} key={item.href}>
               {item.label}
             </a>
           ))}
@@ -84,14 +81,17 @@ export function PageContainer({ children }: { children: React.ReactNode }) {
 }
 
 export function AppShell({ children, title, subtitle, badge, navItems = defaultNavItems }: AppShellProps) {
+  const { isAdmin, isLoading } = useAuth()
+  const visibleNavItems = isLoading || !isAdmin ? navItems.filter((item) => !item.admin) : navItems
+
   return (
     <main className="app-shell">
-      <DesktopNav items={navItems} />
+      <DesktopNav items={visibleNavItems} />
       <div className="app-shell__main">
         <Header title={title} subtitle={subtitle} badge={badge} />
         <PageContainer>{children}</PageContainer>
       </div>
-      <BottomNav items={navItems.filter((item) => item.mobile)} />
+      <BottomNav items={visibleNavItems.filter((item) => item.mobile)} />
     </main>
   )
 }

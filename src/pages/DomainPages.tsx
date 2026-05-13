@@ -5,8 +5,10 @@ import { useVoiceCall } from '../hooks/useVoiceCall'
 import { ApiError } from '../services/apiClient'
 import { chatService } from '../services/chatService'
 import { mediaService } from '../services/mediaService'
+import { mockFeatureService } from '../services/mock/mockFeatureService'
 import { personaService } from '../services/personaService'
 import { targetService } from '../services/targetService'
+import type { MockFeaturePageKey } from '../data/mockFeaturePages'
 import type { ChatId, PersonaChatResponse, PersonaMessageResponse, SenderType } from '../types/chat'
 import type { MediaType, TargetMediaResponse } from '../types/media'
 import type { PersonaDetailResponse, PersonaStatus, PersonaStatusResponse } from '../types/persona'
@@ -1737,6 +1739,97 @@ function PersonaVoiceCallApiPage() {
   )
 }
 
+function MockFeaturePage({ pageKey }: { pageKey: MockFeaturePageKey }) {
+  const page = mockFeatureService.getPage(pageKey)
+
+  return (
+    <AppShell title={page.title} subtitle={page.description} badge={page.badge}>
+      <main className="domain-page mock-feature-page">
+        <header className="domain-page__hero">
+          <div>
+            <span className="domain-page__eyebrow">{page.eyebrow}</span>
+            <h1>{page.title}</h1>
+            <p>{page.description}</p>
+          </div>
+          <span className="domain-page__badge domain-page__badge--next">{page.badge}</span>
+        </header>
+
+        <section className="domain-page__metrics" aria-label={`${page.title} summary`}>
+          {page.metrics.map((metric) => (
+            <article key={metric.label}>
+              <span>{metric.label}</span>
+              <strong>{metric.value}</strong>
+            </article>
+          ))}
+        </section>
+
+        <section className="mock-feature-layout">
+          <div className="mock-feature-panel">
+            <div className="mock-feature-panel__heading">
+              <div>
+                <span>{page.priority}</span>
+                <h2>{page.detailTitle}</h2>
+                <p>{page.detailDescription}</p>
+              </div>
+            </div>
+
+            <div className="mock-feature-list" aria-label={`${page.title} mock records`}>
+              {page.records.map((record) => (
+                <article className="mock-feature-card" key={record.id}>
+                  <div className="mock-feature-card__heading">
+                    <div>
+                      <h3>{record.title}</h3>
+                      <p>{record.subtitle}</p>
+                    </div>
+                    <span className={`mock-feature-status mock-feature-status--${record.statusTone}`}>{record.status}</span>
+                  </div>
+                  <dl>
+                    {record.meta.map(([term, value]) => (
+                      <div key={`${record.id}-${term}`}>
+                        <dt>{term}</dt>
+                        <dd>{value}</dd>
+                      </div>
+                    ))}
+                  </dl>
+                </article>
+              ))}
+            </div>
+          </div>
+
+          <aside className="mock-feature-panel mock-feature-panel--side">
+            <section>
+              <h2>Available later</h2>
+              <div className="mock-feature-actions">
+                {page.actions.map((action) => (
+                  <button disabled key={action.label} title={action.disabledReason} type="button">
+                    {action.label}
+                  </button>
+                ))}
+              </div>
+              <p className="mock-feature-disabled-note">
+                These controls are intentionally disabled because this page is a mock skeleton. {page.developerNote}
+              </p>
+            </section>
+
+            <section className="mock-feature-endpoints" aria-label="Planned API endpoints">
+              <h2>Planned API paths</h2>
+              <ul>
+                {page.endpoints.map((endpoint) => (
+                  <li key={`${endpoint.method}-${endpoint.path}`}>
+                    <span>{endpoint.method}</span>
+                    <code>{endpoint.path}</code>
+                    {'note' in endpoint && endpoint.note && <small>{endpoint.note}</small>}
+                  </li>
+                ))}
+              </ul>
+            </section>
+          </aside>
+        </section>
+      </main>
+    </AppShell>
+  )
+}
+
 const priorityBadge = {
   connected: 'API 연결됨',
   next: 'API 연결 예정',
@@ -2263,6 +2356,9 @@ function DomainShell({ config }: { config: DomainPageConfig }) {
   )
 }
 
+void configs
+void DomainShell
+
 export function TargetListPage() {
   return <TargetListApiPage />
 }
@@ -2280,11 +2376,11 @@ export function TargetMediaPage() {
 }
 
 export function ConsentPage() {
-  return <DomainShell config={configs.consent} />
+  return <MockFeaturePage pageKey="consentLog" />
 }
 
 export function TargetVerificationPage() {
-  return <DomainShell config={configs.verification} />
+  return <MockFeaturePage pageKey="targetVerificationRequest" />
 }
 
 export function PersonaListPage() {
@@ -2296,7 +2392,7 @@ export function PersonaDetailPage() {
 }
 
 export function PersonaVoiceProfilePage() {
-  return <DomainShell config={configs.voiceProfile} />
+  return <MockFeaturePage pageKey="personaVoiceProfile" />
 }
 
 export function PersonaChatPage() {
@@ -2308,65 +2404,65 @@ export function PersonaVoiceCallPage() {
 }
 
 export function InterviewListPage() {
-  return <DomainShell config={configs.interviewList} />
+  return <MockFeaturePage pageKey="aiInterviewSession" />
 }
 
 export function InterviewSessionPage() {
-  return <DomainShell config={configs.interviewSession} />
+  return <MockFeaturePage pageKey="aiInterviewSession" />
 }
 
 export function PhotoMemoryListPage() {
-  return <DomainShell config={configs.photoList} />
+  return <MockFeaturePage pageKey="photoMemory" />
 }
 
 export function PhotoMemoryUploadPage() {
-  return <DomainShell config={configs.photoUpload} />
+  return <MockFeaturePage pageKey="photoMemory" />
 }
 
 export function StorybookListPage() {
-  return <DomainShell config={configs.storyList} />
+  return <MockFeaturePage pageKey="storybook" />
 }
 
 export function StorybookDetailPage() {
-  return <DomainShell config={configs.storyDetail} />
+  return <MockFeaturePage pageKey="storybook" />
 }
 
 export function StorybookCreatePage() {
-  return <DomainShell config={configs.storyCreate} />
+  return <MockFeaturePage pageKey="storybookCreate" />
 }
 
 export function StorybookSharePage() {
-  return <DomainShell config={configs.storyShare} />
+  return <MockFeaturePage pageKey="shareLink" />
 }
 
 export function MemoryGroupListPage() {
-  return <DomainShell config={configs.groupList} />
+  return <MockFeaturePage pageKey="memoryGroup" />
 }
 
 export function MemoryGroupDetailPage() {
-  return <DomainShell config={configs.groupDetail} />
+  return <MockFeaturePage pageKey="memoryGroup" />
 }
 
 export function DeletionRequestPage() {
-  return <DomainShell config={configs.deletion} />
+  return <MockFeaturePage pageKey="deletionRequest" />
 }
 
 export function ReportPage() {
-  return <DomainShell config={configs.report} />
+  return <MockFeaturePage pageKey="report" />
 }
 
 export function AdminDashboardPage() {
-  return <DomainShell config={configs.adminDashboard} />
+  return <MockFeaturePage pageKey="adminDashboard" />
 }
 
 export function AdminVerificationReviewPage() {
-  return <DomainShell config={configs.adminVerification} />
+  return <MockFeaturePage pageKey="adminVerificationReview" />
 }
 
 export function AdminReportsPage() {
-  return <DomainShell config={configs.adminReports} />
+  return <MockFeaturePage pageKey="adminReports" />
 }
 
 export function AdminAuditLogsPage() {
-  return <DomainShell config={configs.adminAudit} />
+  return <MockFeaturePage pageKey="adminAuditLogs" />
 }

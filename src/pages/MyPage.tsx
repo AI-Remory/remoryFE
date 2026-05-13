@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
+import { normalizeAssetUrl } from '../lib/mediaUrl'
 import { authApi } from '../services/authApi'
-import { ensureMomPersonaId } from '../services/personaSession'
+import { ensureMomPersonaId, REMORY_PERSONA_ID_KEY } from '../services/personaSession'
 import { storybookApi } from '../services/storybookApi'
 import { targetApi } from '../services/targetApi'
 import type { Target } from '../types/api'
@@ -80,7 +81,9 @@ function mapTargetsToPersonas(targets: Target[]): MyPersona[] {
       personaId: personaId === undefined || personaId === null ? undefined : String(personaId),
       name: target.nickname ?? target.name ?? target.persona?.nickname ?? target.persona?.name ?? `페르소나 ${index + 1}`,
       description: target.description ?? target.target_type ?? target.relationship ?? target.persona?.description ?? '소중한 기억을 담고 있는 분',
-      image: target.image_url ?? target.profile_image_path ?? target.persona?.image_url ?? mockPersonas[index]?.image ?? '/images/my-page/persona-mom.png',
+      image: normalizeAssetUrl(
+        target.image_url ?? target.profile_image_path ?? target.persona?.image_url ?? mockPersonas[index]?.image,
+      ) || '/images/my-page/persona-mom.png',
     }
   })
 }
@@ -217,7 +220,7 @@ function MyPage() {
           setPersonaItems(nextPersonas)
 
           if (nextPersonas[0].personaId) {
-            window.localStorage.setItem('remory_persona_id', nextPersonas[0].personaId)
+            window.localStorage.setItem(REMORY_PERSONA_ID_KEY, nextPersonas[0].personaId)
           }
         }
       } catch {
@@ -246,8 +249,8 @@ function MyPage() {
     try {
       await ensureMomPersonaId()
       window.location.href = '/chat'
-    } catch (error) {
-      console.error('Failed to prepare persona before chat navigation', error)
+    } catch {
+      window.location.href = '/setup'
     }
   }
 
@@ -320,9 +323,9 @@ function MyPage() {
                 className="my-page__persona-card"
                 type="button"
                 key={persona.id}
-                onClick={() => {
-                  if (persona.personaId) {
-                    window.localStorage.setItem('remory_persona_id', persona.personaId)
+              onClick={() => {
+                if (persona.personaId) {
+                    window.localStorage.setItem(REMORY_PERSONA_ID_KEY, persona.personaId)
                   }
                 }}
               >
@@ -337,7 +340,7 @@ function MyPage() {
               </button>
             ))}
           </div>
-          <button className="my-page__create-persona" type="button" onClick={() => console.log('create persona')}>
+          <button className="my-page__create-persona" type="button" onClick={() => { window.location.href = '/setup' }}>
             + 새 페르소나 만들기
           </button>
         </section>

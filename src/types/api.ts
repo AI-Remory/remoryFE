@@ -4,6 +4,8 @@ export type User = {
   id: ApiId
   email: string
   nickname: string
+  profile_image_url?: string | null
+  profile_image_path?: string | null
   created_at?: string
   updated_at?: string
 }
@@ -136,4 +138,71 @@ export type TargetMediaUploadResponse = {
   file_size: number
   mime_type: string
   message: string
+}
+
+export type TargetMedia = {
+  id: ApiId
+  target_id?: ApiId
+  media_type?: 'image' | 'voice' | string
+  file_path?: string | null
+  url?: string | null
+  original_filename?: string | null
+  stored_filename?: string | null
+  file_size?: number | null
+  mime_type?: string | null
+  created_at?: string
+  updated_at?: string
+}
+
+export type ConsentType =
+  | 'target_profile_consent'
+  | 'photo_upload_consent'
+  | 'voice_upload_consent'
+  | 'voice_cloning_consent'
+  | 'ai_persona_creation_consent'
+  | 'ai_response_notice_consent'
+  | 'storybook_share_consent'
+  | 'group_share_consent'
+  | 'data_retention_consent'
+  | 'third_party_ai_processing_consent'
+
+export type Consent = {
+  id: ApiId
+  target_id?: ApiId
+  consent_type: ConsentType | string
+  is_consented?: boolean
+  is_revoked?: boolean
+  revoked_at?: string | null
+  created_at?: string
+  updated_at?: string
+}
+
+export type VerificationType =
+  | 'FAMILY_RELATION_CERTIFICATE'
+  | 'ID_CARD'
+  | 'SELF_DECLARATION'
+  | 'OTHER'
+
+export type VerificationStatus =
+  | 'PENDING'
+  | 'NEED_MORE_INFO'
+  | 'APPROVED'
+  | 'REJECTED'
+  | 'EXPIRED'
+  | 'REVOKED'
+  | string
+
+export type VerificationRequest = {
+  id: ApiId
+  target_id?: ApiId
+  verification_type?: VerificationType | string
+  verification_type_param?: VerificationType | string
+  applicant_note?: string | null
+  status?: VerificationStatus
+  reject_reason?: string | null
+  reason?: string | null
+  reviewer_note?: string | null
+  file_path?: string | null
+  created_at?: string
+  updated_at?: string
 }

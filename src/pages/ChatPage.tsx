@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react'
 import { ApiError } from '../lib/apiClient'
+import { normalizeAssetUrl } from '../lib/mediaUrl'
 import { chatApi } from '../services/chatApi'
 import { ensureMomPersonaId, REMORY_CHAT_ID_KEY } from '../services/personaSession'
+import { targetApi } from '../services/targetApi'
 import type { ApiId, ChatMessage as ApiChatMessage } from '../types/api'
 import './ChatPage.css'
 
@@ -11,12 +13,25 @@ type ChatMessage = {
   id: string
   sender: Sender
   text: string
+  audioUrl?: string
   time: string
 }
 
-type IconName = 'back' | 'history' | 'chevron' | 'sparkle' | 'book' | 'leaf' | 'send' | 'home' | 'chat' | 'my'
+type ChatPersona = {
+  name: string
+  subtitle: string
+  description: string
+  image: string
+}
 
-const momAvatar = '/images/my-page/persona-mom.png'
+type IconName = 'back' | 'history' | 'chevron' | 'sparkle' | 'book' | 'leaf' | 'mic' | 'send' | 'home' | 'chat' | 'my'
+
+const defaultPersona: ChatPersona = {
+  name: '엄마',
+  subtitle: '따뜻한 조언을 해주는 분',
+  description: '가족의 추억과 사랑을 기억하고 있어요.',
+  image: '/images/my-page/persona-mom.png',
+}
 const MOCK_CHAT_MESSAGES_KEY = 'remory_mock_chat_messages'
 
 const initialMessages: ChatMessage[] = [
@@ -66,10 +81,13 @@ function isUserMessage(message: ApiChatMessage) {
 }
 
 function mapApiMessage(message: ApiChatMessage): ChatMessage {
+  const audioUrl = normalizeAssetUrl(message.audio_file_path)
+
   return {
     id: String(message.id),
     sender: isUserMessage(message) ? 'user' : 'mom',
-    text: message.content ?? '(음성 메시지)',
+    text: message.content ?? (audioUrl ? '음성 메시지' : ''),
+    audioUrl: audioUrl || undefined,
     time: formatMessageTime(message.created_at),
   }
 }
@@ -81,6 +99,10 @@ function isBackendPersonaId(personaId: string) {
 function getChatErrorMessage(error: unknown, fallbackMessage: string) {
   if (error instanceof ApiError && error.status === 0) {
     return '백엔드 채팅 서버에 연결할 수 없습니다. 서버 실행 상태를 확인해주세요.'
+  }
+
+  if (error instanceof ApiError) {
+    return error.message
   }
 
   return fallbackMessage
@@ -126,6 +148,13 @@ function ChatIcon({ name }: { name: IconName }) {
           <path d="M5 17.5c3-3.1 6.1-5.2 10-6.7" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
         </svg>
       )
+    case 'mic':
+      return (
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <rect x="9" y="3.5" width="6" height="11" rx="3" stroke="currentColor" strokeWidth="1.8" />
+          <path d="M5.5 11.5a6.5 6.5 0 0 0 13 0M12 18v3M8.5 21h7" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+        </svg>
+      )
     case 'send':
       return (
         <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -159,6 +188,7 @@ function ChatPage() {
   const [messages, setMessages] = useState<ChatMessage[]>(initialMessages)
   const [input, setInput] = useState('')
   const [chatId, setChatId] = useState<ApiId | null>(null)
+  const [persona, setPersona] = useState<ChatPersona>(defaultPersona)
   const [isSending, setIsSending] = useState(false)
   const [isPreparingChat, setIsPreparingChat] = useState(false)
   const [errorMessage, setErrorMessage] = useState('')
@@ -173,6 +203,29 @@ function ChatPage() {
 
       try {
         const personaId = await ensureMomPersonaId()
+        const targets = await targetApi.listTargets().catch(() => null)
+        const currentTarget = targets?.items.find((target) => {
+          const targetPersonaId = target.persona_id ?? target.persona?.id
+          return targetPersonaId !== undefined && targetPersonaId !== null && String(targetPersonaId) === personaId
+        })
+        const currentPersonaName =
+          currentTarget?.nickname ??
+          currentTarget?.name ??
+          currentTarget?.persona?.nickname ??
+          currentTarget?.persona?.name ??
+          defaultPersona.name
+
+        if (!ignore && currentTarget) {
+          setPersona({
+            name: currentPersonaName,
+            subtitle: currentTarget.description ?? currentTarget.relationship ?? currentTarget.target_type ?? defaultPersona.subtitle,
+            description: currentTarget.persona?.description ?? '소중한 기억과 대화를 이어가고 있어요.',
+            image: normalizeAssetUrl(
+              currentTarget.image_url ?? currentTarget.profile_image_path ?? currentTarget.persona?.image_url,
+            ) || defaultPersona.image,
+          })
+        }
+
         let chat
 
         try {
@@ -182,7 +235,7 @@ function ChatPage() {
             ? chats.find((item) => String(item.id) === storedChatId)
             : undefined
 
-          chat = storedChat ?? chats[0] ?? await chatApi.createChat(personaId, '엄마와 대화')
+          chat = storedChat ?? chats[0] ?? await chatApi.createChat(personaId, `${currentPersonaName}와 대화`)
         } catch (error) {
           throw new Error(getChatErrorMessage(error, '채팅방을 준비하지 못했습니다. 다시 시도해주세요.'), {
             cause: error,
@@ -252,12 +305,12 @@ function ChatPage() {
 
   return (
     <main className="chat-page">
-      <section className="chat-page__container" aria-label="엄마와 대화">
+      <section className="chat-page__container" aria-label={`${persona.name}와 대화`}>
         <header className="chat-page__header">
           <button className="chat-page__back-button" type="button" aria-label="이전 화면으로 돌아가기" onClick={() => window.history.back()}>
             <ChatIcon name="back" />
           </button>
-          <h1 className="chat-page__title">엄마와 대화</h1>
+          <h1 className="chat-page__title">{persona.name}와 대화</h1>
           <button className="chat-page__history-button" type="button" aria-label="대화 기록 열기" onClick={() => console.log('open chat history')}>
             <ChatIcon name="history" />
           </button>
@@ -267,18 +320,18 @@ function ChatPage() {
 
         <button className="chat-page__persona-card" type="button" onClick={() => console.log('open persona detail')}>
           <span className="chat-page__persona-avatar">
-            <img src={momAvatar} alt="엄마 페르소나" />
+            <img src={persona.image} alt={`${persona.name} 페르소나`} />
           </span>
           <span className="chat-page__persona-info">
             <span className="chat-page__persona-title-row">
-              <strong>엄마</strong>
+              <strong>{persona.name}</strong>
               <span className="chat-page__persona-badge">
                 <ChatIcon name="sparkle" />
                 AI 페르소나
               </span>
             </span>
-            <span className="chat-page__persona-subtitle">따뜻한 조언을 해주는 분</span>
-            <span className="chat-page__persona-description">가족의 추억과 사랑을 기억하고 있어요.</span>
+            <span className="chat-page__persona-subtitle">{persona.subtitle}</span>
+            <span className="chat-page__persona-description">{persona.description}</span>
           </span>
           <ChatIcon name="chevron" />
         </button>
@@ -292,16 +345,22 @@ function ChatPage() {
                 return (
                   <div className="chat-page__message-row chat-page__message-row--user" key={message.id}>
                     <span className="chat-page__time">{message.time}</span>
-                    <p className="chat-page__bubble chat-page__bubble--user">{message.text}</p>
+                    <p className="chat-page__bubble chat-page__bubble--user">
+                      {message.text}
+                      {message.audioUrl && <audio className="chat-page__audio" src={message.audioUrl} controls />}
+                    </p>
                   </div>
                 )
               }
 
               return (
                 <div className="chat-page__message-row chat-page__message-row--persona" key={message.id}>
-                  <img className="chat-page__message-avatar" src={momAvatar} alt="" aria-hidden="true" />
+                  <img className="chat-page__message-avatar" src={persona.image} alt="" aria-hidden="true" />
                   <div>
-                    <p className="chat-page__bubble chat-page__bubble--persona">{message.text}</p>
+                    <p className="chat-page__bubble chat-page__bubble--persona">
+                      {message.text}
+                      {message.audioUrl && <audio className="chat-page__audio" src={message.audioUrl} controls />}
+                    </p>
                     <span className="chat-page__time">{message.time}</span>
                   </div>
                 </div>
@@ -314,6 +373,15 @@ function ChatPage() {
           <button className="chat-page__storybook-button" type="button" onClick={() => console.log('create storybook from chat')}>
             <ChatIcon name="book" />
             스토리북으로 만들기
+          </button>
+
+          <button
+            className="chat-page__voice-notice-button"
+            type="button"
+            onClick={() => setErrorMessage('음성 대화는 WSS 프록시 설정 후 사용할 수 있어요.')}
+          >
+            <ChatIcon name="mic" />
+            음성 대화
           </button>
 
           <div className="chat-page__composer">

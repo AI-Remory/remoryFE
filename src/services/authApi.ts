@@ -1,4 +1,4 @@
-import { apiClient, clearTokens, setTokens } from '../lib/apiClient'
+import { apiClient, clearTokens, getRefreshToken, setTokens } from '../lib/apiClient'
 import type { AuthResponse, User } from '../types/api'
 
 type RegisterPayload = {
@@ -32,8 +32,34 @@ export const authApi = {
     return apiClient.get<User>('/auth/me')
   },
 
-  logout() {
-    clearTokens()
-    window.location.href = '/auth'
+  async refreshToken() {
+    const refreshToken = getRefreshToken()
+
+    if (!refreshToken) {
+      throw new Error('저장된 refresh token이 없습니다.')
+    }
+
+    const response = await apiClient.post<AuthResponse>(
+      '/auth/refresh-token',
+      { refresh_token: refreshToken },
+      { auth: false },
+    )
+
+    return persistAuthResponse(response)
+  },
+
+  async logout() {
+    const refreshToken = getRefreshToken()
+
+    try {
+      if (refreshToken) {
+        await apiClient.post<void>('/auth/logout', { refresh_token: refreshToken })
+      }
+    } catch {
+      // Logout must clear local auth state even if the server-side revoke fails.
+    } finally {
+      clearTokens()
+      window.location.href = '/auth'
+    }
   },
 }

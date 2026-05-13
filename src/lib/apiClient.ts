@@ -1,7 +1,19 @@
 const DEFAULT_API_BASE_URL = '/api/v1'
 
 function normalizeApiBaseUrl(baseUrl: string) {
-  const normalizedBase = baseUrl.replace(/\/+$/, '')
+  const trimmedBaseUrl = baseUrl.trim() || DEFAULT_API_BASE_URL
+  let normalizedBase = trimmedBaseUrl
+
+  if (/^https?:\/\//i.test(trimmedBaseUrl)) {
+    try {
+      const url = new URL(trimmedBaseUrl)
+      normalizedBase = url.pathname || DEFAULT_API_BASE_URL
+    } catch {
+      normalizedBase = DEFAULT_API_BASE_URL
+    }
+  }
+
+  normalizedBase = normalizedBase.replace(/\/+$/, '')
 
   return normalizedBase.endsWith('/api/v1') ? normalizedBase : `${normalizedBase}/api/v1`
 }
@@ -11,7 +23,7 @@ export const API_BASE_URL = normalizeApiBaseUrl(import.meta.env.VITE_API_BASE_UR
 export const ACCESS_TOKEN_KEY = 'remory_access_token'
 export const REFRESH_TOKEN_KEY = 'remory_refresh_token'
 
-type ApiErrorDetailItem = string | { msg?: string; message?: string }
+type ApiErrorDetailItem = string | { msg?: string; message?: string; loc?: unknown; type?: string }
 type ApiErrorDetail = ApiErrorDetailItem | ApiErrorDetailItem[] | null
 
 type RequestOptions = {
@@ -49,6 +61,12 @@ export function setTokens(accessToken: string, refreshToken: string) {
 export function clearTokens() {
   window.localStorage.removeItem(ACCESS_TOKEN_KEY)
   window.localStorage.removeItem(REFRESH_TOKEN_KEY)
+}
+
+function redirectToAuth() {
+  if (window.location.pathname !== '/auth') {
+    window.location.href = '/auth'
+  }
 }
 
 function buildUrl(path: string) {
@@ -89,6 +107,24 @@ function getDetailMessage(detail: ApiErrorDetail) {
   return 'API 요청에 실패했습니다.'
 }
 
+function extractErrorDetail(parsed: unknown): ApiErrorDetail {
+  if (!isRecord(parsed)) {
+    return null
+  }
+
+  const detail = parsed.detail
+
+  if (typeof detail === 'string' || Array.isArray(detail)) {
+    return detail as ApiErrorDetail
+  }
+
+  if (isRecord(detail)) {
+    return detail as ApiErrorDetail
+  }
+
+  return null
+}
+
 async function parseResponse(response: Response) {
   if (response.status === 204) {
     return undefined
@@ -97,14 +133,18 @@ async function parseResponse(response: Response) {
   const contentType = response.headers.get('content-type') ?? ''
 
   if (contentType.includes('application/json')) {
-    return response.json()
+    try {
+      return await response.json()
+    } catch {
+      return undefined
+    }
   }
 
   const text = await response.text()
   return text || undefined
 }
 
-export async function apiRequest<T>(path: string, options: RequestOptions = {}): Promise<T> {
+function buildRequestInit(options: RequestOptions): RequestInit {
   const headers = new Headers(options.headers)
   const method = options.method ?? 'GET'
 
@@ -127,30 +167,93 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
     }
   }
 
+  return {
+    method,
+    headers,
+    body,
+  }
+}
+
+let refreshPromise: Promise<boolean> | null = null
+
+async function refreshAccessToken() {
+  const refreshToken = getRefreshToken()
+
+  if (!refreshToken) {
+    return false
+  }
+
+  try {
+    const response = await fetch(buildUrl('/auth/refresh-token'), {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ refresh_token: refreshToken }),
+    })
+
+    if (!response.ok) {
+      return false
+    }
+
+    const parsed = await parseResponse(response)
+
+    if (!isRecord(parsed) || typeof parsed.access_token !== 'string') {
+      return false
+    }
+
+    const nextRefreshToken = typeof parsed.refresh_token === 'string' ? parsed.refresh_token : refreshToken
+    setTokens(parsed.access_token, nextRefreshToken)
+
+    return true
+  } catch {
+    return false
+  }
+}
+
+async function refreshAccessTokenOnce() {
+  if (!refreshPromise) {
+    refreshPromise = refreshAccessToken().finally(() => {
+      refreshPromise = null
+    })
+  }
+
+  return refreshPromise
+}
+
+export async function apiRequest<T>(
+  path: string,
+  options: RequestOptions = {},
+  retryOnUnauthorized = true,
+): Promise<T> {
   let response: Response
 
   try {
-    response = await fetch(buildUrl(path), {
-      method,
-      headers,
-      body,
-    })
+    response = await fetch(buildUrl(path), buildRequestInit(options))
   } catch {
     throw new ApiError('백엔드 서버에 연결할 수 없습니다. 서버 실행 상태와 API 주소를 확인해주세요.', 0, null)
   }
 
   const parsed = await parseResponse(response)
 
-  if (!response.ok) {
-    if (response.status === 401) {
-      clearTokens()
-    }
-
-    const detail = isRecord(parsed) ? (parsed.detail as ApiErrorDetail | undefined) ?? null : null
-    throw new ApiError(getDetailMessage(detail), response.status, detail)
+  if (response.ok) {
+    return parsed as T
   }
 
-  return parsed as T
+  const detail = extractErrorDetail(parsed)
+
+  if (response.status === 401 && options.auth !== false && retryOnUnauthorized && path !== '/auth/refresh-token') {
+    const refreshed = await refreshAccessTokenOnce()
+
+    if (refreshed) {
+      return apiRequest<T>(path, options, false)
+    }
+
+    clearTokens()
+    redirectToAuth()
+  }
+
+  throw new ApiError(getDetailMessage(detail), response.status, detail)
 }
 
 export const apiClient = {
@@ -160,6 +263,8 @@ export const apiClient = {
     apiRequest<T>(path, { ...options, method: 'POST', body }),
   put: <T>(path: string, body?: unknown, options?: Omit<RequestOptions, 'method' | 'body'>) =>
     apiRequest<T>(path, { ...options, method: 'PUT', body }),
+  patch: <T>(path: string, body?: unknown, options?: Omit<RequestOptions, 'method' | 'body'>) =>
+    apiRequest<T>(path, { ...options, method: 'PATCH', body }),
   delete: <T>(path: string, options?: Omit<RequestOptions, 'method' | 'body'>) =>
     apiRequest<T>(path, { ...options, method: 'DELETE' }),
 }

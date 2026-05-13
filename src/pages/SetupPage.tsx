@@ -1,11 +1,22 @@
 import { useEffect, useState, type ChangeEvent, type FormEvent } from 'react'
+import { ApiError } from '../lib/apiClient'
+import { consentApi, CONSENT_TYPES } from '../services/consentApi'
 import { REMORY_PERSONA_ID_KEY, REMORY_TARGET_ID_KEY } from '../services/personaSession'
 import { targetApi } from '../services/targetApi'
-import type { ApiId } from '../types/api'
+import { verificationApi } from '../services/verificationApi'
+import type { ApiId, ConsentType, VerificationRequest, VerificationStatus, VerificationType } from '../types/api'
 import './SetupPage.css'
 
 type SetupStep = 1 | 2 | 3 | 4 | 5
-type ConsentKey = 'privacy' | 'photo' | 'voice' | 'persona'
+type ConsentKey =
+  | 'privacy'
+  | 'photo'
+  | 'voice'
+  | 'voiceCloning'
+  | 'persona'
+  | 'aiNotice'
+  | 'dataRetention'
+  | 'thirdPartyAi'
 type SetupIconName =
   | 'arrow'
   | 'back'
@@ -45,12 +56,34 @@ const defaultPhotoPreviewPaths = [
 ]
 const relationshipChoices: RelationshipChoice[] = ['엄마', '아빠', '할머니', '친구', '직접 입력']
 
-const consentItems: Array<{ key: ConsentKey; label: string }> = [
-  { key: 'privacy', label: '개인정보 수집 및 이용' },
-  { key: 'photo', label: '사진 데이터 사용' },
-  { key: 'voice', label: '음성 데이터 사용' },
-  { key: 'persona', label: 'AI 페르소나 생성을 위한 데이터 활용' },
+const consentItems: Array<{ key: ConsentKey; label: string; type: ConsentType }> = [
+  { key: 'privacy', label: '개인정보 및 프로필 동의', type: CONSENT_TYPES.targetProfile },
+  { key: 'photo', label: '사진 업로드 동의', type: CONSENT_TYPES.photoUpload },
+  { key: 'voice', label: '음성 업로드 동의', type: CONSENT_TYPES.voiceUpload },
+  { key: 'voiceCloning', label: '음성 클로닝 동의', type: CONSENT_TYPES.voiceCloning },
+  { key: 'persona', label: 'AI 페르소나 생성 동의', type: CONSENT_TYPES.aiPersonaCreation },
+  { key: 'aiNotice', label: 'AI 응답 고지 동의', type: CONSENT_TYPES.aiResponseNotice },
+  { key: 'dataRetention', label: '데이터 보관 동의', type: CONSENT_TYPES.dataRetention },
+  { key: 'thirdPartyAi', label: '외부 AI 처리 동의', type: CONSENT_TYPES.thirdPartyAiProcessing },
 ]
+
+const defaultConsents: Record<ConsentKey, boolean> = {
+  privacy: false,
+  photo: false,
+  voice: false,
+  voiceCloning: false,
+  persona: false,
+  aiNotice: false,
+  dataRetention: false,
+  thirdPartyAi: false,
+}
+
+const resubmittableVerificationStatuses = new Set<VerificationStatus>([
+  'NEED_MORE_INFO',
+  'REJECTED',
+  'EXPIRED',
+  'REVOKED',
+])
 
 function SetupIcon({ name, className }: { name: SetupIconName; className?: string }) {
   switch (name) {
@@ -234,14 +267,69 @@ function mapRelationshipToTargetType(relationship: RelationshipChoice, customRel
   }
 }
 
+function getApiErrorMessage(error: unknown, fallbackMessage: string) {
+  if (error instanceof ApiError) {
+    return error.message
+  }
+
+  return fallbackMessage
+}
+
+function getLatestVerificationRequest(requests: VerificationRequest[]) {
+  return [...requests].sort((left, right) => {
+    const leftTime = left.created_at ? new Date(left.created_at).getTime() : 0
+    const rightTime = right.created_at ? new Date(right.created_at).getTime() : 0
+
+    return rightTime - leftTime
+  })[0] ?? null
+}
+
+function getVerificationStatusTitle(status: VerificationStatus | null) {
+  switch (status) {
+    case null:
+      return '검증 요청 없음'
+    case 'PENDING':
+      return '검수 대기 중'
+    case 'NEED_MORE_INFO':
+      return '추가 정보 필요'
+    case 'APPROVED':
+      return '검증 승인 완료'
+    case 'REJECTED':
+      return '검증 거절'
+    case 'EXPIRED':
+      return '검증 만료'
+    case 'REVOKED':
+      return '검증 철회'
+    default:
+      return String(status)
+  }
+}
+
+function getVerificationStatusDescription(request: VerificationRequest | null) {
+  const status = request?.status ?? null
+
+  switch (status) {
+    case null:
+      return '페르소나 생성 전에 검증 자료를 제출해주세요.'
+    case 'PENDING':
+      return '관리자 검수가 끝나면 페르소나 생성 버튼이 활성화됩니다.'
+    case 'NEED_MORE_INFO':
+      return request?.reviewer_note ?? '추가 자료가 필요합니다. 파일을 보완해 다시 제출해주세요.'
+    case 'APPROVED':
+      return '검증이 승인되어 페르소나를 만들 수 있어요.'
+    case 'REJECTED':
+      return request?.reject_reason ?? request?.reason ?? '검증이 거절되었습니다. 다른 자료로 다시 제출해주세요.'
+    case 'EXPIRED':
+    case 'REVOKED':
+      return '다시 검증 자료를 제출해주세요.'
+    default:
+      return '검증 상태를 확인하고 있어요.'
+  }
+}
+
 function SetupPage() {
   const [step, setStep] = useState<SetupStep>(1)
-  const [consents, setConsents] = useState<Record<ConsentKey, boolean>>({
-    privacy: false,
-    photo: false,
-    voice: false,
-    persona: false,
-  })
+  const [consents, setConsents] = useState<Record<ConsentKey, boolean>>(defaultConsents)
   const [personaDraft, setPersonaDraft] = useState<PersonaDraft>({
     name: '엄마',
     relationship: 'parent',
@@ -257,13 +345,19 @@ function SetupPage() {
   const [targetId, setTargetId] = useState<ApiId | null>(() => window.localStorage.getItem(REMORY_TARGET_ID_KEY))
   const [selectedPhotoFiles, setSelectedPhotoFiles] = useState<File[]>([])
   const [selectedVoiceFile, setSelectedVoiceFile] = useState<File | null>(null)
+  const [verificationFile, setVerificationFile] = useState<File | null>(null)
+  const [verificationType, setVerificationType] = useState<VerificationType>('SELF_DECLARATION')
+  const [verificationRequest, setVerificationRequest] = useState<VerificationRequest | null>(null)
   const [memoryNotes, setMemoryNotes] = useState<string[]>([])
   const [memoryNoteInput, setMemoryNoteInput] = useState('')
   const [isNoteEditorOpen, setIsNoteEditorOpen] = useState(false)
   const [photoPreviewUrls, setPhotoPreviewUrls] = useState<string[]>([])
   const [failedDefaultPhotoIndexes, setFailedDefaultPhotoIndexes] = useState<Set<number>>(() => new Set())
   const [errorMessage, setErrorMessage] = useState('')
+  const [statusMessage, setStatusMessage] = useState('')
+  const [hasSavedSetupData, setHasSavedSetupData] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isRefreshingVerification, setIsRefreshingVerification] = useState(false)
 
   const allConsented = consentItems.every((item) => consents[item.key])
   const savedPersonaName = personaDraft.name.trim() || '엄마'
@@ -273,6 +367,10 @@ function SetupPage() {
   const completePhotoCount = selectedPhotoFiles.length + (profileImageFile ? 1 : 0)
   const completeVoiceCount = selectedVoiceFile ? 1 : 0
   const completeProfileImageSrc = profileImagePreviewUrl ?? '/images/my-page/persona-mom.png'
+  const verificationStatus = verificationRequest?.status ?? null
+  const canCreatePersona = verificationStatus === 'APPROVED'
+  const canSubmitVerification =
+    verificationStatus === null || resubmittableVerificationStatuses.has(verificationStatus)
 
   useEffect(() => {
     return () => {
@@ -288,6 +386,34 @@ function SetupPage() {
     }
   }, [profileImagePreviewUrl])
 
+  useEffect(() => {
+    if (targetId === null) {
+      return
+    }
+
+    const currentTargetId = targetId
+    let ignore = false
+
+    async function loadVerificationStatus() {
+      try {
+        const requests = await verificationApi.listTargetVerificationRequests(currentTargetId)
+        const latestRequest = getLatestVerificationRequest(requests)
+
+        if (!ignore) {
+          setVerificationRequest(latestRequest)
+        }
+      } catch {
+        // Keep the setup flow usable when verification history cannot be loaded.
+      }
+    }
+
+    loadVerificationStatus()
+
+    return () => {
+      ignore = true
+    }
+  }, [targetId])
+
   const handleConsentChange = (key: ConsentKey, checked: boolean) => {
     setConsents((current) => ({
       ...current,
@@ -300,7 +426,11 @@ function SetupPage() {
       privacy: checked,
       photo: checked,
       voice: checked,
+      voiceCloning: checked,
       persona: checked,
+      aiNotice: checked,
+      dataRetention: checked,
+      thirdPartyAi: checked,
     })
   }
 
@@ -330,6 +460,11 @@ function SetupPage() {
 
   const handleVoiceChange = (event: ChangeEvent<HTMLInputElement>) => {
     setSelectedVoiceFile(event.target.files?.[0] ?? null)
+    event.target.value = ''
+  }
+
+  const handleVerificationFileChange = (event: ChangeEvent<HTMLInputElement>) => {
+    setVerificationFile(event.target.files?.[0] ?? null)
     event.target.value = ''
   }
 
@@ -407,39 +542,146 @@ function SetupPage() {
     return target.id
   }
 
-  const handleCreatePersona = async () => {
+  const saveConsents = async (nextTargetId: ApiId) => {
+    await Promise.all(
+      consentItems
+        .filter((item) => consents[item.key])
+        .map((item) =>
+          consentApi.createConsent({
+            target_id: nextTargetId,
+            consent_type: item.type,
+          }),
+        ),
+    )
+  }
+
+  const uploadSelectedMedia = async (nextTargetId: ApiId) => {
+    if (profileImageFile) {
+      await targetApi.uploadTargetMedia(nextTargetId, 'image', profileImageFile)
+    }
+
+    await Promise.all(selectedPhotoFiles.map((file) => targetApi.uploadTargetMedia(nextTargetId, 'image', file)))
+
+    if (selectedVoiceFile) {
+      await targetApi.uploadTargetMedia(nextTargetId, 'voice', selectedVoiceFile)
+    }
+  }
+
+  const refreshVerificationStatus = async (nextTargetId: ApiId | null = targetId) => {
+    if (nextTargetId === null) {
+      return null
+    }
+
+    setIsRefreshingVerification(true)
+
+    try {
+      const requests = await verificationApi.listTargetVerificationRequests(nextTargetId)
+      const latestRequest = getLatestVerificationRequest(requests)
+      setVerificationRequest(latestRequest)
+      setStatusMessage(latestRequest ? '검증 상태를 새로 확인했어요.' : '아직 제출된 검증 요청이 없어요.')
+
+      return latestRequest
+    } catch (error) {
+      setErrorMessage(getApiErrorMessage(error, '검증 상태를 확인하지 못했습니다.'))
+      return null
+    } finally {
+      setIsRefreshingVerification(false)
+    }
+  }
+
+  const handleSubmitVerification = async () => {
     if (isSubmitting) {
       return
     }
 
+    if (!verificationFile) {
+      setErrorMessage('검증 요청을 제출하려면 증빙 파일을 선택해주세요.')
+      return
+    }
+
     setErrorMessage('')
+    setStatusMessage('')
     setIsSubmitting(true)
 
     try {
       const nextTargetId = await ensureTargetId()
 
-      if (profileImageFile) {
-        await targetApi.uploadTargetMedia(nextTargetId, 'image', profileImageFile)
+      if (!hasSavedSetupData) {
+        await saveConsents(nextTargetId)
+        await uploadSelectedMedia(nextTargetId)
+        setHasSavedSetupData(true)
       }
 
-      await Promise.all(selectedPhotoFiles.map((file) => targetApi.uploadTargetMedia(nextTargetId, 'image', file)))
+      const request = await verificationApi.createVerificationRequest(nextTargetId, {
+        verification_type_param: verificationType,
+        applicant_note: buildDescription(),
+        file: verificationFile,
+      })
 
-      if (selectedVoiceFile) {
-        await targetApi.uploadTargetMedia(nextTargetId, 'voice', selectedVoiceFile)
-      }
+      setVerificationRequest(request)
+      setStatusMessage('검증 요청이 접수되었습니다. 승인 후 페르소나를 만들 수 있어요.')
+    } catch (error) {
+      setErrorMessage(getApiErrorMessage(error, '검증 요청을 제출하지 못했습니다. 백엔드 서버 연결을 확인해주세요.'))
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
 
+  const handleCreatePersona = async () => {
+    if (isSubmitting) {
+      return
+    }
+
+    if (!canCreatePersona) {
+      setErrorMessage('검증 승인 후 페르소나를 만들 수 있어요.')
+      return
+    }
+
+    setErrorMessage('')
+    setStatusMessage('')
+    setIsSubmitting(true)
+
+    try {
+      const nextTargetId = await ensureTargetId()
       const persona = await targetApi.createPersona(nextTargetId)
 
       window.localStorage.setItem(REMORY_PERSONA_ID_KEY, String(persona.id))
       window.localStorage.setItem(SETUP_MEMORY_NOTES_KEY, JSON.stringify(memoryNotes))
       window.localStorage.setItem(SETUP_COMPLETED_KEY, 'true')
       setStep(5)
-    } catch {
-      setErrorMessage('기억 데이터를 저장하지 못했습니다. 백엔드 서버 연결을 확인해주세요.')
+    } catch (error) {
+      const message = getApiErrorMessage(error, '검증 승인 후 페르소나를 만들 수 있어요.')
+      setErrorMessage(message)
     } finally {
       setIsSubmitting(false)
     }
   }
+
+  const handleVerificationAction = () => {
+    if (canCreatePersona) {
+      void handleCreatePersona()
+      return
+    }
+
+    if (canSubmitVerification) {
+      void handleSubmitVerification()
+      return
+    }
+
+    void refreshVerificationStatus()
+  }
+
+  const verificationActionLabel = canCreatePersona
+    ? isSubmitting
+      ? '페르소나 생성 중...'
+      : '페르소나 생성하기'
+    : canSubmitVerification
+      ? isSubmitting
+        ? '검증 제출 중...'
+        : '검증 요청 제출하기'
+      : isRefreshingVerification
+        ? '상태 확인 중...'
+        : '검증 상태 새로고침'
 
   return (
     <main className="setup-page">
@@ -889,6 +1131,58 @@ function SetupPage() {
               </div>
             </div>
 
+            <section className="setup-page__verification-card" aria-label="검증 요청 상태">
+              <div className="setup-page__verification-heading">
+                <span>
+                  <SetupIcon name={canCreatePersona ? 'check' : 'upload'} />
+                </span>
+                <div>
+                  <h2>{getVerificationStatusTitle(verificationStatus)}</h2>
+                  <p>{getVerificationStatusDescription(verificationRequest)}</p>
+                </div>
+              </div>
+
+              {canSubmitVerification && (
+                <div className="setup-page__verification-form">
+                  <label className="setup-page__verification-label" htmlFor="setup-verification-type">
+                    검증 유형
+                  </label>
+                  <select
+                    className="setup-page__verification-select"
+                    id="setup-verification-type"
+                    value={verificationType}
+                    onChange={(event) => setVerificationType(event.target.value as VerificationType)}
+                  >
+                    <option value="SELF_DECLARATION">본인 확인 진술</option>
+                    <option value="FAMILY_RELATION_CERTIFICATE">가족관계증명서</option>
+                    <option value="ID_CARD">신분증</option>
+                    <option value="OTHER">기타</option>
+                  </select>
+
+                  <input
+                    className="setup-page__file-input"
+                    id="setup-verification-file"
+                    type="file"
+                    aria-label="검증 증빙 파일 선택"
+                    onChange={handleVerificationFileChange}
+                  />
+                  <label className="setup-page__verification-upload" htmlFor="setup-verification-file">
+                    <SetupIcon name="note" />
+                    <span>
+                      <strong>검증 자료</strong>
+                      <small>{verificationFile?.name ?? '파일을 선택해주세요'}</small>
+                    </span>
+                  </label>
+                </div>
+              )}
+
+              {statusMessage && (
+                <p className="setup-page__status-message" role="status">
+                  {statusMessage}
+                </p>
+              )}
+            </section>
+
             {errorMessage && (
               <p className="setup-page__error" role="alert">
                 {errorMessage}
@@ -899,11 +1193,11 @@ function SetupPage() {
               <button
                 className="setup-page__create-button"
                 type="button"
-                disabled={isSubmitting}
-                onClick={() => void handleCreatePersona()}
+                disabled={isSubmitting || isRefreshingVerification}
+                onClick={handleVerificationAction}
               >
                 <SetupIcon name="sparkle" />
-                {isSubmitting ? '페르소나 생성 중...' : '페르소나 생성하기'}
+                {verificationActionLabel}
               </button>
             </div>
           </div>

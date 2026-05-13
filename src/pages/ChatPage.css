@@ -293,11 +293,18 @@
   margin-left: 14px;
 }
 
+.chat-page__audio {
+  display: block;
+  width: min(100%, 260px);
+  margin-top: 10px;
+}
+
 .chat-page__bottom-area {
   padding-top: 18px;
 }
 
-.chat-page__storybook-button {
+.chat-page__storybook-button,
+.chat-page__voice-notice-button {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -315,9 +322,20 @@
   letter-spacing: -0.4px;
 }
 
-.chat-page__storybook-button svg {
+.chat-page__storybook-button svg,
+.chat-page__voice-notice-button svg {
   width: 29px;
   height: 29px;
+}
+
+.chat-page__voice-notice-button {
+  height: 54px;
+  margin-top: 10px;
+  border: 1px solid #e7d6ca;
+  background: #fff8f1;
+  box-shadow: none;
+  color: #6f4f3e;
+  font-size: 18px;
 }
 
 .chat-page__composer {

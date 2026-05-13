@@ -17,24 +17,8 @@ function getPersonaIdFromTarget(target: Target) {
   return toStorageId(target.persona_id ?? target.persona?.id)
 }
 
-function findMomTarget(targets: Target[]) {
-  return targets.find((target) => target.name === '엄마') ?? targets.find((target) => target.name?.toLowerCase() === 'mom')
-}
-
-async function createMomTarget() {
-  return targetApi.createTarget({
-    name: '엄마',
-    description: '따뜻한 조언을 해주는 분',
-    target_type: 'parent',
-  })
-}
-
-async function createPersonaForTarget(targetId: ApiId) {
-  try {
-    return await targetApi.createPersona(targetId)
-  } catch {
-    throw new Error('페르소나 생성에 실패했습니다')
-  }
+function findTargetWithPersona(targets: Target[]) {
+  return targets.find((target) => getPersonaIdFromTarget(target))
 }
 
 export async function ensureMomPersonaId(): Promise<string> {
@@ -49,26 +33,15 @@ export async function ensureMomPersonaId(): Promise<string> {
   }
 
   const response = await targetApi.listTargets()
-  let target = findMomTarget(response.items)
+  const target = findTargetWithPersona(response.items)
+  const personaId = target ? getPersonaIdFromTarget(target) : null
 
-  if (!target) {
-    target = await createMomTarget()
+  if (!target || !personaId) {
+    throw new Error('설정에서 검증 승인 후 페르소나를 만들어주세요.')
   }
 
   window.localStorage.setItem(REMORY_TARGET_ID_KEY, String(target.id))
-
-  const targetPersonaId = getPersonaIdFromTarget(target)
-
-  if (targetPersonaId) {
-    window.localStorage.setItem(REMORY_PERSONA_ID_KEY, targetPersonaId)
-    return targetPersonaId
-  }
-
-  const persona = await createPersonaForTarget(target.id)
-  const personaId = String(persona.id)
-
   window.localStorage.setItem(REMORY_PERSONA_ID_KEY, personaId)
-  window.localStorage.setItem(REMORY_TARGET_ID_KEY, String(target.id))
 
   return personaId
 }

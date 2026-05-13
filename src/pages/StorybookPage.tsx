@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { normalizeAssetUrl } from '../lib/mediaUrl'
 import { ensureMomPersonaId } from '../services/personaSession'
 import { storybookApi } from '../services/storybookApi'
 import type { StoryBook, StoryChapter } from '../types/api'
@@ -216,6 +217,7 @@ function StorybookPage() {
   }, [])
 
   const coverTitle = currentStorybook?.title ?? '엄마의 따뜻한 말 한마디'
+  const coverImageUrl = normalizeAssetUrl(currentStorybook?.cover_image_url) || '/images/storybook/storybook-cover-mom.png'
   const coverTitleLines = coverTitle.split(' ')
   const coverFirstLine = coverTitleLines.slice(0, -1).join(' ') || '엄마의 따뜻한'
   const coverSecondLine = coverTitleLines.at(-1) ?? '말 한마디'
@@ -226,8 +228,8 @@ function StorybookPage() {
     try {
       await ensureMomPersonaId()
       window.location.href = '/chat'
-    } catch (error) {
-      console.error('Failed to prepare persona before chat navigation', error)
+    } catch {
+      window.location.href = '/setup'
     }
   }
 
@@ -248,7 +250,7 @@ function StorybookPage() {
         </header>
 
         <section className="storybook-page__cover">
-          <img src={currentStorybook?.cover_image_url ?? '/images/storybook/storybook-cover-mom.png'} alt="" aria-hidden="true" />
+          <img src={coverImageUrl} alt="" aria-hidden="true" />
           <div className="storybook-page__cover-content">
             <StorybookIcon name="heart" />
             <h2 className="storybook-page__cover-title">
@@ -288,7 +290,7 @@ function StorybookPage() {
           <div className="storybook-page__photo-list">
             {photos.map((photo) => (
               <button className="storybook-page__photo-card" type="button" key={photo.id} onClick={() => console.log('open photo', photo.id)}>
-                <img src={photo.src} alt={photo.alt} />
+                <img src={normalizeAssetUrl(photo.src) || photo.src} alt={photo.alt} />
               </button>
             ))}
           </div>

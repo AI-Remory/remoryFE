@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
+import { normalizeAssetUrl } from '../lib/mediaUrl'
 import { authApi } from '../services/authApi'
-import { ensureMomPersonaId } from '../services/personaSession'
+import { ensureMomPersonaId, REMORY_PERSONA_ID_KEY } from '../services/personaSession'
 import { storybookApi } from '../services/storybookApi'
 import { targetApi } from '../services/targetApi'
 import type { Target } from '../types/api'
@@ -52,7 +53,9 @@ function mapTargetsToPersonas(targets: Target[]): HomePersona[] {
       id: String(target.id),
       personaId: personaId === undefined || personaId === null ? undefined : String(personaId),
       name: target.nickname ?? target.name ?? target.persona?.nickname ?? target.persona?.name ?? `페르소나 ${index + 1}`,
-      image: target.image_url ?? target.profile_image_path ?? target.persona?.image_url ?? mockPersonas[index]?.image ?? '/images/my-page/persona-mom.png',
+      image: normalizeAssetUrl(
+        target.image_url ?? target.profile_image_path ?? target.persona?.image_url ?? mockPersonas[index]?.image,
+      ) || '/images/my-page/persona-mom.png',
       active: index === 0,
     }
   })
@@ -170,7 +173,7 @@ function HomePage() {
           setPersonaItems(nextPersonas)
 
           if (nextPersonas[0].personaId) {
-            window.localStorage.setItem('remory_persona_id', nextPersonas[0].personaId)
+            window.localStorage.setItem(REMORY_PERSONA_ID_KEY, nextPersonas[0].personaId)
           }
         }
       } catch {
@@ -178,10 +181,6 @@ function HomePage() {
       }
 
       storybookApi.listStorybooks().catch(() => undefined)
-
-      ensureMomPersonaId().catch(() => {
-        // The home UI can still render with mock cards when persona preparation fails.
-      })
     }
 
     loadHomeData()
@@ -192,7 +191,7 @@ function HomePage() {
   }, [])
 
   const handlePersonaClick = (personaId: string) => {
-    window.localStorage.setItem('remory_persona_id', personaId)
+    window.localStorage.setItem(REMORY_PERSONA_ID_KEY, personaId)
     setPersonaItems((current) =>
       current.map((persona) => ({
         ...persona,
@@ -205,10 +204,15 @@ function HomePage() {
     setErrorMessage('')
 
     try {
-      await ensureMomPersonaId()
+      const storedPersonaId = window.localStorage.getItem(REMORY_PERSONA_ID_KEY)
+
+      if (!storedPersonaId) {
+        await ensureMomPersonaId()
+      }
+
       window.location.href = '/chat'
-    } catch {
-      setErrorMessage('페르소나를 준비하지 못했습니다. 다시 시도해주세요.')
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : '설정에서 검증 승인 후 페르소나를 만들어주세요.')
     }
   }
 
@@ -276,7 +280,7 @@ function HomePage() {
               </button>
             ))}
 
-            <button className="home-page__persona-item home-page__persona-item--add" type="button" onClick={() => console.log('add persona')}>
+            <button className="home-page__persona-item home-page__persona-item--add" type="button" onClick={() => { window.location.href = '/setup' }}>
               <span className="home-page__add-avatar">
                 <HomePageIcon name="plus" />
               </span>

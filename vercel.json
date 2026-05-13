@@ -5,6 +5,14 @@
       "destination": "http://141.164.48.128:8000/api/:path*"
     },
     {
+      "source": "/uploads/:path*",
+      "destination": "http://141.164.48.128:8000/uploads/:path*"
+    },
+    {
+      "source": "/health",
+      "destination": "http://141.164.48.128:8000/health"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }

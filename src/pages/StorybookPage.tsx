@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState, type ChangeEvent, type FormEvent } from 'react'
 import { ApiError } from '../lib/apiClient'
 import { normalizeAssetUrl } from '../lib/mediaUrl'
+import { fetchProtectedFileObjectUrl, revokeObjectUrl } from '../lib/protectedFile'
 import { ensureMomPersonaId } from '../services/personaSession'
 import { photoMemoryApi } from '../services/photoMemoryApi'
 import { shareApi } from '../services/shareApi'
@@ -25,7 +26,7 @@ type IconName =
 
 type Photo = {
   id: string
-  src: string
+  src?: string
   alt: string
   title: string
   memoryId?: string
@@ -171,36 +172,17 @@ function getPhotoMemoryTitle(memory: PhotoMemory, index = 0) {
   return memory.title ?? memory.caption ?? memory.description ?? `추억 사진 ${index + 1}`
 }
 
-function getPhotoMemoryImage(memory: PhotoMemory) {
-  return normalizeAssetUrl(
-    memory.thumbnail_url ??
-      memory.thumbnail_path ??
-      memory.image_url ??
-      memory.image_path ??
-      memory.photo_url ??
-      memory.photo_path ??
-      memory.file_path,
-  )
+function getPhotoMemoryImageApiPath(memory: PhotoMemory) {
+  return memory.image_api_url?.trim() || `/api/v1/photo-memories/${memory.id}/image`
 }
 
 function mapPhotoMemories(apiPhotoMemories: PhotoMemory[]): Photo[] {
-  return apiPhotoMemories
-    .map((memory, index): Photo | null => {
-      const src = getPhotoMemoryImage(memory)
-
-      if (!src) {
-        return null
-      }
-
-      return {
-        id: String(memory.id),
-        memoryId: String(memory.id),
-        src,
-        title: getPhotoMemoryTitle(memory, index),
-        alt: getPhotoMemoryTitle(memory, index),
-      }
-    })
-    .filter((photo): photo is Photo => photo !== null)
+  return apiPhotoMemories.map((memory, index) => ({
+    id: String(memory.id),
+    memoryId: String(memory.id),
+    title: getPhotoMemoryTitle(memory, index),
+    alt: getPhotoMemoryTitle(memory, index),
+  }))
 }
 
 function StorybookIcon({ name }: { name: IconName }) {
@@ -295,6 +277,7 @@ function StorybookPage() {
   const [chapterItems, setChapterItems] = useState<Chapter[]>(chapters)
   const [photoItems, setPhotoItems] = useState<Photo[]>(photos)
   const [photoMemories, setPhotoMemories] = useState<PhotoMemory[]>([])
+  const [photoImageUrls, setPhotoImageUrls] = useState<Record<string, string>>({})
   const [selectedPhotoMemoryId, setSelectedPhotoMemoryId] = useState('')
   const [isPhotoFormOpen, setIsPhotoFormOpen] = useState(false)
   const [photoUploadForm, setPhotoUploadForm] = useState<PhotoUploadForm>({
@@ -363,6 +346,50 @@ function StorybookPage() {
 
     return () => window.clearTimeout(timeoutId)
   }, [loadPhotoMemories, loadStorybook])
+
+  useEffect(() => {
+    let ignore = false
+    const objectUrls: string[] = []
+
+    const timeoutId = window.setTimeout(() => {
+      setPhotoImageUrls({})
+
+      if (photoMemories.length === 0) {
+        return
+      }
+
+      Promise.all(
+        photoMemories.map(async (memory) => {
+          try {
+            const objectUrl = await fetchProtectedFileObjectUrl(getPhotoMemoryImageApiPath(memory))
+
+            if (ignore) {
+              revokeObjectUrl(objectUrl)
+              return null
+            }
+
+            objectUrls.push(objectUrl)
+
+            return [String(memory.id), objectUrl] as const
+          } catch {
+            return null
+          }
+        }),
+      ).then((entries) => {
+        if (ignore) {
+          return
+        }
+
+        setPhotoImageUrls(Object.fromEntries(entries.filter((entry): entry is readonly [string, string] => entry !== null)))
+      })
+    }, 0)
+
+    return () => {
+      ignore = true
+      window.clearTimeout(timeoutId)
+      objectUrls.forEach(revokeObjectUrl)
+    }
+  }, [photoMemories])
 
   const selectedPhotoMemory =
     photoMemories.find((memory) => String(memory.id) === selectedPhotoMemoryId) ?? null
@@ -759,25 +786,33 @@ function StorybookPage() {
             </form>
           )}
           <div className="storybook-page__photo-list">
-            {photoItems.map((photo) => (
-              <button
-                className={`storybook-page__photo-card${photo.memoryId && photo.memoryId === selectedPhotoMemoryId ? ' is-selected' : ''}`}
-                type="button"
-                key={photo.id}
-                aria-pressed={photo.memoryId ? photo.memoryId === selectedPhotoMemoryId : undefined}
-                onClick={() => {
-                  if (photo.memoryId) {
-                    setSelectedPhotoMemoryId(photo.memoryId)
-                    setStatusMessage(`${photo.title} 사진을 선택했어요.`)
-                    setErrorMessage('')
-                  } else {
-                    setErrorMessage('업로드한 사진 기억을 선택하면 스토리북을 만들 수 있어요.')
-                  }
-                }}
-              >
-                <img src={normalizeAssetUrl(photo.src) || photo.src} alt={photo.alt} />
-              </button>
-            ))}
+            {photoItems.map((photo) => {
+              const photoImageUrl = photo.memoryId ? photoImageUrls[photo.memoryId] : photo.src
+
+              return (
+                <button
+                  className={`storybook-page__photo-card${photo.memoryId && photo.memoryId === selectedPhotoMemoryId ? ' is-selected' : ''}`}
+                  type="button"
+                  key={photo.id}
+                  aria-pressed={photo.memoryId ? photo.memoryId === selectedPhotoMemoryId : undefined}
+                  onClick={() => {
+                    if (photo.memoryId) {
+                      setSelectedPhotoMemoryId(photo.memoryId)
+                      setStatusMessage(`${photo.title} 사진을 선택했어요.`)
+                      setErrorMessage('')
+                    } else {
+                      setErrorMessage('업로드한 사진 기억을 선택하면 스토리북을 만들 수 있어요.')
+                    }
+                  }}
+                >
+                  {photoImageUrl ? (
+                    <img src={photoImageUrl} alt={photo.alt} />
+                  ) : (
+                    <span className="storybook-page__photo-placeholder">{photo.title}</span>
+                  )}
+                </button>
+              )
+            })}
           </div>
           {selectedPhotoMemory && (
             <div className="storybook-page__selected-photo-action">

@@ -120,6 +120,7 @@ export type ChatMessage = {
   role?: 'user' | 'assistant' | 'system' | string
   message_type?: 'TEXT' | 'AUDIO' | string
   content?: string | null
+  audio_api_url?: string | null
   audio_file_path?: string | null
   is_ai_generated?: boolean
   created_at?: string
@@ -251,6 +252,7 @@ export type PhotoMemory = {
   description?: string | null
   summary?: string | null
   location?: string | null
+  image_api_url?: string | null
   image_url?: string | null
   image_path?: string | null
   photo_url?: string | null
@@ -281,6 +283,7 @@ export type TargetMedia = {
   id: ApiId
   target_id?: ApiId
   media_type?: 'image' | 'voice' | string
+  file_api_url?: string | null
   file_path?: string | null
   url?: string | null
   original_filename?: string | null

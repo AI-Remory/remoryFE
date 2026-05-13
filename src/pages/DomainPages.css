@@ -80,11 +80,8 @@
   gap: 24px;
   padding: 28px;
   border: 1px solid rgba(244, 127, 116, 0.22);
-  border-radius: 30px;
-  background:
-    radial-gradient(circle at right top, rgba(183, 165, 245, 0.22), transparent 32%),
-    radial-gradient(circle at 16% 12%, rgba(255, 179, 126, 0.2), transparent 30%),
-    linear-gradient(135deg, rgba(255, 246, 240, 0.96), rgba(255, 253, 250, 0.92) 54%, rgba(247, 245, 255, 0.94));
+  border-radius: var(--radius-card);
+  background: var(--gradient-card);
   box-shadow: var(--shadow-card);
 }
 
@@ -108,11 +105,11 @@
 
 .domain-page__hero h1 {
   margin-top: 8px;
-  font-family: var(--serif);
-  font-size: 56px;
-  font-weight: 700;
-  letter-spacing: -0.02em;
-  line-height: 1.04;
+  font-family: var(--sans);
+  font-size: clamp(2rem, 4vw, 3.4rem);
+  font-weight: 850;
+  letter-spacing: 0;
+  line-height: 1.08;
 }
 
 .domain-page__hero p {
@@ -136,16 +133,19 @@
 }
 
 .domain-page__badge--connected {
+  border: 1px solid rgba(79, 143, 120, 0.18);
   background: #e7f4ee;
   color: #34735d;
 }
 
 .domain-page__badge--next {
+  border: 1px solid rgba(244, 127, 116, 0.18);
   background: #fff1ea;
   color: #a74f4c;
 }
 
 .domain-page__badge--mock {
+  border: 1px solid rgba(183, 165, 245, 0.24);
   background: #f2efff;
   color: #6656bb;
 }
@@ -165,7 +165,7 @@
 .domain-page__metrics article,
 .domain-page__panel {
   border: 1px solid var(--domain-border);
-  border-radius: 24px;
+  border-radius: var(--radius-card);
   background: var(--domain-card);
   box-shadow: var(--shadow-card);
 }
@@ -228,8 +228,8 @@
 .domain-page__panel-heading button {
   min-height: 44px;
   padding: 0 14px;
-  border-radius: 14px;
-  background: linear-gradient(135deg, var(--color-coral), var(--color-apricot));
+  border-radius: 999px;
+  background: var(--gradient-action);
   color: #fff;
   cursor: pointer;
   font-size: 13px;
@@ -253,10 +253,8 @@
   min-height: 180px;
   padding: 16px;
   border: 1px solid var(--domain-border);
-  border-radius: 22px;
-  background:
-    radial-gradient(circle at top right, rgba(183, 165, 245, 0.14), transparent 38%),
-    rgba(255, 253, 250, 0.86);
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
   box-shadow: 0 10px 24px rgba(101, 74, 88, 0.06);
 }
 
@@ -342,9 +340,9 @@
 .target-detail-card,
 .target-form {
   border: 1px solid var(--domain-border);
-  border-radius: 20px;
+  border-radius: var(--radius-card);
   background: var(--domain-card);
-  box-shadow: 0 8px 18px rgba(111, 69, 43, 0.05);
+  box-shadow: var(--shadow-card);
 }
 
 .target-api-state {
@@ -383,9 +381,9 @@
   justify-content: center;
   margin-top: 16px;
   padding: 0 16px;
-  border-radius: 12px;
-  background: #fff0e5;
-  color: #a94d2e;
+  border-radius: 999px;
+  background: rgba(255, 243, 236, 0.9);
+  color: var(--color-coral-deep);
   font-weight: 850;
   text-decoration: none;
 }
@@ -412,8 +410,8 @@
   flex: 0 0 auto;
   place-items: center;
   border-radius: 24px;
-  background: #fff0e5;
-  color: #a94d2e;
+  background: linear-gradient(135deg, rgba(255, 241, 232, 0.96), rgba(246, 242, 255, 0.9));
+  color: var(--color-coral-deep);
   font-size: 30px;
   font-weight: 850;
 }
@@ -437,7 +435,7 @@
 
 .target-card__title-row h2,
 .target-detail-card h2 {
-  color: #2f2926;
+  color: var(--domain-text);
   font-size: 22px;
   font-weight: 850;
   letter-spacing: -0.04em;
@@ -533,9 +531,9 @@
 .target-form textarea,
 .target-form select {
   width: 100%;
-  border: 1px solid #ead8c9;
-  border-radius: 14px;
-  background: rgba(255, 252, 247, 0.88);
+  border: 1px solid var(--domain-border);
+  border-radius: var(--radius-control);
+  background: rgba(255, 255, 255, 0.8);
   color: var(--domain-text);
   font: inherit;
 }
@@ -557,6 +555,7 @@
 .target-api-page button:focus-visible {
   outline: 2px solid var(--domain-peach);
   outline-offset: 3px;
+  box-shadow: var(--focus-ring);
 }
 
 .target-form__helper {
@@ -570,7 +569,7 @@
 .target-form__notice {
   margin: 0;
   padding: 13px 14px;
-  border-radius: 13px;
+  border-radius: var(--radius-control);
   font-size: 14px;
   font-weight: 750;
   line-height: 1.45;
@@ -602,16 +601,17 @@
 .target-form__actions button {
   min-height: 44px;
   padding: 0 16px;
-  border-radius: 12px;
-  background: #2f2926;
-  color: #fff7ed;
+  border-radius: 999px;
+  background: var(--gradient-action);
+  color: #fff;
   cursor: pointer;
   font-weight: 850;
 }
 
 .target-form__actions button[type='button'] {
-  background: #fff0ec;
-  color: #9f3329;
+  border: 1px solid var(--domain-border);
+  background: rgba(255, 255, 255, 0.74);
+  color: var(--domain-text);
 }
 
 .target-form__actions button:disabled {
@@ -637,9 +637,9 @@
 .target-media-upload-card,
 .target-media-card {
   border: 1px solid var(--domain-border);
-  border-radius: 20px;
+  border-radius: var(--radius-card);
   background: var(--domain-card);
-  box-shadow: 0 8px 18px rgba(111, 69, 43, 0.05);
+  box-shadow: var(--shadow-card);
 }
 
 .target-media-upload-card {
@@ -659,9 +659,9 @@
 .target-media-upload-card button,
 .target-media-card button {
   min-height: 44px;
-  border-radius: 12px;
-  background: #2f2926;
-  color: #fff7ed;
+  border-radius: 999px;
+  background: var(--gradient-action);
+  color: #fff;
   cursor: pointer;
   font-weight: 850;
 }

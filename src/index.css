@@ -23,6 +23,25 @@
   --radius-card: 24px;
   --radius-control: 16px;
   --focus-ring: 0 0 0 4px rgba(183, 165, 245, 0.28);
+  --text: var(--color-text);
+  --muted: var(--color-muted);
+  --border: var(--color-border);
+  --surface: var(--color-surface);
+  --surface-solid: var(--color-surface-solid);
+  --coral: var(--color-coral);
+  --coral-deep: var(--color-coral-deep);
+  --apricot: var(--color-apricot);
+  --lavender: var(--color-lavender);
+  --soft-blue: var(--color-blue);
+  --gradient-page:
+    radial-gradient(circle at 14% 8%, rgba(255, 179, 126, 0.24), transparent 30%),
+    radial-gradient(circle at 88% 16%, rgba(183, 165, 245, 0.18), transparent 28%),
+    radial-gradient(circle at 78% 86%, rgba(149, 207, 238, 0.18), transparent 32%),
+    linear-gradient(180deg, #fff9f4 0%, #fffdfa 44%, #f8f5ff 100%);
+  --gradient-card:
+    radial-gradient(circle at 84% 18%, rgba(183, 165, 245, 0.18), transparent 32%),
+    linear-gradient(135deg, rgba(255, 248, 242, 0.96), rgba(255, 253, 250, 0.92) 54%, rgba(247, 245, 255, 0.92));
+  --gradient-action: linear-gradient(135deg, var(--color-coral) 0%, #e98578 48%, #a790ee 100%);
 
   font: 16px/1.55 var(--sans);
   color: var(--color-text);
@@ -42,11 +61,7 @@ body {
   min-width: 320px;
   min-height: 100svh;
   overflow-x: hidden;
-  background:
-    radial-gradient(circle at 14% 8%, rgba(255, 179, 126, 0.24), transparent 30%),
-    radial-gradient(circle at 88% 16%, rgba(183, 165, 245, 0.18), transparent 28%),
-    radial-gradient(circle at 78% 86%, rgba(149, 207, 238, 0.18), transparent 32%),
-    linear-gradient(180deg, #fff9f4 0%, #fffdfa 44%, #f8f5ff 100%);
+  background: var(--gradient-page);
 }
 
 * {
@@ -86,4 +101,62 @@ img {
 ::selection {
   background: rgba(244, 127, 116, 0.25);
   color: var(--color-ink);
+}
+
+.ui-card {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-card);
+  backdrop-filter: blur(14px);
+}
+
+.ui-card--hero {
+  background: var(--gradient-card);
+}
+
+.ui-button,
+.ui-button-secondary {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  padding: 0 18px;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.ui-button {
+  border: 1px solid transparent;
+  background: var(--gradient-action);
+  color: #fff;
+  box-shadow: 0 12px 24px rgba(244, 127, 116, 0.18);
+}
+
+.ui-button-secondary {
+  border: 1px solid var(--color-border);
+  background: rgba(255, 255, 255, 0.72);
+  color: var(--color-text);
+}
+
+.ui-badge {
+  display: inline-flex;
+  min-height: 32px;
+  align-items: center;
+  border: 1px solid rgba(244, 127, 116, 0.18);
+  border-radius: 999px;
+  padding: 0 12px;
+  background: rgba(255, 243, 236, 0.86);
+  color: #a74f4c;
+  font-size: 0.82rem;
+  font-weight: 850;
+}
+
+.ui-input {
+  min-height: 48px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-control);
+  background: rgba(255, 255, 255, 0.8);
+  color: var(--color-text);
 }

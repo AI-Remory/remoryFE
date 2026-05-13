@@ -20,8 +20,7 @@
   gap: 18px;
   padding: 34px;
   background:
-    radial-gradient(circle at 84% 18%, rgba(183, 165, 245, 0.22), transparent 30%),
-    linear-gradient(135deg, rgba(255, 246, 240, 0.92), rgba(255, 253, 250, 0.88) 52%, rgba(247, 245, 255, 0.9));
+    var(--gradient-card);
 }
 
 .dashboard-hero span,
@@ -44,10 +43,10 @@
 .dashboard-hero h1 {
   max-width: 780px;
   margin-top: 8px;
-  font-family: var(--serif);
-  font-size: 48px;
-  font-weight: 700;
-  letter-spacing: -0.02em;
+  font-family: var(--sans);
+  font-size: clamp(2rem, 4vw, 3.2rem);
+  font-weight: 850;
+  letter-spacing: 0;
   line-height: 1.08;
 }
 
@@ -74,7 +73,7 @@
   justify-content: center;
   padding: 0 18px;
   border-radius: 999px;
-  background: linear-gradient(135deg, var(--color-coral), var(--color-apricot));
+  background: var(--gradient-action);
   box-shadow: 0 12px 24px rgba(244, 127, 116, 0.22);
   color: #fff;
   font-weight: 850;
@@ -107,9 +106,7 @@
 
 .dashboard-action-card--next {
   border-color: rgba(244, 127, 116, 0.32);
-  background:
-    radial-gradient(circle at 92% 14%, rgba(255, 179, 126, 0.24), transparent 30%),
-    var(--color-surface);
+  background: var(--gradient-card);
 }
 
 .dashboard-action-card--blocked {

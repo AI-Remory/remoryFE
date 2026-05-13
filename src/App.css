@@ -1,21 +1,19 @@
- .app-loading,
- .app-access-page {
+.app-loading,
+.app-access-page {
   display: grid;
   min-height: 100dvh;
   place-items: center;
-  background:
-    radial-gradient(circle at top left, rgba(255, 235, 212, 0.72), transparent 32%),
-    linear-gradient(180deg, #fff9f1 0%, #fffdf9 100%);
-  color: #332b28;
+  background: var(--gradient-page);
+  color: var(--color-text);
 }
 
 .app-access-page section {
   width: min(560px, calc(100% - 32px));
   padding: 28px;
-  border: 1px solid #efdecf;
-  border-radius: 20px;
-  background: rgba(255, 251, 246, 0.86);
-  box-shadow: 0 10px 24px rgba(120, 75, 49, 0.08);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-card);
 }
 
 .app-access-page span {
@@ -24,24 +22,24 @@
   align-items: center;
   padding: 0 12px;
   border-radius: 999px;
-  background: #2f2926;
-  color: #fff7ed;
+  background: var(--color-text);
+  color: #fffdfa;
   font-size: 12px;
   font-weight: 850;
 }
 
 .app-access-page h1 {
   margin: 18px 0 0;
-  font-family: Georgia, 'Times New Roman', serif;
-  font-size: clamp(36px, 8vw, 64px);
-  font-weight: 500;
-  letter-spacing: -0.045em;
-  line-height: 0.96;
+  font-family: var(--sans);
+  font-size: clamp(2rem, 6vw, 3.5rem);
+  font-weight: 850;
+  letter-spacing: 0;
+  line-height: 1.08;
 }
 
 .app-access-page p {
   margin: 16px 0 0;
-  color: #6d625d;
+  color: var(--color-muted);
   font-size: 15px;
   font-weight: 650;
   line-height: 1.55;
@@ -53,9 +51,9 @@
   align-items: center;
   margin-top: 20px;
   padding: 0 16px;
-  border-radius: 12px;
-  background: #2f2926;
-  color: #fff7ed;
+  border-radius: 999px;
+  background: var(--gradient-action);
+  color: #fff;
   font-size: 14px;
   font-weight: 850;
   text-decoration: none;

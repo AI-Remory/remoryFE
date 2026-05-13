@@ -5,7 +5,7 @@ import './App.css'
 function AdminAccessDenied() {
   return (
     <main className="app-loading" role="alert">
-      관리자 권한이 없습니다. 관리자 기능은 /auth/me 응답의 role이 ADMIN 또는 admin일 때만 사용할 수 있습니다.
+      관리자 권한이 필요해요. 관리자 기능은 승인된 계정만 이용할 수 있어요.
       <br />
       <a href="/dashboard">대시보드로 이동</a>
     </main>

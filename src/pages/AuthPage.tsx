@@ -84,7 +84,7 @@ function AuthPage() {
       }
 
       if (!agreedToTerms) {
-        setErrorMessage('필수 약관에 동의해야 가입할 수 있어요.')
+        setErrorMessage('필수 항목에 동의해야 가입할 수 있어요.')
         return
       }
     }
@@ -119,8 +119,8 @@ function AuthPage() {
             <BackIcon />
           </button>
           <p className="auth-kicker">Remory</p>
-          <h1>소중한 기억을 천천히 이어갈 수 있도록 도와드릴게요.</h1>
-          <p>계정에 로그인하면 기억 대상, 페르소나, 스토리북을 한곳에서 관리할 수 있어요. 필요한 정보는 사용자가 직접 선택해 추가합니다.</p>
+          <h1>기억을 차분히 모아 오래 남길 수 있도록 도와드릴게요.</h1>
+          <p>계정으로 로그인하면 대상, 페르소나, 스토리북을 한곳에서 안전하게 관리할 수 있어요.</p>
         </aside>
 
         <section className="auth-card" aria-label={isSignup ? '회원가입' : '로그인'}>

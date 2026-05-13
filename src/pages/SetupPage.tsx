@@ -38,7 +38,6 @@ type PersonaDraft = {
 const TOTAL_STEPS = 5
 const SETUP_COMPLETED_KEY = 'remory_setup_completed'
 const SETUP_MEMORY_NOTES_KEY = 'remory_setup_memory_notes'
-const SETUP_SKIPPED_KEY = 'remory_setup_skipped'
 const defaultPhotoPreviewPaths = [
   '/images/setup/setup-photo-1.png',
   '/images/setup/setup-photo-2.png',
@@ -289,11 +288,6 @@ function SetupPage() {
     }
   }, [profileImagePreviewUrl])
 
-  const handleSkipSetup = () => {
-    window.localStorage.setItem(SETUP_SKIPPED_KEY, 'true')
-    window.location.href = '/home'
-  }
-
   const handleConsentChange = (key: ConsentKey, checked: boolean) => {
     setConsents((current) => ({
       ...current,
@@ -388,23 +382,6 @@ function SetupPage() {
     setStep(4)
   }
 
-  const handleSkipPersonaStep = () => {
-    setErrorMessage('')
-    setPersonaName('')
-    setSelectedRelationship('엄마')
-    setCustomRelationship('')
-    setPersonaDescription('')
-    setProfileImageFile(null)
-    setProfileImagePreviewUrl(null)
-    setPersonaDraft({
-      name: '엄마',
-      relationship: 'parent',
-      relationshipLabel: '엄마',
-      description: '따뜻한 조언을 해주는 분',
-    })
-    setStep(4)
-  }
-
   const buildDescription = () => {
     if (memoryNotes.length === 0) {
       return savedPersonaDescription
@@ -430,7 +407,7 @@ function SetupPage() {
     return target.id
   }
 
-  const handleCreatePersona = async (skipMediaUpload = false) => {
+  const handleCreatePersona = async () => {
     if (isSubmitting) {
       return
     }
@@ -441,16 +418,14 @@ function SetupPage() {
     try {
       const nextTargetId = await ensureTargetId()
 
-      if (!skipMediaUpload) {
-        if (profileImageFile) {
-          await targetApi.uploadTargetMedia(nextTargetId, 'image', profileImageFile)
-        }
+      if (profileImageFile) {
+        await targetApi.uploadTargetMedia(nextTargetId, 'image', profileImageFile)
+      }
 
-        await Promise.all(selectedPhotoFiles.map((file) => targetApi.uploadTargetMedia(nextTargetId, 'image', file)))
+      await Promise.all(selectedPhotoFiles.map((file) => targetApi.uploadTargetMedia(nextTargetId, 'image', file)))
 
-        if (selectedVoiceFile) {
-          await targetApi.uploadTargetMedia(nextTargetId, 'voice', selectedVoiceFile)
-        }
+      if (selectedVoiceFile) {
+        await targetApi.uploadTargetMedia(nextTargetId, 'voice', selectedVoiceFile)
       }
 
       const persona = await targetApi.createPersona(nextTargetId)
@@ -536,9 +511,6 @@ function SetupPage() {
               <button className="setup-page__primary-button" type="button" onClick={() => setStep(2)}>
                 <SetupIcon name="sparkle" />
                 시작하기
-              </button>
-              <button className="setup-page__secondary-button" type="button" onClick={handleSkipSetup}>
-                나중에 할게요
               </button>
             </div>
           </div>
@@ -718,9 +690,6 @@ function SetupPage() {
                 <SetupIcon name="sparkle" />
                 다음
               </button>
-              <button className="setup-page__secondary-button" type="button" onClick={handleSkipPersonaStep}>
-                건너뛰기
-              </button>
             </div>
           </form>
         )}
@@ -821,7 +790,7 @@ function SetupPage() {
                           <i key={`setup-wave-${index}`} />
                         ))}
                       </span>
-                      <span>00:28</span>
+                      <span className="setup-page__audio-duration">00:28</span>
                     </span>
                     {selectedVoiceFile && <span className="setup-page__audio-file-name">{selectedVoiceFile.name}</span>}
                   </span>
@@ -931,18 +900,10 @@ function SetupPage() {
                 className="setup-page__create-button"
                 type="button"
                 disabled={isSubmitting}
-                onClick={() => void handleCreatePersona(false)}
+                onClick={() => void handleCreatePersona()}
               >
                 <SetupIcon name="sparkle" />
                 {isSubmitting ? '페르소나 생성 중...' : '페르소나 생성하기'}
-              </button>
-              <button
-                className="setup-page__skip-button"
-                type="button"
-                disabled={isSubmitting}
-                onClick={() => void handleCreatePersona(true)}
-              >
-                나중에 추가할게요
               </button>
             </div>
           </div>

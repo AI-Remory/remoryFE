@@ -1,9 +1,12 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
 import { AppShell } from '../components/layout/AppShell'
 import { ApiError } from '../services/apiClient'
+import { mediaService } from '../services/mediaService'
 import { targetService } from '../services/targetService'
+import type { MediaType, TargetMediaResponse } from '../types/media'
 import type { TargetDetailResponse, TargetResponse, TargetType } from '../types/target'
+import { toPlayableFileUrl } from '../utils/fileUrl'
 import './DomainPages.css'
 
 type BadgeKind = 'connected' | 'next' | 'mock' | 'admin'
@@ -66,6 +69,18 @@ function formatDateTime(value: string) {
     dateStyle: 'medium',
     timeStyle: 'short',
   }).format(new Date(value))
+}
+
+function formatFileSize(bytes: number) {
+  if (bytes < 1024) {
+    return `${bytes} B`
+  }
+
+  if (bytes < 1024 * 1024) {
+    return `${(bytes / 1024).toFixed(1)} KB`
+  }
+
+  return `${(bytes / 1024 / 1024).toFixed(1)} MB`
 }
 
 function TargetImage({ target }: { target: TargetResponse }) {
@@ -545,6 +560,322 @@ function TargetDetailApiPage() {
                 </button>
               </div>
             </form>
+          </section>
+        )}
+      </main>
+    </AppShell>
+  )
+}
+
+function MediaPreview({ media }: { media: TargetMediaResponse }) {
+  const fileUrl = toPlayableFileUrl(media.file_path)
+
+  if (media.media_type === 'image') {
+    return <img alt={media.original_filename} src={fileUrl} />
+  }
+
+  return <audio controls preload="metadata" src={fileUrl} />
+}
+
+function TargetMediaApiPage() {
+  const [initialTargetId] = useState(() => getTargetIdFromLocation())
+  const [targetIdInput, setTargetIdInput] = useState(() => (initialTargetId ? String(initialTargetId) : ''))
+  const [activeTargetId, setActiveTargetId] = useState<number | null>(null)
+  const [mediaItems, setMediaItems] = useState<TargetMediaResponse[]>([])
+  const [imageFile, setImageFile] = useState<File | null>(null)
+  const [voiceFile, setVoiceFile] = useState<File | null>(null)
+  const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null)
+  const [voicePreviewUrl, setVoicePreviewUrl] = useState<string | null>(null)
+  const [isLoading, setIsLoading] = useState(false)
+  const [uploadingMediaType, setUploadingMediaType] = useState<MediaType | null>(null)
+  const [deletingMediaId, setDeletingMediaId] = useState<number | null>(null)
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const [notice, setNotice] = useState<string | null>(null)
+  const [isPermissionError, setIsPermissionError] = useState(false)
+
+  const loadMedia = useCallback(async (targetId: number) => {
+    setIsLoading(true)
+    setErrorMessage(null)
+    setNotice(null)
+    setIsPermissionError(false)
+
+    try {
+      const response = await mediaService.listTargetMedia(targetId)
+      setMediaItems(response)
+    } catch (error) {
+      setIsPermissionError(isOwnerOnlyError(error))
+      setErrorMessage(getApiErrorMessage(error))
+    } finally {
+      setIsLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!initialTargetId) {
+      return
+    }
+
+    const timerId = window.setTimeout(() => {
+      setActiveTargetId(initialTargetId)
+      void loadMedia(initialTargetId)
+    }, 0)
+
+    return () => {
+      window.clearTimeout(timerId)
+    }
+  }, [initialTargetId, loadMedia])
+
+  useEffect(() => {
+    return () => {
+      if (imagePreviewUrl) {
+        URL.revokeObjectURL(imagePreviewUrl)
+      }
+    }
+  }, [imagePreviewUrl])
+
+  useEffect(() => {
+    return () => {
+      if (voicePreviewUrl) {
+        URL.revokeObjectURL(voicePreviewUrl)
+      }
+    }
+  }, [voicePreviewUrl])
+
+  function setPreviewFile(file: File | null, mediaType: MediaType) {
+    const setPreviewUrl = mediaType === 'image' ? setImagePreviewUrl : setVoicePreviewUrl
+
+    if (!file) {
+      setPreviewUrl(null)
+      return
+    }
+
+    const objectUrl = URL.createObjectURL(file)
+    setPreviewUrl(objectUrl)
+  }
+
+  function handleImageFileChange(file: File | null) {
+    setImageFile(file)
+    setPreviewFile(file, 'image')
+  }
+
+  function handleVoiceFileChange(file: File | null) {
+    setVoiceFile(file)
+    setPreviewFile(file, 'voice')
+  }
+
+  function handleTargetSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    const parsedTargetId = Number(targetIdInput)
+
+    if (!Number.isInteger(parsedTargetId) || parsedTargetId <= 0) {
+      setErrorMessage('target_id must be a positive integer.')
+      return
+    }
+
+    setActiveTargetId(parsedTargetId)
+    void loadMedia(parsedTargetId)
+  }
+
+  async function handleUpload(mediaType: MediaType) {
+    if (!activeTargetId) {
+      setErrorMessage('target_id is required before upload.')
+      return
+    }
+
+    const file = mediaType === 'image' ? imageFile : voiceFile
+
+    if (!file) {
+      setErrorMessage(`${mediaType} file is required.`)
+      return
+    }
+
+    setUploadingMediaType(mediaType)
+    setErrorMessage(null)
+    setNotice(null)
+    setIsPermissionError(false)
+
+    try {
+      const response = await mediaService.uploadTargetMedia(activeTargetId, mediaType, file)
+      setNotice(response.message ?? 'File uploaded successfully.')
+      if (mediaType === 'image') {
+        handleImageFileChange(null)
+      } else {
+        handleVoiceFileChange(null)
+      }
+      await loadMedia(activeTargetId)
+    } catch (error) {
+      setIsPermissionError(isOwnerOnlyError(error))
+      setErrorMessage(getApiErrorMessage(error))
+    } finally {
+      setUploadingMediaType(null)
+    }
+  }
+
+  async function handleDelete(mediaId: number) {
+    if (!activeTargetId || !window.confirm('Delete this media file?')) {
+      return
+    }
+
+    setDeletingMediaId(mediaId)
+    setErrorMessage(null)
+    setNotice(null)
+    setIsPermissionError(false)
+
+    try {
+      const response = await mediaService.deleteMedia(mediaId)
+      setNotice(response.message ?? 'Media deleted successfully.')
+      await loadMedia(activeTargetId)
+    } catch (error) {
+      setIsPermissionError(isOwnerOnlyError(error))
+      setErrorMessage(getApiErrorMessage(error))
+    } finally {
+      setDeletingMediaId(null)
+    }
+  }
+
+  return (
+    <AppShell title="Target Media" subtitle="Uploads and lists target media with real multipart APIs." badge="API connected">
+      <main className="domain-page target-api-page">
+        <header className="domain-page__hero">
+          <div>
+            <span className="domain-page__eyebrow">TargetMediaPage</span>
+            <h1>Target media</h1>
+            <p>Uses media_type and file multipart fields from OpenAPI.</p>
+          </div>
+          <span className="domain-page__badge domain-page__badge--connected">GET POST DELETE</span>
+        </header>
+
+        <form className="target-form target-media-target-form" onSubmit={handleTargetSubmit}>
+          <div className="target-form__field">
+            <label htmlFor="media-target-id">target_id</label>
+            <input
+              id="media-target-id"
+              inputMode="numeric"
+              onChange={(event) => setTargetIdInput(event.target.value)}
+              required
+              type="number"
+              value={targetIdInput}
+            />
+            <p className="target-form__helper">Path param for /targets/{'{target_id}'}/media.</p>
+          </div>
+          <div className="target-form__actions">
+            <a href="/targets">Open target list</a>
+            <button type="submit">Load media</button>
+          </div>
+        </form>
+
+        {activeTargetId && (
+          <section className="target-media-upload-grid" aria-label="Media upload">
+            <article className="target-media-upload-card">
+              <h2>Photo upload</h2>
+              <div className="target-form__field">
+                <label htmlFor="target-image-file">file</label>
+                <input
+                  accept="image/*"
+                  id="target-image-file"
+                  onChange={(event) => handleImageFileChange(event.target.files?.[0] ?? null)}
+                  type="file"
+                />
+                <p className="target-form__helper">Sent with media_type=image.</p>
+              </div>
+              {imagePreviewUrl && (
+                <div className="target-media-local-preview">
+                  <img alt={imageFile?.name ?? 'Selected image preview'} src={imagePreviewUrl} />
+                </div>
+              )}
+              <button disabled={uploadingMediaType === 'image'} onClick={() => void handleUpload('image')} type="button">
+                {uploadingMediaType === 'image' ? 'Uploading...' : 'Upload photo'}
+              </button>
+            </article>
+
+            <article className="target-media-upload-card">
+              <h2>Voice upload</h2>
+              <div className="target-form__field">
+                <label htmlFor="target-voice-file">file</label>
+                <input
+                  accept="audio/*"
+                  id="target-voice-file"
+                  onChange={(event) => handleVoiceFileChange(event.target.files?.[0] ?? null)}
+                  type="file"
+                />
+                <p className="target-form__helper">Sent with media_type=voice.</p>
+              </div>
+              {voicePreviewUrl && (
+                <div className="target-media-local-audio">
+                  <audio controls preload="metadata" src={voicePreviewUrl} />
+                </div>
+              )}
+              <button disabled={uploadingMediaType === 'voice'} onClick={() => void handleUpload('voice')} type="button">
+                {uploadingMediaType === 'voice' ? 'Uploading...' : 'Upload voice'}
+              </button>
+            </article>
+          </section>
+        )}
+
+        {notice && <p className="target-form__notice">{notice}</p>}
+        {errorMessage && (
+          <p className="target-form__error" role="alert">
+            {isPermissionError ? 'You do not have permission to access this target media.' : errorMessage}
+          </p>
+        )}
+
+        {isLoading && <TargetStateMessage title="Loading media" message="Fetching media files for this target." />}
+
+        {!isLoading && activeTargetId && !errorMessage && mediaItems.length === 0 && (
+          <TargetStateMessage
+            title="No media yet"
+            message="Upload a photo or voice file to attach media to this Target."
+          />
+        )}
+
+        {!isLoading && mediaItems.length > 0 && (
+          <section className="target-media-grid" aria-label="Target media list">
+            {mediaItems.map((media) => (
+              <article className="target-media-card" key={media.id}>
+                <div className="target-media-card__preview">
+                  <MediaPreview media={media} />
+                </div>
+                <div className="target-media-card__body">
+                  <div className="target-card__title-row">
+                    <h2>{media.original_filename}</h2>
+                    <span>{media.media_type}</span>
+                  </div>
+                  <dl>
+                    <div>
+                      <dt>id</dt>
+                      <dd>{media.id}</dd>
+                    </div>
+                    <div>
+                      <dt>mime_type</dt>
+                      <dd>{media.mime_type}</dd>
+                    </div>
+                    <div>
+                      <dt>file_size</dt>
+                      <dd>{formatFileSize(media.file_size)}</dd>
+                    </div>
+                    <div>
+                      <dt>duration_seconds</dt>
+                      <dd>{media.duration_seconds ?? 'null'}</dd>
+                    </div>
+                    <div>
+                      <dt>file_path</dt>
+                      <dd>{media.file_path}</dd>
+                    </div>
+                    <div>
+                      <dt>is_deleted</dt>
+                      <dd>{String(media.is_deleted)}</dd>
+                    </div>
+                    <div>
+                      <dt>created_at</dt>
+                      <dd>{formatDateTime(media.created_at)}</dd>
+                    </div>
+                  </dl>
+                  <button disabled={deletingMediaId === media.id} onClick={() => void handleDelete(media.id)} type="button">
+                    {deletingMediaId === media.id ? 'Deleting...' : 'Delete media'}
+                  </button>
+                </div>
+              </article>
+            ))}
           </section>
         )}
       </main>
@@ -1091,7 +1422,7 @@ export function TargetDetailPage() {
 }
 
 export function TargetMediaPage() {
-  return <DomainShell config={configs.targetMedia} />
+  return <TargetMediaApiPage />
 }
 
 export function ConsentPage() {

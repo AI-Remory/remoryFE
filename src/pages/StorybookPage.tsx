@@ -40,6 +40,9 @@ type Chapter = {
   title: string
   duration: string
   icon: 'leaf' | 'meal' | 'mic'
+  summary?: string | null
+  content?: string | null
+  order_index?: number | null
 }
 
 type StorybookChapterItem = Chapter & {
@@ -122,6 +125,9 @@ function mapStoryChapters(apiChapters: StoryChapter[]): Chapter[] {
     title: chapter.title,
     duration: chapter.duration ? String(chapter.duration) : '0:00',
     icon: getChapterIcon(index),
+    summary: chapter.summary ?? null,
+    content: chapter.content ?? null,
+    order_index: chapter.order_index ?? chapter.order ?? null,
   }))
 }
 
@@ -139,6 +145,14 @@ function getApiErrorMessage(error: unknown, fallbackMessage: string) {
   }
 
   return fallbackMessage
+}
+
+function splitChapterPreview(content?: string | null) {
+  return content
+    ?.split(/\n{2,}|\r?\n/)
+    .map((paragraph) => paragraph.trim())
+    .filter(Boolean)
+    .slice(0, 3) ?? []
 }
 
 function getShareUrl(shareLink: ShareLink) {
@@ -223,10 +237,6 @@ function sortStorybooks(items: StoryBook[]) {
 
 function isSameApiId(left: ApiId | null | undefined, right: ApiId | null | undefined) {
   return left != null && right != null && String(left) === String(right)
-}
-
-function getStorybookSummary(storybook: StoryBook) {
-  return storybook.summary ?? storybook.subtitle ?? '생성된 스토리북입니다.'
 }
 
 function StorybookIcon({ name }: { name: IconName }) {
@@ -321,6 +331,7 @@ function StorybookPage() {
   const [storybookItems, setStorybookItems] = useState<StoryBook[]>([])
   const [allChapterItems, setAllChapterItems] = useState<StorybookChapterItem[]>([])
   const [chapterItems, setChapterItems] = useState<Chapter[]>(chapters)
+  const [selectedChapterId, setSelectedChapterId] = useState('')
   const [photoItems, setPhotoItems] = useState<Photo[]>(photos)
   const [photoMemories, setPhotoMemories] = useState<PhotoMemory[]>([])
   const [photoImageUrls, setPhotoImageUrls] = useState<Record<string, string>>({})
@@ -335,7 +346,6 @@ function StorybookPage() {
   const [photoUploadFile, setPhotoUploadFile] = useState<File | null>(null)
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false)
   const [isCreatingStorybook, setIsCreatingStorybook] = useState(false)
-  const [isSelectingStorybook, setIsSelectingStorybook] = useState(false)
   const [isSharePanelOpen, setIsSharePanelOpen] = useState(false)
   const [shareLinks, setShareLinks] = useState<ShareLink[]>([])
   const [isLoadingShareLinks, setIsLoadingShareLinks] = useState(false)
@@ -348,9 +358,11 @@ function StorybookPage() {
   const selectStorybook = useCallback(async (storybookId: ApiId) => {
     const detail = await storybookApi.getStorybook(storybookId)
     const detailChapters = detail.chapters?.length ? detail.chapters : await storybookApi.listChapters(detail.id)
+    const mappedChapters = detailChapters.length > 0 ? mapStoryChapters(detailChapters) : []
 
     setCurrentStorybook(detail)
-    setChapterItems(detailChapters.length > 0 ? mapStoryChapters(detailChapters) : [])
+    setChapterItems(mappedChapters)
+    setSelectedChapterId(mappedChapters[0]?.id ?? '')
     setShareLinks([])
     setIsSharePanelOpen(false)
     setIsShareConsentPromptOpen(false)
@@ -484,6 +496,14 @@ function StorybookPage() {
         storybookId: currentStorybook?.id ?? 'mock',
         storybookTitle: currentStorybook?.title ?? '샘플 스토리북',
       }))
+  const selectedChapterIndex = visibleChapterItems.findIndex((chapter) => chapter.id === selectedChapterId)
+  const selectedChapter = selectedChapterIndex >= 0
+    ? visibleChapterItems[selectedChapterIndex]
+    : visibleChapterItems[0] ?? null
+  const selectedChapterLabel = selectedChapter
+    ? `${(selectedChapterIndex >= 0 ? selectedChapterIndex : 0) + 1}번째 기억`
+    : ''
+  const selectedChapterPreviewParagraphs = splitChapterPreview(selectedChapter?.content)
   const coverTitle = currentStorybook?.title ?? '엄마의 따뜻한 말 한마디'
   const coverImageUrl = normalizeAssetUrl(currentStorybook?.cover_image_url) || '/images/storybook/storybook-cover-mom.png'
   const coverTitleLines = coverTitle.split(' ')
@@ -634,26 +654,8 @@ function StorybookPage() {
     }
   }
 
-  const handleSelectStorybook = async (storybookId: ApiId) => {
-    if (isSelectingStorybook || isSameApiId(currentStorybook?.id, storybookId)) {
-      return
-    }
-
-    setIsSelectingStorybook(true)
-    setErrorMessage('')
-    setStatusMessage('')
-
-    try {
-      await selectStorybook(storybookId)
-    } catch (error) {
-      setErrorMessage(getApiErrorMessage(error, '스토리북 정보를 불러오지 못했습니다.'))
-    } finally {
-      setIsSelectingStorybook(false)
-    }
-  }
-
   const handleOpenStorybookDetail = (chapterId?: string, storybookId?: ApiId) => {
-    const targetStorybookId = storybookId ?? currentStorybook?.id
+    const targetStorybookId = storybookId ?? selectedChapter?.storybookId ?? currentStorybook?.id
 
     if (!targetStorybookId) {
       setErrorMessage('볼 스토리북이 없습니다.')
@@ -904,43 +906,6 @@ function StorybookPage() {
           </section>
         )}
 
-        <section className="storybook-page__section" aria-label="내 스토리북">
-          <div className="storybook-page__section-header">
-            <h2>내 스토리북</h2>
-            {isSelectingStorybook && <span className="storybook-page__section-note">불러오는 중...</span>}
-          </div>
-          {storybookItems.length > 0 ? (
-            <div className="storybook-page__storybook-list">
-              {storybookItems.map((storybook) => {
-                const isSelected = isSameApiId(currentStorybook?.id, storybook.id)
-                const summary = getStorybookSummary(storybook)
-
-                return (
-                  <button
-                    className={`storybook-page__storybook-card${isSelected ? ' is-selected' : ''}`}
-                    type="button"
-                    key={String(storybook.id)}
-                    aria-pressed={isSelected}
-                    onClick={() => handleSelectStorybook(storybook.id)}
-                    disabled={isSelectingStorybook}
-                  >
-                    <span className="storybook-page__storybook-card-main">
-                      <strong>{storybook.title}</strong>
-                      <small>{summary}</small>
-                    </span>
-                    <span className="storybook-page__storybook-card-meta">
-                      <em>{storybook.status ?? storybook.visibility ?? 'PRIVATE'}</em>
-                      <time>{formatDate(storybook.created_at)}</time>
-                    </span>
-                  </button>
-                )
-              })}
-            </div>
-          ) : (
-            <p className="storybook-page__empty-text">아직 생성된 스토리북이 없습니다. 사진 기억을 선택해 첫 스토리북을 만들어보세요.</p>
-          )}
-        </section>
-
         <section className="storybook-page__section">
           <div className="storybook-page__section-header">
             <h2>기억 속 사진</h2>
@@ -1058,7 +1023,7 @@ function StorybookPage() {
             <div>
               <h2>스토리 챕터</h2>
               <p className="storybook-page__current-storybook">
-                전체 {visibleChapterItems.length}개 챕터 · 현재 스토리북: {currentStorybook?.title ?? '선택된 스토리북 없음'}
+                전체 {visibleChapterItems.length}개 챕터
               </p>
             </div>
             <button type="button" onClick={() => console.log('reorder chapters')}>
@@ -1066,12 +1031,17 @@ function StorybookPage() {
             </button>
           </div>
           <div className="storybook-page__chapter-card">
-            {visibleChapterItems.map((chapter) => (
-              <button className="storybook-page__chapter-row" type="button" key={`${chapter.storybookId}-${chapter.id}`} onClick={() => handleOpenStorybookDetail(chapter.id, chapter.storybookId)}>
+            {visibleChapterItems.map((chapter, index) => (
+              <button
+                className={`storybook-page__chapter-row${selectedChapter?.id === chapter.id && isSameApiId(selectedChapter.storybookId, chapter.storybookId) ? ' is-selected' : ''}`}
+                type="button"
+                key={`${chapter.storybookId}-${chapter.id}`}
+                onClick={() => setSelectedChapterId(chapter.id)}
+              >
                 <span className="storybook-page__chapter-icon">
                   <StorybookIcon name={chapter.icon} />
                 </span>
-                <span className="storybook-page__chapter-label">{chapter.label}</span>
+                <span className="storybook-page__chapter-label">{index + 1}번째 기억</span>
                 <span className="storybook-page__chapter-title-group">
                   <strong>{chapter.title}</strong>
                   <small>{chapter.storybookTitle}</small>
@@ -1081,6 +1051,27 @@ function StorybookPage() {
               </button>
             ))}
           </div>
+          {selectedChapter && (
+            <section className="storybook-page__chapter-preview" aria-label="선택한 챕터 미리보기">
+              <span>{selectedChapterLabel}</span>
+              <h3>{selectedChapter.title}</h3>
+              <small>{selectedChapter.storybookTitle}</small>
+              {selectedChapter.summary && <p className="storybook-page__chapter-preview-summary">{selectedChapter.summary}</p>}
+              {selectedChapterPreviewParagraphs.length > 0 ? (
+                <div className="storybook-page__chapter-preview-content">
+                  {selectedChapterPreviewParagraphs.map((paragraph, index) => (
+                    <p key={`${selectedChapter.storybookId}-${selectedChapter.id}-preview-${index}`}>{paragraph}</p>
+                  ))}
+                </div>
+              ) : (
+                <p className="storybook-page__chapter-preview-empty">아직 표시할 챕터 본문이 없습니다.</p>
+              )}
+              <button type="button" onClick={() => handleOpenStorybookDetail(undefined, selectedChapter.storybookId)}>
+                <StorybookIcon name="book" />
+                전체 스토리북 보기
+              </button>
+            </section>
+          )}
         </section>
 
         <section className="storybook-page__actions" aria-label="스토리북 작업">

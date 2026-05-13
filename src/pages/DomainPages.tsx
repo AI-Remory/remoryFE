@@ -10,6 +10,7 @@ import { mockFeatureService } from '../services/mock/mockFeatureService'
 import { personaService } from '../services/personaService'
 import { targetService } from '../services/targetService'
 import { verificationService } from '../services/verificationService'
+import { voiceProfileService } from '../services/voiceProfileService'
 import type { MockFeaturePageKey } from '../data/mockFeaturePages'
 import type { ChatId, PersonaChatResponse, PersonaMessageResponse, SenderType } from '../types/chat'
 import type { ConsentResponse, ConsentType } from '../types/consent'
@@ -18,6 +19,7 @@ import type { PersonaDetailResponse, PersonaStatus, PersonaStatusResponse } from
 import type { TargetDetailResponse, TargetResponse, TargetType } from '../types/target'
 import type { VerificationRequestResponse, VerificationStatus, VerificationType } from '../types/verification'
 import type { VoiceCallMessage, VoiceCallStatus } from '../types/voice'
+import type { PersonaVoiceProfileResponse, VoiceProfileStatus } from '../types/voiceProfile'
 import { toPlayableFileUrl } from '../utils/fileUrl'
 import './DomainPages.css'
 
@@ -118,6 +120,42 @@ function getPersonaStatusMessage(status: PersonaStatus) {
 
 function PersonaStatusBadge({ status }: { status: PersonaStatus }) {
   return <span className={`persona-status-badge persona-status-badge--${status.toLowerCase()}`}>{status}</span>
+}
+
+function isVoiceProfileReadyForCall(profile: PersonaVoiceProfileResponse | null | undefined) {
+  return (
+    profile?.status === 'READY' &&
+    (profile.review_status === 'USER_CONFIRMED' || profile.review_status === 'ADMIN_APPROVED')
+  )
+}
+
+function getVoiceProfileStatusMessage(profile: PersonaVoiceProfileResponse | null) {
+  if (!profile) {
+    return 'No voice profile has been returned for this Persona.'
+  }
+
+  switch (profile.status) {
+    case 'READY':
+      return isVoiceProfileReadyForCall(profile)
+        ? 'Voice profile is READY and confirmed. Voice call entry is available.'
+        : 'Voice profile is READY but user or admin confirmation is still required.'
+    case 'NEEDS_MORE_SAMPLES':
+      return 'Voice profile needs more voice samples before it can be used.'
+    case 'FAILED':
+      return profile.error_message ?? 'Voice profile generation failed.'
+    case 'PROCESSING':
+      return 'Voice profile is processing.'
+    case 'PENDING':
+      return 'Voice profile is pending.'
+    case 'REVOKED':
+      return 'Voice profile was revoked.'
+    default:
+      return 'Voice profile status is not available.'
+  }
+}
+
+function VoiceProfileStatusBadge({ status }: { status?: VoiceProfileStatus | null }) {
+  return <span className={`persona-status-badge persona-status-badge--${(status ?? 'pending').toLowerCase()}`}>{status ?? 'null'}</span>
 }
 
 function getSenderLabel(senderType: SenderType) {
@@ -1052,6 +1090,7 @@ function PersonaDetailCard({
 }) {
   const currentStatus = status?.status ?? persona.status
   const isReady = currentStatus === 'READY'
+  const canUseVoiceCall = isReady && isVoiceProfileReadyForCall(persona.voice_profile)
 
   return (
     <section className="persona-detail-layout">
@@ -1111,14 +1150,15 @@ function PersonaDetailCard({
 
       <aside className="persona-action-card">
         <h2>Actions</h2>
-        <p>{isReady ? 'READY status enables chat and voice call routes.' : 'Chat and voice call are disabled until status is READY.'}</p>
+        <p>{isReady ? 'READY status enables chat. Voice call also requires a READY and confirmed voice profile.' : 'Chat and voice call are disabled until status is READY.'}</p>
         <div className="persona-action-card__actions">
           <a aria-disabled={!isReady} href={isReady ? `/persona-chat?persona_id=${persona.id}` : undefined}>
             Open chat
           </a>
-          <a aria-disabled={!isReady} href={isReady ? `/persona-voice-call?persona_id=${persona.id}` : undefined}>
+          <a aria-disabled={!canUseVoiceCall} href={canUseVoiceCall ? `/persona-voice-call?persona_id=${persona.id}` : undefined}>
             Voice call
           </a>
+          <a href={`/personas/voice-profile?persona_id=${persona.id}`}>Voice profile</a>
           {onRefreshStatus && (
             <button disabled={isRefreshingStatus} onClick={onRefreshStatus} type="button">
               {isRefreshingStatus ? 'Refreshing...' : 'Refresh status'}
@@ -1126,7 +1166,10 @@ function PersonaDetailCard({
           )}
         </div>
 
-        {persona.voice_profile && (
+        <section className="target-api-state">
+          <h2>Voice profile gate</h2>
+          <p>{getVoiceProfileStatusMessage(persona.voice_profile ?? null)}</p>
+          {persona.voice_profile ? (
           <dl>
             <div>
               <dt>voice_profile.id</dt>
@@ -1145,7 +1188,10 @@ function PersonaDetailCard({
               <dd>{persona.voice_profile.quality_score ?? 'null'}</dd>
             </div>
           </dl>
-        )}
+          ) : (
+            <p>No voice_profile field was returned in PersonaDetailResponse.</p>
+          )}
+        </section>
       </aside>
     </section>
   )
@@ -2171,6 +2217,327 @@ function PersonaChatApiPage() {
   )
 }
 
+function VoiceProfileDetailCard({ profile }: { profile: PersonaVoiceProfileResponse }) {
+  const sampleAudioUrl = profile.sample_audio_path ? toPlayableFileUrl(profile.sample_audio_path) : null
+  const referenceAudioUrl = profile.reference_voice_file_path ? toPlayableFileUrl(profile.reference_voice_file_path) : null
+
+  return (
+    <article className="target-detail-card">
+      <div className="target-card__title-row">
+        <h2>Voice profile #{profile.id}</h2>
+        <VoiceProfileStatusBadge status={profile.status} />
+      </div>
+      <p>{getVoiceProfileStatusMessage(profile)}</p>
+      <dl>
+        <div>
+          <dt>persona_id</dt>
+          <dd>{profile.persona_id}</dd>
+        </div>
+        <div>
+          <dt>target_id</dt>
+          <dd>{profile.target_id ?? 'null'}</dd>
+        </div>
+        <div>
+          <dt>review_status</dt>
+          <dd>{profile.review_status ?? 'null'}</dd>
+        </div>
+        <div>
+          <dt>reference_audio_count</dt>
+          <dd>{profile.reference_audio_count ?? 'null'}</dd>
+        </div>
+        <div>
+          <dt>reference_audio_total_seconds</dt>
+          <dd>{profile.reference_audio_total_seconds ?? 'null'}</dd>
+        </div>
+        <div>
+          <dt>total_reference_duration_ms</dt>
+          <dd>{profile.total_reference_duration_ms ?? 'null'}</dd>
+        </div>
+        <div>
+          <dt>quality_score</dt>
+          <dd>{profile.quality_score ?? 'null'}</dd>
+        </div>
+        <div>
+          <dt>similarity_score</dt>
+          <dd>{profile.similarity_score ?? 'null'}</dd>
+        </div>
+        <div>
+          <dt>noise_score</dt>
+          <dd>{profile.noise_score ?? 'null'}</dd>
+        </div>
+        <div>
+          <dt>voice_provider</dt>
+          <dd>{profile.voice_provider ?? 'null'}</dd>
+        </div>
+        <div>
+          <dt>voice_id</dt>
+          <dd>{profile.voice_id ?? 'null'}</dd>
+        </div>
+        <div>
+          <dt>voice_name</dt>
+          <dd>{profile.voice_name ?? 'null'}</dd>
+        </div>
+        <div>
+          <dt>review_note</dt>
+          <dd>{profile.review_note ?? 'null'}</dd>
+        </div>
+        <div>
+          <dt>error_message</dt>
+          <dd>{profile.error_message ?? 'null'}</dd>
+        </div>
+        <div>
+          <dt>created_at</dt>
+          <dd>{formatDateTime(profile.created_at)}</dd>
+        </div>
+        <div>
+          <dt>updated_at</dt>
+          <dd>{formatDateTime(profile.updated_at)}</dd>
+        </div>
+      </dl>
+
+      {sampleAudioUrl && (
+        <div className="target-media-local-audio">
+          <p>sample_audio_path</p>
+          <audio controls preload="metadata" src={sampleAudioUrl} />
+        </div>
+      )}
+
+      {referenceAudioUrl && (
+        <div className="target-media-local-audio">
+          <p>reference_voice_file_path</p>
+          <audio controls preload="metadata" src={referenceAudioUrl} />
+        </div>
+      )}
+    </article>
+  )
+}
+
+function PersonaVoiceProfileApiPage() {
+  const [initialPersonaId] = useState(() => getPersonaIdFromLocation())
+  const [personaIdInput, setPersonaIdInput] = useState(() => (initialPersonaId ? String(initialPersonaId) : ''))
+  const [activePersonaId, setActivePersonaId] = useState<number | null>(null)
+  const [profile, setProfile] = useState<PersonaVoiceProfileResponse | null>(null)
+  const [reviewNote, setReviewNote] = useState('')
+  const [isLoading, setIsLoading] = useState(false)
+  const [isCreating, setIsCreating] = useState(false)
+  const [isEvaluating, setIsEvaluating] = useState(false)
+  const [isConfirming, setIsConfirming] = useState(false)
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const [notice, setNotice] = useState<string | null>(null)
+  const [isPermissionError, setIsPermissionError] = useState(false)
+
+  const loadProfile = useCallback(async (personaId: number) => {
+    setIsLoading(true)
+    setErrorMessage(null)
+    setNotice(null)
+    setIsPermissionError(false)
+
+    try {
+      const response = await voiceProfileService.getVoiceProfile(personaId)
+      setProfile(response)
+      setActivePersonaId(personaId)
+    } catch (error) {
+      setIsPermissionError(isOwnerOnlyError(error))
+      setErrorMessage(getApiErrorMessage(error))
+      setProfile(null)
+      setActivePersonaId(personaId)
+    } finally {
+      setIsLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!initialPersonaId) {
+      return
+    }
+
+    const timerId = window.setTimeout(() => {
+      void loadProfile(initialPersonaId)
+    }, 0)
+
+    return () => {
+      window.clearTimeout(timerId)
+    }
+  }, [initialPersonaId, loadProfile])
+
+  function getPersonaIdFromInput() {
+    const personaId = Number(personaIdInput)
+    return Number.isInteger(personaId) && personaId > 0 ? personaId : null
+  }
+
+  function handleLoad(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    const personaId = getPersonaIdFromInput()
+
+    if (!personaId) {
+      setErrorMessage('persona_id must be a positive integer.')
+      return
+    }
+
+    void loadProfile(personaId)
+  }
+
+  async function handleCreate() {
+    const personaId = getPersonaIdFromInput()
+
+    if (!personaId) {
+      setErrorMessage('persona_id must be a positive integer.')
+      return
+    }
+
+    setIsCreating(true)
+    setErrorMessage(null)
+    setNotice(null)
+    setIsPermissionError(false)
+
+    try {
+      const response = await voiceProfileService.createVoiceProfile(personaId)
+      setProfile(response)
+      setActivePersonaId(personaId)
+      setNotice('Voice profile creation requested.')
+    } catch (error) {
+      setIsPermissionError(isOwnerOnlyError(error))
+      setErrorMessage(getApiErrorMessage(error))
+    } finally {
+      setIsCreating(false)
+    }
+  }
+
+  async function handleEvaluate() {
+    const personaId = activePersonaId ?? getPersonaIdFromInput()
+
+    if (!personaId) {
+      setErrorMessage('persona_id must be a positive integer.')
+      return
+    }
+
+    setIsEvaluating(true)
+    setErrorMessage(null)
+    setNotice(null)
+    setIsPermissionError(false)
+
+    try {
+      const response = await voiceProfileService.evaluateVoiceProfile(personaId)
+      setProfile(response)
+      setActivePersonaId(personaId)
+      setNotice('Voice profile evaluated.')
+    } catch (error) {
+      setIsPermissionError(isOwnerOnlyError(error))
+      setErrorMessage(getApiErrorMessage(error))
+    } finally {
+      setIsEvaluating(false)
+    }
+  }
+
+  async function handleConfirm(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    const personaId = activePersonaId ?? getPersonaIdFromInput()
+
+    if (!personaId) {
+      setErrorMessage('persona_id must be a positive integer.')
+      return
+    }
+
+    setIsConfirming(true)
+    setErrorMessage(null)
+    setNotice(null)
+    setIsPermissionError(false)
+
+    try {
+      const response = await voiceProfileService.confirmVoiceProfile(personaId, {
+        review_note: reviewNote || null,
+      })
+      setProfile(response)
+      setActivePersonaId(personaId)
+      setNotice('Voice profile confirmed.')
+    } catch (error) {
+      setIsPermissionError(isOwnerOnlyError(error))
+      setErrorMessage(getApiErrorMessage(error))
+    } finally {
+      setIsConfirming(false)
+    }
+  }
+
+  const canEnterVoiceCall = isVoiceProfileReadyForCall(profile)
+
+  return (
+    <AppShell title="Persona Voice Profile" subtitle="Connected to PersonaVoiceProfile APIs." badge="API connected">
+      <main className="domain-page target-api-page">
+        <header className="domain-page__hero">
+          <div>
+            <span className="domain-page__eyebrow">PersonaVoiceProfilePage</span>
+            <h1>Persona voice profile</h1>
+            <p>Create, evaluate, confirm, and inspect the voice profile returned by the backend.</p>
+          </div>
+          <span className="domain-page__badge domain-page__badge--connected">GET POST PATCH</span>
+        </header>
+
+        <form className="target-form" onSubmit={handleLoad}>
+          <div className="target-form__field">
+            <label htmlFor="voice-profile-persona-id">persona_id</label>
+            <input
+              id="voice-profile-persona-id"
+              inputMode="numeric"
+              onChange={(event) => setPersonaIdInput(event.target.value)}
+              required
+              type="number"
+              value={personaIdInput}
+            />
+            <p className="target-form__helper">Path param for /personas/{'{persona_id}'}/voice-profile.</p>
+          </div>
+          <div className="target-form__actions">
+            <button disabled={isLoading} type="submit">
+              {isLoading ? 'Loading...' : 'Load profile'}
+            </button>
+            <button disabled={isCreating} onClick={() => void handleCreate()} type="button">
+              {isCreating ? 'Creating...' : 'Create profile'}
+            </button>
+            <button disabled={isEvaluating} onClick={() => void handleEvaluate()} type="button">
+              {isEvaluating ? 'Evaluating...' : 'Evaluate'}
+            </button>
+          </div>
+        </form>
+
+        <form className="target-form" onSubmit={handleConfirm}>
+          <div className="target-form__field">
+            <label htmlFor="voice-profile-review-note">review_note</label>
+            <textarea
+              id="voice-profile-review-note"
+              onChange={(event) => setReviewNote(event.target.value)}
+              rows={3}
+              value={reviewNote}
+            />
+            <p className="target-form__helper">PATCH /personas/{'{persona_id}'}/voice-profile/user-confirm</p>
+          </div>
+          <div className="target-form__actions">
+            <button disabled={isConfirming} type="submit">
+              {isConfirming ? 'Confirming...' : 'User confirm'}
+            </button>
+            <a aria-disabled={!canEnterVoiceCall} href={canEnterVoiceCall && activePersonaId ? `/persona-voice-call?persona_id=${activePersonaId}` : undefined}>
+              Voice call
+            </a>
+          </div>
+        </form>
+
+        {notice && <p className="target-form__notice">{notice}</p>}
+        {errorMessage && (
+          <p className="target-form__error" role="alert">
+            {isPermissionError ? errorMessage : errorMessage}
+          </p>
+        )}
+
+        {isLoading && <TargetStateMessage title="Loading voice profile" message="Fetching PersonaVoiceProfileResponse from the backend." />}
+
+        {!isLoading && activePersonaId && !profile && !errorMessage && (
+          <TargetStateMessage title="No voice profile" message="Create a voice profile after uploading Target voice media." />
+        )}
+
+        {profile && <VoiceProfileDetailCard profile={profile} />}
+      </main>
+    </AppShell>
+  )
+}
+
 const voiceStatusLabel: Record<VoiceCallStatus, string> = {
   disconnected: 'disconnected',
   connecting: 'connecting',
@@ -2202,6 +2569,9 @@ function PersonaVoiceCallApiPage() {
   const [initialChatId] = useState(() => getChatIdFromLocation())
   const [personaIdInput, setPersonaIdInput] = useState(() => (initialPersonaId ? String(initialPersonaId) : ''))
   const [chatIdInput, setChatIdInput] = useState(() => (initialChatId ? String(initialChatId) : ''))
+  const [voiceProfileGate, setVoiceProfileGate] = useState<PersonaVoiceProfileResponse | null>(null)
+  const [voiceProfileGateError, setVoiceProfileGateError] = useState<string | null>(null)
+  const [isCheckingVoiceProfile, setIsCheckingVoiceProfile] = useState(false)
   const voiceCall = useVoiceCall()
 
   const canConnect = voiceCall.status === 'disconnected' || voiceCall.status === 'ended'
@@ -2209,12 +2579,35 @@ function PersonaVoiceCallApiPage() {
   const canEndUtterance = voiceCall.status === 'recording'
   const canStop = voiceCall.status === 'connected' || voiceCall.status === 'recording' || voiceCall.status === 'processing'
 
-  function handleConnect(event: FormEvent<HTMLFormElement>) {
+  async function handleConnect(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     const personaId = Number(personaIdInput)
     const chatId = Number(chatIdInput)
 
-    voiceCall.connect({ personaId, chatId })
+    if (!Number.isInteger(personaId) || personaId <= 0) {
+      setVoiceProfileGateError('persona_id must be a positive integer.')
+      return
+    }
+
+    setIsCheckingVoiceProfile(true)
+    setVoiceProfileGateError(null)
+
+    try {
+      const profile = await voiceProfileService.getVoiceProfile(personaId)
+      setVoiceProfileGate(profile)
+
+      if (!isVoiceProfileReadyForCall(profile)) {
+        setVoiceProfileGateError('Voice call requires voice profile status READY and review_status USER_CONFIRMED or ADMIN_APPROVED.')
+        return
+      }
+
+      voiceCall.connect({ personaId, chatId })
+    } catch (error) {
+      setVoiceProfileGate(null)
+      setVoiceProfileGateError(getApiErrorMessage(error))
+    } finally {
+      setIsCheckingVoiceProfile(false)
+    }
   }
 
   return (
@@ -2260,8 +2653,8 @@ function PersonaVoiceCallApiPage() {
                 <p className="target-form__helper">Sent in the documented start message body.</p>
               </div>
 
-              <button disabled={!canConnect || voiceCall.status === 'connecting'} type="submit">
-                {voiceCall.status === 'connecting' ? 'Connecting...' : 'Connect'}
+              <button disabled={!canConnect || voiceCall.status === 'connecting' || isCheckingVoiceProfile} type="submit">
+                {isCheckingVoiceProfile ? 'Checking voice profile...' : voiceCall.status === 'connecting' ? 'Connecting...' : 'Connect'}
               </button>
             </form>
 
@@ -2276,8 +2669,22 @@ function PersonaVoiceCallApiPage() {
                   <dt>mime_type</dt>
                   <dd>audio/webm</dd>
                 </div>
+                <div>
+                  <dt>voice_profile.status</dt>
+                  <dd>{voiceProfileGate?.status ?? 'Not checked'}</dd>
+                </div>
+                <div>
+                  <dt>review_status</dt>
+                  <dd>{voiceProfileGate?.review_status ?? 'Not checked'}</dd>
+                </div>
               </dl>
             </div>
+
+            {voiceProfileGateError && (
+              <p className="target-form__error" role="alert">
+                {voiceProfileGateError}
+              </p>
+            )}
 
             {voiceCall.errorMessage && (
               <p className="target-form__error" role="alert">
@@ -2453,7 +2860,7 @@ export function PersonaDetailPage() {
 }
 
 export function PersonaVoiceProfilePage() {
-  return <MockFeaturePage pageKey="personaVoiceProfile" />
+  return <PersonaVoiceProfileApiPage />
 }
 
 export function PersonaChatPage() {

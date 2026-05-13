@@ -128,3 +128,19 @@ Notes:
 - TargetVerificationRequest now uses `POST /targets/{target_id}/verification-requests`, `GET /targets/{target_id}/verification-requests`, and `GET /verification-requests/{request_id}`.
 - Verification upload uses only the documented multipart field names: `verification_type_param`, `applicant_note`, and `file`.
 - TargetDetailPage shows consent/verification gate status and disables Persona creation unless a verification request has `APPROVED` status.
+
+## PersonaVoiceProfile Connection Update
+
+Updated on 2026-05-14.
+
+| Feature | Previous status | Current status | Frontend files | Action |
+| --- | --- | --- | --- | --- |
+| PersonaVoiceProfile | `mock-only` | `fully-connected` | `src/types/voiceProfile.ts`, `src/services/voiceProfileService.ts`, `PersonaVoiceProfilePage` in `src/pages/DomainPages.tsx` | `keep` |
+| PersonaDetail voice profile card | `partially-connected` | `fully-connected` | `PersonaDetailCard` in `src/pages/DomainPages.tsx` | `keep` |
+| VoiceCall profile gate | `fully-connected` WebSocket only | `fully-connected` with voice profile gate | `PersonaVoiceCallPage` in `src/pages/DomainPages.tsx` | `keep` |
+
+Notes:
+- PersonaVoiceProfile now uses `GET /personas/{persona_id}/voice-profile`, `POST /personas/{persona_id}/voice-profile`, `POST /personas/{persona_id}/voice-profile/evaluate`, and `PATCH /personas/{persona_id}/voice-profile/user-confirm`.
+- Voice profile status enum is limited to `PENDING`, `PROCESSING`, `READY`, `FAILED`, `NEEDS_MORE_SAMPLES`, `REVOKED`.
+- Voice profile review_status enum is limited to `NOT_REVIEWED`, `USER_CONFIRMED`, `ADMIN_APPROVED`, `REJECTED`.
+- Voice call entry is allowed only when voice profile `status` is `READY` and `review_status` is `USER_CONFIRMED` or `ADMIN_APPROVED`.

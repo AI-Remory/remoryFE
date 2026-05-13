@@ -1,5 +1,5 @@
 import { apiClient } from '../lib/apiClient'
-import type { ApiId, VerificationRequest, VerificationType } from '../types/api'
+import type { ApiId, PaginatedResponse, VerificationRequest, VerificationType } from '../types/api'
 
 type CreateVerificationRequestPayload = {
   verification_type_param: VerificationType
@@ -17,10 +17,12 @@ export const verificationApi = {
     return apiClient.post<VerificationRequest>(`/targets/${targetId}/verification-requests`, formData)
   },
 
-  listTargetVerificationRequests(targetId: ApiId, skip = 0, limit = 20) {
-    return apiClient.get<VerificationRequest[]>(
+  async listTargetVerificationRequests(targetId: ApiId, skip = 0, limit = 20) {
+    const response = await apiClient.get<PaginatedResponse<VerificationRequest> | VerificationRequest[]>(
       `/targets/${targetId}/verification-requests?skip=${skip}&limit=${limit}`,
     )
+
+    return Array.isArray(response) ? response : response.items
   },
 
   getVerificationRequest(requestId: ApiId) {

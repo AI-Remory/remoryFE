@@ -279,7 +279,11 @@ function getApiErrorMessage(error: unknown, fallbackMessage: string) {
   return fallbackMessage
 }
 
-function getLatestVerificationRequest(requests: VerificationRequest[]) {
+function getLatestVerificationRequest(requests: VerificationRequest[] | null | undefined) {
+  if (!Array.isArray(requests)) {
+    return null
+  }
+
   return [...requests].sort((left, right) => {
     const leftTime = left.created_at ? new Date(left.created_at).getTime() : 0
     const rightTime = right.created_at ? new Date(right.created_at).getTime() : 0
@@ -466,7 +470,8 @@ function SetupPage() {
     async function loadVerificationStatus() {
       try {
         const requests = await verificationApi.listTargetVerificationRequests(currentTargetId)
-        const latestRequest = getLatestVerificationRequest(requests)
+        const safeRequests = Array.isArray(requests) ? requests : []
+        const latestRequest = getLatestVerificationRequest(safeRequests)
 
         if (!ignore) {
           setVerificationRequest(latestRequest)
@@ -674,7 +679,8 @@ function SetupPage() {
 
     try {
       const requests = await verificationApi.listTargetVerificationRequests(nextTargetId)
-      const latestRequest = getLatestVerificationRequest(requests)
+      const safeRequests = Array.isArray(requests) ? requests : []
+      const latestRequest = getLatestVerificationRequest(safeRequests)
       setVerificationRequest(latestRequest)
       setStatusMessage(latestRequest ? '검증 상태를 새로 확인했어요.' : '아직 제출된 검증 요청이 없어요.')
 
@@ -684,7 +690,7 @@ function SetupPage() {
         clearStaleSetupStorage()
         setStatusMessage('이전 설정 정보를 초기화했어요. 다시 진행해주세요.')
       } else {
-        setErrorMessage(getApiErrorMessage(error, '검증 상태를 확인하지 못했습니다.'))
+        setErrorMessage('검증 상태를 확인하지 못했습니다. 잠시 후 다시 시도해주세요.')
       }
 
       return null

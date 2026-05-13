@@ -1,5 +1,12 @@
 export type ApiId = string | number
 
+export type PaginatedResponse<T> = {
+  total: number
+  skip: number
+  limit: number
+  items: T[]
+}
+
 export type User = {
   id: ApiId
   email: string

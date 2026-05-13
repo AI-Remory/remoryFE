@@ -5,6 +5,7 @@ import { useVoiceCall } from '../hooks/useVoiceCall'
 import { ApiError } from '../services/apiClient'
 import { chatService } from '../services/chatService'
 import { consentService } from '../services/consentService'
+import { groupService } from '../services/groupService'
 import { interviewService } from '../services/interviewService'
 import { mediaService } from '../services/mediaService'
 import { mockFeatureService } from '../services/mock/mockFeatureService'
@@ -18,6 +19,13 @@ import { storybookService } from '../services/storybookService'
 import type { MockFeaturePageKey } from '../data/mockFeaturePages'
 import type { ChatId, PersonaChatResponse, PersonaMessageResponse, SenderType } from '../types/chat'
 import type { ConsentResponse, ConsentType } from '../types/consent'
+import type {
+  GroupMemberResponse,
+  GroupMemberRole,
+  GroupStoryBookListItemResponse,
+  MemoryGroupDetailResponse,
+  MemoryGroupResponse,
+} from '../types/group'
 import type {
   AIInterviewQuestionResponse,
   AIInterviewSessionDetailResponse,
@@ -64,6 +72,7 @@ const consentTypeOptions: ConsentType[] = [
 const verificationTypeOptions: VerificationType[] = ['FAMILY_RELATION_CERTIFICATE', 'ID_CARD', 'SELF_DECLARATION', 'OTHER']
 const interviewTypeOptions: InterviewType[] = ['TARGET_PROFILE', 'PHOTO_MEMORY', 'SELF_STORY']
 const storyBookVisibilityOptions: StoryBookVisibility[] = ['PRIVATE', 'LINK', 'GROUP', 'PUBLIC']
+const groupMemberRoleOptions: GroupMemberRole[] = ['OWNER', 'MEMBER', 'VIEWER']
 
 function getApiErrorMessage(error: unknown) {
   if (error instanceof ApiError) {
@@ -3296,6 +3305,14 @@ function getShareTokenFromLocation() {
   return params.get('token') ?? window.location.pathname.split('/').filter(Boolean).at(-1) ?? ''
 }
 
+function getGroupIdFromLocation() {
+  const params = new URLSearchParams(window.location.search)
+  const value = params.get('group_id') ?? params.get('id') ?? window.location.pathname.split('/').filter(Boolean).at(-1)
+  const groupId = Number(value)
+
+  return Number.isInteger(groupId) && groupId > 0 ? groupId : null
+}
+
 function StorybookSummaryCard({ storybook }: { storybook: StoryBookResponse }) {
   return (
     <article className="target-card">
@@ -3902,6 +3919,425 @@ function PublicShareApiPage() {
   )
 }
 
+function GroupRoleBadge({ role }: { role: GroupMemberRole }) {
+  return <span className={`persona-status-badge persona-status-badge--${role.toLowerCase()}`}>{role}</span>
+}
+
+function MemoryGroupCard({ group }: { group: MemoryGroupResponse }) {
+  return (
+    <article className="target-card">
+      <div className="target-card__body">
+        <div className="target-card__title-row">
+          <h2>{group.name}</h2>
+          <span>#{group.id}</span>
+        </div>
+        <p>{group.description ?? 'No description returned.'}</p>
+        <dl>
+          <div>
+            <dt>owner_id</dt>
+            <dd>{group.owner_id}</dd>
+          </div>
+          <div>
+            <dt>created_at</dt>
+            <dd>{formatDateTime(group.created_at)}</dd>
+          </div>
+          <div>
+            <dt>deleted_at</dt>
+            <dd>{group.deleted_at ? formatDateTime(group.deleted_at) : 'null'}</dd>
+          </div>
+        </dl>
+        <div className="target-form__actions">
+          <a href={`/groups/detail?group_id=${group.id}`}>Open group</a>
+        </div>
+      </div>
+    </article>
+  )
+}
+
+function MemoryGroupListApiPage() {
+  const [groups, setGroups] = useState<MemoryGroupResponse[]>([])
+  const [name, setName] = useState('')
+  const [description, setDescription] = useState('')
+  const [isLoading, setIsLoading] = useState(true)
+  const [isCreating, setIsCreating] = useState(false)
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const [notice, setNotice] = useState<string | null>(null)
+
+  const loadGroups = useCallback(async () => {
+    setIsLoading(true)
+    setErrorMessage(null)
+
+    try {
+      const response = await groupService.listGroups()
+      setGroups(response)
+    } catch (error) {
+      setErrorMessage(getApiErrorMessage(error))
+    } finally {
+      setIsLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    const timerId = window.setTimeout(() => {
+      void loadGroups()
+    }, 0)
+
+    return () => window.clearTimeout(timerId)
+  }, [loadGroups])
+
+  async function handleCreateGroup(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    setIsCreating(true)
+    setErrorMessage(null)
+    setNotice(null)
+
+    try {
+      const response = await groupService.createGroup({
+        name,
+        description: description || null,
+      })
+      setNotice(`Group #${response.id} created.`)
+      setName('')
+      setDescription('')
+      await loadGroups()
+    } catch (error) {
+      setErrorMessage(getApiErrorMessage(error))
+    } finally {
+      setIsCreating(false)
+    }
+  }
+
+  return (
+    <AppShell title="Memory Groups" subtitle="Creates and lists backend MemoryGroup records." badge="API connected">
+      <main className="domain-page target-api-page">
+        <header className="domain-page__hero">
+          <div>
+            <span className="domain-page__eyebrow">MemoryGroupListPage</span>
+            <h1>Memory groups</h1>
+            <p>GET /groups returns groups where the current user is an active member.</p>
+          </div>
+          <span className="domain-page__badge domain-page__badge--connected">GET POST /groups</span>
+        </header>
+
+        <form className="target-form" onSubmit={handleCreateGroup}>
+          <div className="target-form__field">
+            <label htmlFor="group-name">name</label>
+            <input id="group-name" maxLength={255} minLength={1} onChange={(event) => setName(event.target.value)} required value={name} />
+            <p className="target-form__helper">MemoryGroupCreateRequest.name</p>
+          </div>
+          <div className="target-form__field">
+            <label htmlFor="group-description">description</label>
+            <textarea id="group-description" onChange={(event) => setDescription(event.target.value)} value={description} />
+            <p className="target-form__helper">Optional MemoryGroupCreateRequest.description</p>
+          </div>
+          <div className="target-form__actions">
+            <button disabled={isCreating} type="submit">{isCreating ? 'Creating...' : 'Create group'}</button>
+            <button disabled={isLoading} onClick={() => void loadGroups()} type="button">{isLoading ? 'Loading...' : 'Refresh'}</button>
+          </div>
+        </form>
+
+        {notice && <p className="target-form__notice">{notice}</p>}
+        {errorMessage && <p className="target-form__error" role="alert">{errorMessage}</p>}
+        {isLoading && <TargetStateMessage title="Loading groups" message="Fetching MemoryGroup list from the backend." />}
+        {!isLoading && groups.length === 0 && <TargetStateMessage title="No groups" message="Create a MemoryGroup to share StoryBooks with members." />}
+
+        <section className="target-card-grid" aria-label="MemoryGroup list">
+          {groups.map((group) => (
+            <MemoryGroupCard group={group} key={group.id} />
+          ))}
+        </section>
+      </main>
+    </AppShell>
+  )
+}
+
+function MemoryGroupDetailApiPage() {
+  const [initialGroupId] = useState(() => getGroupIdFromLocation())
+  const [groupIdInput, setGroupIdInput] = useState(() => (initialGroupId ? String(initialGroupId) : ''))
+  const [group, setGroup] = useState<MemoryGroupDetailResponse | null>(null)
+  const [members, setMembers] = useState<GroupMemberResponse[]>([])
+  const [groupStorybooks, setGroupStorybooks] = useState<GroupStoryBookListItemResponse[]>([])
+  const [memberUserId, setMemberUserId] = useState('')
+  const [memberRole, setMemberRole] = useState<GroupMemberRole>('MEMBER')
+  const [storybookId, setStorybookId] = useState('')
+  const [isLoading, setIsLoading] = useState(false)
+  const [isAddingMember, setIsAddingMember] = useState(false)
+  const [isSharingStorybook, setIsSharingStorybook] = useState(false)
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const [notice, setNotice] = useState<string | null>(null)
+
+  const canAddMember = group?.my_role === 'OWNER'
+
+  const getGroupIdFromInput = useCallback(() => {
+    const groupId = Number(groupIdInput)
+    return Number.isInteger(groupId) && groupId > 0 ? groupId : null
+  }, [groupIdInput])
+
+  const loadGroup = useCallback(async (groupId: number) => {
+    setIsLoading(true)
+    setErrorMessage(null)
+    setNotice(null)
+
+    try {
+      const [groupDetail, memberList, storybookList] = await Promise.all([
+        groupService.getGroup(groupId),
+        groupService.listGroupMembers(groupId),
+        groupService.listGroupStorybooks(groupId),
+      ])
+      setGroup(groupDetail)
+      setMembers(memberList)
+      setGroupStorybooks(storybookList)
+    } catch (error) {
+      setErrorMessage(getApiErrorMessage(error))
+    } finally {
+      setIsLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!initialGroupId) {
+      return
+    }
+
+    const timerId = window.setTimeout(() => {
+      void loadGroup(initialGroupId)
+    }, 0)
+
+    return () => window.clearTimeout(timerId)
+  }, [initialGroupId, loadGroup])
+
+  function handleLoadGroup(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    const groupId = getGroupIdFromInput()
+
+    if (!groupId) {
+      setErrorMessage('group_id must be a positive integer.')
+      return
+    }
+
+    void loadGroup(groupId)
+  }
+
+  async function handleAddMember(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    const groupId = group?.id ?? getGroupIdFromInput()
+    const userId = Number(memberUserId)
+
+    if (!groupId) {
+      setErrorMessage('group_id must be a positive integer.')
+      return
+    }
+
+    if (!Number.isInteger(userId) || userId <= 0) {
+      setErrorMessage('user_id must be a positive integer.')
+      return
+    }
+
+    setIsAddingMember(true)
+    setErrorMessage(null)
+    setNotice(null)
+
+    try {
+      await groupService.addGroupMember(groupId, { user_id: userId, role: memberRole })
+      setNotice('Group member added.')
+      setMemberUserId('')
+      await loadGroup(groupId)
+    } catch (error) {
+      setErrorMessage(getApiErrorMessage(error))
+    } finally {
+      setIsAddingMember(false)
+    }
+  }
+
+  async function handleShareStorybook(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    const groupId = group?.id ?? getGroupIdFromInput()
+    const parsedStorybookId = Number(storybookId)
+
+    if (!groupId) {
+      setErrorMessage('group_id must be a positive integer.')
+      return
+    }
+
+    if (!Number.isInteger(parsedStorybookId) || parsedStorybookId <= 0) {
+      setErrorMessage('storybook_id must be a positive integer.')
+      return
+    }
+
+    setIsSharingStorybook(true)
+    setErrorMessage(null)
+    setNotice(null)
+
+    try {
+      await groupService.shareStorybookToGroup(groupId, parsedStorybookId)
+      setNotice('StoryBook shared to group.')
+      setStorybookId('')
+      await loadGroup(groupId)
+    } catch (error) {
+      setErrorMessage(getApiErrorMessage(error))
+    } finally {
+      setIsSharingStorybook(false)
+    }
+  }
+
+  return (
+    <AppShell title="Memory Group Detail" subtitle="Reads group detail, members, and shared StoryBooks." badge="API connected">
+      <main className="domain-page target-api-page">
+        <header className="domain-page__hero">
+          <div>
+            <span className="domain-page__eyebrow">MemoryGroupDetailPage</span>
+            <h1>Memory group detail</h1>
+            <p>Uses MemoryGroupDetailResponse.my_role and GroupMemberRole values returned by the backend.</p>
+          </div>
+          <span className="domain-page__badge domain-page__badge--connected">GroupMemberRole</span>
+        </header>
+
+        <form className="target-form" onSubmit={handleLoadGroup}>
+          <div className="target-form__field">
+            <label htmlFor="group-detail-id">group_id</label>
+            <input id="group-detail-id" inputMode="numeric" onChange={(event) => setGroupIdInput(event.target.value)} required type="number" value={groupIdInput} />
+          </div>
+          <div className="target-form__actions">
+            <a href="/groups">Back to groups</a>
+            <button disabled={isLoading} type="submit">{isLoading ? 'Loading...' : 'Load group'}</button>
+          </div>
+        </form>
+
+        {notice && <p className="target-form__notice">{notice}</p>}
+        {errorMessage && <p className="target-form__error" role="alert">{errorMessage}</p>}
+        {isLoading && <TargetStateMessage title="Loading group" message="Fetching group detail, members, and group StoryBooks." />}
+
+        {group && (
+          <section className="target-detail-card">
+            <div className="target-card__title-row">
+              <h2>{group.name}</h2>
+              <GroupRoleBadge role={group.my_role} />
+            </div>
+            <p>{group.description ?? 'No description returned.'}</p>
+            <dl>
+              <div>
+                <dt>id</dt>
+                <dd>{group.id}</dd>
+              </div>
+              <div>
+                <dt>owner_id</dt>
+                <dd>{group.owner_id}</dd>
+              </div>
+              <div>
+                <dt>my_role</dt>
+                <dd>{group.my_role}</dd>
+              </div>
+              <div>
+                <dt>updated_at</dt>
+                <dd>{formatDateTime(group.updated_at)}</dd>
+              </div>
+            </dl>
+          </section>
+        )}
+
+        <section className="mock-feature-layout">
+          <form className="target-form" onSubmit={handleAddMember}>
+            <h2>Add member</h2>
+            <p className="target-form__helper">OpenAPI describes this action as OWNER-only.</p>
+            <div className="target-form__field">
+              <label htmlFor="group-member-user-id">user_id</label>
+              <input id="group-member-user-id" inputMode="numeric" onChange={(event) => setMemberUserId(event.target.value)} required type="number" value={memberUserId} />
+            </div>
+            <div className="target-form__field">
+              <label htmlFor="group-member-role">role</label>
+              <select id="group-member-role" onChange={(event) => setMemberRole(event.target.value as GroupMemberRole)} value={memberRole}>
+                {groupMemberRoleOptions.map((role) => (
+                  <option key={role} value={role}>{role}</option>
+                ))}
+              </select>
+            </div>
+            <div className="target-form__actions">
+              <button disabled={!group || !canAddMember || isAddingMember} type="submit">
+                {isAddingMember ? 'Adding...' : 'Add member'}
+              </button>
+            </div>
+            {group && !canAddMember && <p className="target-form__helper">Only backend-returned my_role OWNER can add members.</p>}
+          </form>
+
+          <form className="target-form" onSubmit={handleShareStorybook}>
+            <h2>Share StoryBook</h2>
+            <p className="target-form__helper">POST /groups/{'{group_id}'}/storybooks/{'{storybook_id}'} has no request body.</p>
+            <div className="target-form__field">
+              <label htmlFor="group-storybook-id">storybook_id</label>
+              <input id="group-storybook-id" inputMode="numeric" onChange={(event) => setStorybookId(event.target.value)} required type="number" value={storybookId} />
+            </div>
+            <div className="target-form__actions">
+              <button disabled={!group || isSharingStorybook} type="submit">{isSharingStorybook ? 'Sharing...' : 'Share to group'}</button>
+            </div>
+          </form>
+        </section>
+
+        <section className="target-card-grid" aria-label="Group members">
+          {members.map((member) => (
+            <article className="target-card" key={member.id}>
+              <div className="target-card__body">
+                <div className="target-card__title-row">
+                  <h2>User #{member.user_id}</h2>
+                  <GroupRoleBadge role={member.role} />
+                </div>
+                <dl>
+                  <div>
+                    <dt>member_id</dt>
+                    <dd>{member.id}</dd>
+                  </div>
+                  <div>
+                    <dt>group_id</dt>
+                    <dd>{member.group_id}</dd>
+                  </div>
+                  <div>
+                    <dt>created_at</dt>
+                    <dd>{formatDateTime(member.created_at)}</dd>
+                  </div>
+                  <div>
+                    <dt>deleted_at</dt>
+                    <dd>{member.deleted_at ? formatDateTime(member.deleted_at) : 'null'}</dd>
+                  </div>
+                </dl>
+              </div>
+            </article>
+          ))}
+        </section>
+
+        {group && members.length === 0 && <TargetStateMessage title="No members returned" message="The group member list endpoint returned an empty array." />}
+
+        <section className="target-card-grid" aria-label="Group StoryBooks">
+          {groupStorybooks.map((storybook) => (
+            <article className="target-card" key={storybook.id}>
+              <div className="target-card__body">
+                <div className="target-card__title-row">
+                  <h2>{storybook.title}</h2>
+                  <span>{storybook.visibility}</span>
+                </div>
+                <p>{storybook.summary ?? 'No summary returned.'}</p>
+                <dl>
+                  <div>
+                    <dt>id</dt>
+                    <dd>{storybook.id}</dd>
+                  </div>
+                  <div>
+                    <dt>created_at</dt>
+                    <dd>{formatDateTime(storybook.created_at)}</dd>
+                  </div>
+                </dl>
+                <div className="target-form__actions">
+                  <a href={`/storybooks/detail?storybook_id=${storybook.id}`}>Open StoryBook</a>
+                </div>
+              </div>
+            </article>
+          ))}
+        </section>
+
+        {group && groupStorybooks.length === 0 && <TargetStateMessage title="No group StoryBooks" message="Share one of your StoryBooks to this group." />}
+      </main>
+    </AppShell>
+  )
+}
+
 const voiceStatusLabel: Record<VoiceCallStatus, string> = {
   disconnected: 'disconnected',
   connecting: 'connecting',
@@ -4272,11 +4708,11 @@ export function PublicSharePage() {
 }
 
 export function MemoryGroupListPage() {
-  return <MockFeaturePage pageKey="memoryGroup" />
+  return <MemoryGroupListApiPage />
 }
 
 export function MemoryGroupDetailPage() {
-  return <MockFeaturePage pageKey="memoryGroup" />
+  return <MemoryGroupDetailApiPage />
 }
 
 export function DeletionRequestPage() {

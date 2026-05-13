@@ -179,3 +179,20 @@ Notes:
 - StoryBook source_type enum is limited to `INTERVIEW`, `PHOTO_MEMORY`, `SELF_STORY`.
 - ShareLink now uses `POST /storybooks/{storybook_id}/share-links`, `GET /storybooks/{storybook_id}/share-links`, public `GET /share/{token}`, and `PATCH /share-links/{share_link_id}/disable`.
 - `src/services/storybookApi.ts` remains only as a compatibility wrapper over `storybookService`; legacy `StorybookPage` and `/storybook` route remain removed.
+
+## MemoryGroup Connection Update
+
+Updated on 2026-05-14.
+
+| Feature | Previous status | Current status | Frontend files | Action |
+| --- | --- | --- | --- | --- |
+| MemoryGroup | `mock-only` | `fully-connected` | `src/types/group.ts`, `src/services/groupService.ts`, `MemoryGroupListPage`, `MemoryGroupDetailPage` in `src/pages/DomainPages.tsx` | `keep` |
+| GroupMember | `mock-only` | `fully-connected` | `src/types/group.ts`, `src/services/groupService.ts`, member section in `MemoryGroupDetailPage` | `keep` |
+| GroupStoryBook | `mock-only` | `fully-connected` | `src/types/group.ts`, `src/services/groupService.ts`, group StoryBook section in `MemoryGroupDetailPage` | `keep` |
+
+Notes:
+- MemoryGroup now uses `GET /groups`, `POST /groups`, and `GET /groups/{group_id}`.
+- GroupMember now uses `GET /groups/{group_id}/members` and `POST /groups/{group_id}/members`.
+- GroupStoryBook now uses `POST /groups/{group_id}/storybooks/{storybook_id}` and `GET /groups/{group_id}/storybooks`.
+- GroupMemberRole enum is limited to the backend values `OWNER`, `MEMBER`, and `VIEWER`.
+- Member-add UI is enabled only when backend `MemoryGroupDetailResponse.my_role` is `OWNER`; other unauthorized operations display server error detail from `apiClient`.

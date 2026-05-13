@@ -5,12 +5,14 @@ import { useVoiceCall } from '../hooks/useVoiceCall'
 import { ApiError } from '../services/apiClient'
 import { chatService } from '../services/chatService'
 import { consentService } from '../services/consentService'
+import { deletionService } from '../services/deletionService'
 import { groupService } from '../services/groupService'
 import { interviewService } from '../services/interviewService'
 import { mediaService } from '../services/mediaService'
 import { mockFeatureService } from '../services/mock/mockFeatureService'
 import { personaService } from '../services/personaService'
 import { photoMemoryService } from '../services/photoMemoryService'
+import { reportService } from '../services/reportService'
 import { targetService } from '../services/targetService'
 import { verificationService } from '../services/verificationService'
 import { voiceProfileService } from '../services/voiceProfileService'
@@ -19,6 +21,7 @@ import { storybookService } from '../services/storybookService'
 import type { MockFeaturePageKey } from '../data/mockFeaturePages'
 import type { ChatId, PersonaChatResponse, PersonaMessageResponse, SenderType } from '../types/chat'
 import type { ConsentResponse, ConsentType } from '../types/consent'
+import type { DeletionRequestResponse, DeletionStatus, DeletionTargetType } from '../types/deletion'
 import type {
   GroupMemberResponse,
   GroupMemberRole,
@@ -36,6 +39,7 @@ import type { MediaType, TargetMediaResponse } from '../types/media'
 import type { PersonaDetailResponse, PersonaStatus, PersonaStatusResponse } from '../types/persona'
 import type { PhotoMemoryResponse } from '../types/photoMemory'
 import type { PublicSharedStoryBookResponse, ShareLinkResponse } from '../types/shareLink'
+import type { ReportReasonType, ReportResponse, ReportStatus, ReportTargetType } from '../types/report'
 import type {
   StoryBookDetailResponse,
   StoryBookResponse,
@@ -73,6 +77,31 @@ const verificationTypeOptions: VerificationType[] = ['FAMILY_RELATION_CERTIFICAT
 const interviewTypeOptions: InterviewType[] = ['TARGET_PROFILE', 'PHOTO_MEMORY', 'SELF_STORY']
 const storyBookVisibilityOptions: StoryBookVisibility[] = ['PRIVATE', 'LINK', 'GROUP', 'PUBLIC']
 const groupMemberRoleOptions: GroupMemberRole[] = ['OWNER', 'MEMBER', 'VIEWER']
+const deletionTargetTypeOptions: DeletionTargetType[] = [
+  'TARGET',
+  'TARGET_MEDIA',
+  'PERSONA',
+  'PERSONA_CHAT',
+  'PERSONA_MESSAGE',
+  'PHOTO_MEMORY',
+  'STORYBOOK',
+  'SHARE_LINK',
+  'MEMORY_GROUP',
+  'VERIFICATION_REQUEST',
+  'ACCOUNT',
+  'VOICE_PROFILE',
+  'VOICE_CALL_SESSION',
+]
+const reportTargetTypeOptions: ReportTargetType[] = ['PERSONA', 'PERSONA_CHAT', 'PERSONA_MESSAGE', 'STORYBOOK', 'SHARE_LINK', 'TARGET', 'USER']
+const reportReasonTypeOptions: ReportReasonType[] = [
+  'UNAUTHORIZED_VOICE_USE',
+  'PRIVACY_VIOLATION',
+  'HARMFUL_CONTENT',
+  'IMPERSONATION',
+  'COPYRIGHT_OR_RIGHTS',
+  'SPAM',
+  'OTHER',
+]
 
 function getApiErrorMessage(error: unknown) {
   if (error instanceof ApiError) {
@@ -4338,6 +4367,530 @@ function MemoryGroupDetailApiPage() {
   )
 }
 
+function DeletionStatusBadge({ status }: { status: DeletionStatus }) {
+  return <span className={`persona-status-badge persona-status-badge--${status.toLowerCase()}`}>{status}</span>
+}
+
+function DeletionRequestCard({
+  request,
+  onCancel,
+  isCancelling,
+}: {
+  request: DeletionRequestResponse
+  onCancel: (requestId: number) => void
+  isCancelling: boolean
+}) {
+  return (
+    <article className="target-card">
+      <div className="target-card__body">
+        <div className="target-card__title-row">
+          <h2>{request.target_type}</h2>
+          <DeletionStatusBadge status={request.status} />
+        </div>
+        <p>{request.reason ?? 'No reason returned.'}</p>
+        <dl>
+          <div>
+            <dt>request_id</dt>
+            <dd>{request.id}</dd>
+          </div>
+          <div>
+            <dt>target_id</dt>
+            <dd>{request.target_id ?? 'null'}</dd>
+          </div>
+          <div>
+            <dt>requested_at</dt>
+            <dd>{formatDateTime(request.requested_at)}</dd>
+          </div>
+          <div>
+            <dt>processed_at</dt>
+            <dd>{request.processed_at ? formatDateTime(request.processed_at) : 'null'}</dd>
+          </div>
+          <div>
+            <dt>admin_note</dt>
+            <dd>{request.admin_note ?? 'null'}</dd>
+          </div>
+          <div>
+            <dt>error_message</dt>
+            <dd>{request.error_message ?? 'null'}</dd>
+          </div>
+        </dl>
+        <div className="target-form__actions">
+          <button disabled={request.status !== 'PENDING' || isCancelling} onClick={() => onCancel(request.id)} type="button">
+            {isCancelling ? 'Cancelling...' : 'Cancel request'}
+          </button>
+        </div>
+      </div>
+    </article>
+  )
+}
+
+function DeletionRequestApiPage() {
+  const [requests, setRequests] = useState<DeletionRequestResponse[]>([])
+  const [selectedRequest, setSelectedRequest] = useState<DeletionRequestResponse | null>(null)
+  const [targetType, setTargetType] = useState<DeletionTargetType>('TARGET')
+  const [targetId, setTargetId] = useState('')
+  const [reason, setReason] = useState('')
+  const [detailId, setDetailId] = useState('')
+  const [isLoading, setIsLoading] = useState(true)
+  const [isCreating, setIsCreating] = useState(false)
+  const [cancellingId, setCancellingId] = useState<number | null>(null)
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const [notice, setNotice] = useState<string | null>(null)
+
+  const loadDeletionRequests = useCallback(async () => {
+    setIsLoading(true)
+    setErrorMessage(null)
+
+    try {
+      const response = await deletionService.listDeletionRequests()
+      setRequests(response)
+    } catch (error) {
+      setErrorMessage(getApiErrorMessage(error))
+    } finally {
+      setIsLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    const timerId = window.setTimeout(() => {
+      void loadDeletionRequests()
+    }, 0)
+
+    return () => window.clearTimeout(timerId)
+  }, [loadDeletionRequests])
+
+  async function handleCreateDeletionRequest(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+
+    if (!window.confirm('삭제 요청을 생성할까요? 이 작업은 민감한 데이터 삭제 흐름을 시작합니다.')) {
+      return
+    }
+
+    const parsedTargetId = targetId ? Number(targetId) : null
+
+    if (parsedTargetId !== null && (!Number.isInteger(parsedTargetId) || parsedTargetId <= 0)) {
+      setErrorMessage('target_id must be a positive integer or empty.')
+      return
+    }
+
+    setIsCreating(true)
+    setErrorMessage(null)
+    setNotice(null)
+
+    try {
+      const response = await deletionService.createDeletionRequest({
+        target_type: targetType,
+        target_id: parsedTargetId,
+        reason: reason || null,
+      })
+      setSelectedRequest(response)
+      setNotice(`Deletion request #${response.id} created.`)
+      setTargetId('')
+      setReason('')
+      await loadDeletionRequests()
+    } catch (error) {
+      setErrorMessage(getApiErrorMessage(error))
+    } finally {
+      setIsCreating(false)
+    }
+  }
+
+  async function handleLoadDetail(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    const requestId = Number(detailId)
+
+    if (!Number.isInteger(requestId) || requestId <= 0) {
+      setErrorMessage('request_id must be a positive integer.')
+      return
+    }
+
+    setErrorMessage(null)
+    setNotice(null)
+
+    try {
+      const response = await deletionService.getDeletionRequest(requestId)
+      setSelectedRequest(response)
+    } catch (error) {
+      setErrorMessage(getApiErrorMessage(error))
+    }
+  }
+
+  async function handleCancelDeletionRequest(requestId: number) {
+    if (!window.confirm('삭제 요청을 취소할까요?')) {
+      return
+    }
+
+    setCancellingId(requestId)
+    setErrorMessage(null)
+    setNotice(null)
+
+    try {
+      const response = await deletionService.cancelDeletionRequest(requestId)
+      setSelectedRequest(response)
+      setNotice(`Deletion request #${response.id} cancelled.`)
+      await loadDeletionRequests()
+    } catch (error) {
+      setErrorMessage(getApiErrorMessage(error))
+    } finally {
+      setCancellingId(null)
+    }
+  }
+
+  return (
+    <AppShell title="Deletion Requests" subtitle="Creates, lists, reads, and cancels user deletion requests." badge="API connected">
+      <main className="domain-page target-api-page">
+        <header className="domain-page__hero">
+          <div>
+            <span className="domain-page__eyebrow">DeletionRequestPage</span>
+            <h1>Deletion requests</h1>
+            <p>Deletion requests use backend DeletionTargetType and DeletionStatus values only.</p>
+          </div>
+          <span className="domain-page__badge domain-page__badge--connected">Deletion API</span>
+        </header>
+
+        <form className="target-form" onSubmit={handleCreateDeletionRequest}>
+          <div className="target-form__field">
+            <label htmlFor="deletion-target-type">target_type</label>
+            <select id="deletion-target-type" onChange={(event) => setTargetType(event.target.value as DeletionTargetType)} value={targetType}>
+              {deletionTargetTypeOptions.map((option) => (
+                <option key={option} value={option}>{option}</option>
+              ))}
+            </select>
+          </div>
+          <div className="target-form__field">
+            <label htmlFor="deletion-target-id">target_id</label>
+            <input id="deletion-target-id" inputMode="numeric" onChange={(event) => setTargetId(event.target.value)} type="number" value={targetId} />
+            <p className="target-form__helper">Optional in DeletionRequestCreateRequest; leave empty only when the backend accepts null for the selected target_type.</p>
+          </div>
+          <div className="target-form__field">
+            <label htmlFor="deletion-reason">reason</label>
+            <textarea id="deletion-reason" onChange={(event) => setReason(event.target.value)} value={reason} />
+          </div>
+          <div className="target-form__actions">
+            <button disabled={isCreating} type="submit">{isCreating ? 'Creating...' : 'Create deletion request'}</button>
+            <button disabled={isLoading} onClick={() => void loadDeletionRequests()} type="button">{isLoading ? 'Loading...' : 'Refresh'}</button>
+          </div>
+        </form>
+
+        <form className="target-form" onSubmit={handleLoadDetail}>
+          <div className="target-form__field">
+            <label htmlFor="deletion-detail-id">request_id</label>
+            <input id="deletion-detail-id" inputMode="numeric" onChange={(event) => setDetailId(event.target.value)} required type="number" value={detailId} />
+          </div>
+          <div className="target-form__actions">
+            <button type="submit">Load detail</button>
+          </div>
+        </form>
+
+        {notice && <p className="target-form__notice">{notice}</p>}
+        {errorMessage && <p className="target-form__error" role="alert">{errorMessage}</p>}
+        {isLoading && <TargetStateMessage title="Loading deletion requests" message="Fetching current user's deletion requests." />}
+
+        {selectedRequest && (
+          <section className="target-detail-card">
+            <div className="target-card__title-row">
+              <h2>Selected request #{selectedRequest.id}</h2>
+              <DeletionStatusBadge status={selectedRequest.status} />
+            </div>
+            <p>{selectedRequest.reason ?? 'No reason returned.'}</p>
+            <dl>
+              <div>
+                <dt>target_type</dt>
+                <dd>{selectedRequest.target_type}</dd>
+              </div>
+              <div>
+                <dt>target_id</dt>
+                <dd>{selectedRequest.target_id ?? 'null'}</dd>
+              </div>
+              <div>
+                <dt>updated_at</dt>
+                <dd>{formatDateTime(selectedRequest.updated_at)}</dd>
+              </div>
+            </dl>
+          </section>
+        )}
+
+        {!isLoading && requests.length === 0 && <TargetStateMessage title="No deletion requests" message="No deletion requests have been returned by the backend." />}
+
+        <section className="target-card-grid" aria-label="Deletion requests">
+          {requests.map((request) => (
+            <DeletionRequestCard
+              isCancelling={cancellingId === request.id}
+              key={request.id}
+              onCancel={(requestId) => void handleCancelDeletionRequest(requestId)}
+              request={request}
+            />
+          ))}
+        </section>
+      </main>
+    </AppShell>
+  )
+}
+
+function ReportStatusBadge({ status }: { status: ReportStatus }) {
+  return <span className={`persona-status-badge persona-status-badge--${status.toLowerCase()}`}>{status}</span>
+}
+
+function ReportCard({ report }: { report: ReportResponse }) {
+  return (
+    <article className="target-card">
+      <div className="target-card__body">
+        <div className="target-card__title-row">
+          <h2>{report.target_type} #{report.target_id}</h2>
+          <ReportStatusBadge status={report.status} />
+        </div>
+        <p>{report.reason_detail ?? report.reason_type}</p>
+        <dl>
+          <div>
+            <dt>report_id</dt>
+            <dd>{report.id}</dd>
+          </div>
+          <div>
+            <dt>reason_type</dt>
+            <dd>{report.reason_type}</dd>
+          </div>
+          <div>
+            <dt>created_at</dt>
+            <dd>{formatDateTime(report.created_at)}</dd>
+          </div>
+          <div>
+            <dt>reviewed_by</dt>
+            <dd>{report.reviewed_by ?? 'null'}</dd>
+          </div>
+          <div>
+            <dt>admin_note</dt>
+            <dd>{report.admin_note ?? 'null'}</dd>
+          </div>
+        </dl>
+      </div>
+    </article>
+  )
+}
+
+function ReportApiPage() {
+  const [reports, setReports] = useState<ReportResponse[]>([])
+  const [selectedReport, setSelectedReport] = useState<ReportResponse | null>(null)
+  const [targetType, setTargetType] = useState<ReportTargetType>('PERSONA')
+  const [targetId, setTargetId] = useState('')
+  const [reasonType, setReasonType] = useState<ReportReasonType>('OTHER')
+  const [reasonDetail, setReasonDetail] = useState('')
+  const [detailId, setDetailId] = useState('')
+  const [page, setPage] = useState(1)
+  const [size, setSize] = useState(20)
+  const [total, setTotal] = useState(0)
+  const [isLoading, setIsLoading] = useState(true)
+  const [isCreating, setIsCreating] = useState(false)
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const [notice, setNotice] = useState<string | null>(null)
+
+  const loadReports = useCallback(async (nextPage = page, nextSize = size) => {
+    setIsLoading(true)
+    setErrorMessage(null)
+
+    try {
+      const response = await reportService.listReports(nextPage, nextSize)
+      setReports(response.items)
+      setTotal(response.total)
+      setPage(nextPage)
+      setSize(nextSize)
+    } catch (error) {
+      setErrorMessage(getApiErrorMessage(error))
+    } finally {
+      setIsLoading(false)
+    }
+  }, [page, size])
+
+  useEffect(() => {
+    const timerId = window.setTimeout(() => {
+      void loadReports(1, 20)
+    }, 0)
+
+    return () => window.clearTimeout(timerId)
+  }, [loadReports])
+
+  async function handleCreateReport(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+
+    if (!window.confirm('신고를 제출할까요? 신고 대상과 사유가 정확한지 확인해 주세요.')) {
+      return
+    }
+
+    const parsedTargetId = Number(targetId)
+
+    if (!Number.isInteger(parsedTargetId) || parsedTargetId <= 0) {
+      setErrorMessage('target_id must be a positive integer.')
+      return
+    }
+
+    setIsCreating(true)
+    setErrorMessage(null)
+    setNotice(null)
+
+    try {
+      const response = await reportService.createReport({
+        target_type: targetType,
+        target_id: parsedTargetId,
+        reason_type: reasonType,
+        reason_detail: reasonDetail || null,
+      })
+      setSelectedReport(response)
+      setNotice(`Report #${response.id} submitted.`)
+      setTargetId('')
+      setReasonDetail('')
+      await loadReports(1, size)
+    } catch (error) {
+      setErrorMessage(getApiErrorMessage(error))
+    } finally {
+      setIsCreating(false)
+    }
+  }
+
+  async function handleLoadReportDetail(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    const reportId = Number(detailId)
+
+    if (!Number.isInteger(reportId) || reportId <= 0) {
+      setErrorMessage('report_id must be a positive integer.')
+      return
+    }
+
+    setErrorMessage(null)
+    setNotice(null)
+
+    try {
+      const response = await reportService.getReport(reportId)
+      setSelectedReport(response)
+    } catch (error) {
+      setErrorMessage(getApiErrorMessage(error))
+    }
+  }
+
+  function handlePageSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    void loadReports(page, size)
+  }
+
+  return (
+    <AppShell title="Reports" subtitle="Creates, lists, and reads user reports." badge="API connected">
+      <main className="domain-page target-api-page">
+        <header className="domain-page__hero">
+          <div>
+            <span className="domain-page__eyebrow">ReportPage</span>
+            <h1>Reports</h1>
+            <p>Report target and reason enums are rendered directly from OpenAPI values.</p>
+          </div>
+          <span className="domain-page__badge domain-page__badge--connected">Report API</span>
+        </header>
+
+        <form className="target-form" onSubmit={handleCreateReport}>
+          <div className="target-form__field">
+            <label htmlFor="report-target-type">target_type</label>
+            <select id="report-target-type" onChange={(event) => setTargetType(event.target.value as ReportTargetType)} value={targetType}>
+              {reportTargetTypeOptions.map((option) => (
+                <option key={option} value={option}>{option}</option>
+              ))}
+            </select>
+          </div>
+          <div className="target-form__field">
+            <label htmlFor="report-target-id">target_id</label>
+            <input id="report-target-id" inputMode="numeric" onChange={(event) => setTargetId(event.target.value)} required type="number" value={targetId} />
+          </div>
+          <div className="target-form__field">
+            <label htmlFor="report-reason-type">reason_type</label>
+            <select id="report-reason-type" onChange={(event) => setReasonType(event.target.value as ReportReasonType)} value={reasonType}>
+              {reportReasonTypeOptions.map((option) => (
+                <option key={option} value={option}>{option}</option>
+              ))}
+            </select>
+          </div>
+          <div className="target-form__field">
+            <label htmlFor="report-reason-detail">reason_detail</label>
+            <textarea id="report-reason-detail" onChange={(event) => setReasonDetail(event.target.value)} value={reasonDetail} />
+          </div>
+          <div className="target-form__actions">
+            <button disabled={isCreating} type="submit">{isCreating ? 'Submitting...' : 'Submit report'}</button>
+          </div>
+        </form>
+
+        <form className="target-form target-media-target-form" onSubmit={handlePageSubmit}>
+          <div className="target-form__field">
+            <label htmlFor="report-page">page</label>
+            <input id="report-page" min={1} onChange={(event) => setPage(Number(event.target.value))} required type="number" value={page} />
+          </div>
+          <div className="target-form__field">
+            <label htmlFor="report-size">size</label>
+            <input id="report-size" max={100} min={1} onChange={(event) => setSize(Number(event.target.value))} required type="number" value={size} />
+          </div>
+          <div className="target-form__actions">
+            <button disabled={isLoading} type="submit">{isLoading ? 'Loading...' : 'Load reports'}</button>
+          </div>
+        </form>
+
+        <form className="target-form" onSubmit={handleLoadReportDetail}>
+          <div className="target-form__field">
+            <label htmlFor="report-detail-id">report_id</label>
+            <input id="report-detail-id" inputMode="numeric" onChange={(event) => setDetailId(event.target.value)} required type="number" value={detailId} />
+          </div>
+          <div className="target-form__actions">
+            <button type="submit">Load report detail</button>
+          </div>
+        </form>
+
+        {notice && <p className="target-form__notice">{notice}</p>}
+        {errorMessage && <p className="target-form__error" role="alert">{errorMessage}</p>}
+        {isLoading && <TargetStateMessage title="Loading reports" message="Fetching user reports from the backend." />}
+
+        <section className="domain-page__metrics" aria-label="Report pagination">
+          <article>
+            <span>total</span>
+            <strong>{total}</strong>
+          </article>
+          <article>
+            <span>page</span>
+            <strong>{page}</strong>
+          </article>
+          <article>
+            <span>size</span>
+            <strong>{size}</strong>
+          </article>
+        </section>
+
+        {selectedReport && (
+          <section className="target-detail-card">
+            <div className="target-card__title-row">
+              <h2>Selected report #{selectedReport.id}</h2>
+              <ReportStatusBadge status={selectedReport.status} />
+            </div>
+            <p>{selectedReport.reason_detail ?? selectedReport.reason_type}</p>
+            <dl>
+              <div>
+                <dt>target_type</dt>
+                <dd>{selectedReport.target_type}</dd>
+              </div>
+              <div>
+                <dt>target_id</dt>
+                <dd>{selectedReport.target_id}</dd>
+              </div>
+              <div>
+                <dt>updated_at</dt>
+                <dd>{formatDateTime(selectedReport.updated_at)}</dd>
+              </div>
+            </dl>
+          </section>
+        )}
+
+        {!isLoading && reports.length === 0 && <TargetStateMessage title="No reports" message="No reports have been returned by the backend." />}
+
+        <section className="target-card-grid" aria-label="Reports">
+          {reports.map((report) => (
+            <ReportCard key={report.id} report={report} />
+          ))}
+        </section>
+      </main>
+    </AppShell>
+  )
+}
+
 const voiceStatusLabel: Record<VoiceCallStatus, string> = {
   disconnected: 'disconnected',
   connecting: 'connecting',
@@ -4716,11 +5269,11 @@ export function MemoryGroupDetailPage() {
 }
 
 export function DeletionRequestPage() {
-  return <MockFeaturePage pageKey="deletionRequest" />
+  return <DeletionRequestApiPage />
 }
 
 export function ReportPage() {
-  return <MockFeaturePage pageKey="report" />
+  return <ReportApiPage />
 }
 
 export function AdminDashboardPage() {

@@ -196,3 +196,19 @@ Notes:
 - GroupStoryBook now uses `POST /groups/{group_id}/storybooks/{storybook_id}` and `GET /groups/{group_id}/storybooks`.
 - GroupMemberRole enum is limited to the backend values `OWNER`, `MEMBER`, and `VIEWER`.
 - Member-add UI is enabled only when backend `MemoryGroupDetailResponse.my_role` is `OWNER`; other unauthorized operations display server error detail from `apiClient`.
+
+## Deletion Report Connection Update
+
+Updated on 2026-05-14.
+
+| Feature | Previous status | Current status | Frontend files | Action |
+| --- | --- | --- | --- | --- |
+| DeletionRequest | `mock-only` | `fully-connected` | `src/types/deletion.ts`, `src/services/deletionService.ts`, `DeletionRequestPage` in `src/pages/DomainPages.tsx` | `keep` |
+| Report | `mock-only` | `fully-connected` | `src/types/report.ts`, `src/services/reportService.ts`, `ReportPage` in `src/pages/DomainPages.tsx` | `keep` |
+
+Notes:
+- DeletionRequest now uses `POST /deletion-requests`, `GET /deletion-requests`, `GET /deletion-requests/{request_id}`, and `PATCH /deletion-requests/{request_id}/cancel`.
+- DeletionTargetType enum is limited to the backend values from OpenAPI, including `TARGET`, `ACCOUNT`, and `VOICE_CALL_SESSION`.
+- Report now uses `POST /reports`, `GET /reports?page={page}&size={size}`, and `GET /reports/{report_id}`.
+- ReportTargetType and ReportReasonType enums are limited to backend OpenAPI values.
+- Deletion request creation/cancel and report creation require a confirmation dialog before the API request is sent.

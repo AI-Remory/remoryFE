@@ -327,6 +327,22 @@
   gap: 10px;
 }
 
+.storybook-page__share-consent {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid var(--storybook-border);
+  border-radius: 14px;
+  background: #fff8f1;
+}
+
+.storybook-page__share-consent p {
+  color: var(--storybook-dark);
+  font-size: 15px;
+  font-weight: 750;
+  line-height: 1.5;
+}
+
 .storybook-page__share-actions button,
 .storybook-page__share-create-button {
   display: inline-flex;
@@ -720,6 +736,28 @@
   font-size: 22px;
   font-weight: 800;
   letter-spacing: -0.3px;
+}
+
+.storybook-page__chapter-title-group {
+  display: grid;
+  min-width: 0;
+  gap: 4px;
+}
+
+.storybook-page__chapter-title-group strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.storybook-page__chapter-title-group small {
+  overflow: hidden;
+  color: var(--storybook-muted);
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.35;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .storybook-page__chapter-duration {

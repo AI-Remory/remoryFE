@@ -310,9 +310,13 @@ export type Consent = {
   id: ApiId
   target_id?: ApiId
   consent_type: ConsentType | string
+  consent_version?: string
+  consent_text_snapshot?: string | null
+  is_agreed?: boolean
   is_consented?: boolean
   is_revoked?: boolean
   revoked_at?: string | null
+  details?: string | null
   created_at?: string
   updated_at?: string
 }

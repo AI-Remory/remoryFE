@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
 import { ApiError } from '../lib/apiClient'
+import { consentApi } from '../services/consentApi'
 import { ensureMomPersonaId } from '../services/personaSession'
 import { shareApi } from '../services/shareApi'
+import { createShareLinkWithConsentRetry } from '../services/storybookShare'
 import { storybookApi } from '../services/storybookApi'
 import type { ShareLink, StoryBookDetail, StoryChapter } from '../types/api'
 import './StorybookDetailPage.css'
@@ -29,6 +31,10 @@ function getApiErrorMessage(error: unknown) {
 
 function getShareErrorMessage(error: unknown, fallbackMessage: string) {
   if (error instanceof ApiError) {
+    return error.message
+  }
+
+  if (error instanceof Error) {
     return error.message
   }
 
@@ -107,6 +113,7 @@ function StorybookDetailPage() {
   const [isLoadingShareLinks, setIsLoadingShareLinks] = useState(false)
   const [isCreatingShareLink, setIsCreatingShareLink] = useState(false)
   const [isDisablingShareLink, setIsDisablingShareLink] = useState(false)
+  const [isShareConsentPromptOpen, setIsShareConsentPromptOpen] = useState(false)
   const [shareStatusMessage, setShareStatusMessage] = useState('')
   const [shareErrorMessage, setShareErrorMessage] = useState('')
 
@@ -185,6 +192,7 @@ function StorybookDetailPage() {
     setIsSharePanelOpen(true)
     setShareStatusMessage('')
     setShareErrorMessage('')
+    setIsShareConsentPromptOpen(false)
     setIsLoadingShareLinks(true)
 
     try {
@@ -211,7 +219,14 @@ function StorybookDetailPage() {
     setIsCreatingShareLink(true)
 
     try {
-      const shareLink = await shareApi.createShareLink(storybookId)
+      const hasConsent = await consentApi.hasStorybookShareConsent()
+
+      if (!hasConsent) {
+        setIsShareConsentPromptOpen(true)
+        return
+      }
+
+      const shareLink = await createShareLinkWithConsentRetry(storybookId)
 
       setShareLinks((current) => [shareLink, ...current.filter((link) => String(link.id) !== String(shareLink.id))])
       setShareStatusMessage('공유 링크를 만들었어요.')
@@ -220,6 +235,35 @@ function StorybookDetailPage() {
     } finally {
       setIsCreatingShareLink(false)
     }
+  }
+
+  const handleConfirmShareConsent = async () => {
+    if (!storybookId || isCreatingShareLink) {
+      return
+    }
+
+    setShareStatusMessage('')
+    setShareErrorMessage('')
+    setIsCreatingShareLink(true)
+
+    try {
+      await consentApi.createStorybookShareConsent()
+      const shareLink = await createShareLinkWithConsentRetry(storybookId)
+
+      setShareLinks((current) => [shareLink, ...current.filter((link) => String(link.id) !== String(shareLink.id))])
+      setIsShareConsentPromptOpen(false)
+      setShareStatusMessage('공유 동의를 저장하고 링크를 만들었어요.')
+    } catch (error) {
+      setShareErrorMessage(getShareErrorMessage(error, '공유 링크를 만들지 못했습니다.'))
+    } finally {
+      setIsCreatingShareLink(false)
+    }
+  }
+
+  const handleCancelShareConsent = () => {
+    setIsShareConsentPromptOpen(false)
+    setShareStatusMessage('')
+    setShareErrorMessage('')
   }
 
   const handleCopyShareUrl = async () => {
@@ -330,10 +374,26 @@ function StorybookDetailPage() {
               </div>
             ) : (
               <div className="storybook-detail-page__share-body">
-                <p className="storybook-detail-page__share-helper">활성화된 공유 링크가 없습니다.</p>
-                <button className="storybook-detail-page__share-create-button" type="button" onClick={handleCreateShareLink} disabled={isCreatingShareLink || !storybookId}>
-                  {isCreatingShareLink ? '공유 링크 생성 중...' : '공유 링크 만들기'}
-                </button>
+                {isShareConsentPromptOpen ? (
+                  <div className="storybook-detail-page__share-consent">
+                    <p>스토리북을 링크로 공유하려면 공유 동의가 필요합니다. 계속하시겠어요?</p>
+                    <div className="storybook-detail-page__share-actions">
+                      <button type="button" onClick={handleConfirmShareConsent} disabled={isCreatingShareLink}>
+                        {isCreatingShareLink ? '처리 중...' : '동의하고 공유 링크 만들기'}
+                      </button>
+                      <button type="button" onClick={handleCancelShareConsent} disabled={isCreatingShareLink}>
+                        취소
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <p className="storybook-detail-page__share-helper">활성화된 공유 링크가 없습니다.</p>
+                    <button className="storybook-detail-page__share-create-button" type="button" onClick={handleCreateShareLink} disabled={isCreatingShareLink || !storybookId}>
+                      {isCreatingShareLink ? '공유 링크 생성 중...' : '공유 링크 만들기'}
+                    </button>
+                  </>
+                )}
               </div>
             )}
           </section>

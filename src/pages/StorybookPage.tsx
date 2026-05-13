@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useState, type ChangeEvent, type FormEvent } from 'react'
 import { ApiError } from '../lib/apiClient'
 import { normalizeAssetUrl } from '../lib/mediaUrl'
+import { consentApi } from '../services/consentApi'
 import { fetchProtectedFileObjectUrl, revokeObjectUrl } from '../lib/protectedFile'
 import { ensureMomPersonaId } from '../services/personaSession'
 import { photoMemoryApi } from '../services/photoMemoryApi'
 import { shareApi } from '../services/shareApi'
+import { createShareLinkWithConsentRetry } from '../services/storybookShare'
 import { storybookApi } from '../services/storybookApi'
 import type { ApiId, PhotoMemory, ShareLink, StoryBook, StoryChapter } from '../types/api'
 import './StorybookPage.css'
@@ -38,6 +40,11 @@ type Chapter = {
   title: string
   duration: string
   icon: 'leaf' | 'meal' | 'mic'
+}
+
+type StorybookChapterItem = Chapter & {
+  storybookId: ApiId
+  storybookTitle: string
 }
 
 type PhotoUploadForm = {
@@ -100,7 +107,16 @@ function getChapterIcon(index: number): Chapter['icon'] {
 }
 
 function mapStoryChapters(apiChapters: StoryChapter[]): Chapter[] {
-  return apiChapters.map((chapter, index) => ({
+  return [...apiChapters].sort((left, right) => {
+    const leftOrder = left.order_index ?? left.order ?? 0
+    const rightOrder = right.order_index ?? right.order ?? 0
+
+    if (leftOrder !== rightOrder) {
+      return leftOrder - rightOrder
+    }
+
+    return String(left.id).localeCompare(String(right.id))
+  }).map((chapter, index) => ({
     id: String(chapter.id),
     label: chapter.label ?? `${chapter.order_index ?? index + 1}번째 기억`,
     title: chapter.title,
@@ -303,6 +319,7 @@ function StorybookIcon({ name }: { name: IconName }) {
 function StorybookPage() {
   const [currentStorybook, setCurrentStorybook] = useState<StoryBook | null>(null)
   const [storybookItems, setStorybookItems] = useState<StoryBook[]>([])
+  const [allChapterItems, setAllChapterItems] = useState<StorybookChapterItem[]>([])
   const [chapterItems, setChapterItems] = useState<Chapter[]>(chapters)
   const [photoItems, setPhotoItems] = useState<Photo[]>(photos)
   const [photoMemories, setPhotoMemories] = useState<PhotoMemory[]>([])
@@ -324,6 +341,7 @@ function StorybookPage() {
   const [isLoadingShareLinks, setIsLoadingShareLinks] = useState(false)
   const [isCreatingShareLink, setIsCreatingShareLink] = useState(false)
   const [isDisablingShareLink, setIsDisablingShareLink] = useState(false)
+  const [isShareConsentPromptOpen, setIsShareConsentPromptOpen] = useState(false)
   const [statusMessage, setStatusMessage] = useState(() => window.localStorage.getItem(STORYBOOK_NOTICE_KEY) ?? '')
   const [errorMessage, setErrorMessage] = useState('')
 
@@ -335,14 +353,39 @@ function StorybookPage() {
     setChapterItems(detailChapters.length > 0 ? mapStoryChapters(detailChapters) : [])
     setShareLinks([])
     setIsSharePanelOpen(false)
+    setIsShareConsentPromptOpen(false)
 
     return detail
+  }, [])
+
+  const loadAllStorybookChapters = useCallback(async (storybooks: StoryBook[]) => {
+    const chapterGroups = await Promise.all(
+      storybooks.map(async (storybook) => {
+        try {
+          const storyChapters = await storybookApi.listChapters(storybook.id)
+
+          return mapStoryChapters(storyChapters).map((chapter) => ({
+            ...chapter,
+            storybookId: storybook.id,
+            storybookTitle: storybook.title,
+          }))
+        } catch {
+          return []
+        }
+      }),
+    )
+
+    const nextAllChapters = chapterGroups.flat()
+    setAllChapterItems(nextAllChapters)
+
+    return nextAllChapters
   }, [])
 
   const loadStorybooks = useCallback(async (preferredStorybookId?: ApiId) => {
     const storybooks = sortStorybooks(await storybookApi.listStorybooks())
 
     setStorybookItems(storybooks)
+    await loadAllStorybookChapters(storybooks)
 
     const selectedStorybook = preferredStorybookId
       ? storybooks.find((storybook) => isSameApiId(storybook.id, preferredStorybookId))
@@ -350,12 +393,13 @@ function StorybookPage() {
 
     if (!selectedStorybook) {
       setCurrentStorybook(null)
+      setAllChapterItems([])
       setChapterItems(chapters)
       return null
     }
 
     return selectStorybook(selectedStorybook.id)
-  }, [selectStorybook])
+  }, [loadAllStorybookChapters, selectStorybook])
 
   const loadPhotoMemories = useCallback(async () => {
     const nextPhotoMemories = await photoMemoryApi.listPhotoMemories()
@@ -433,6 +477,13 @@ function StorybookPage() {
     photoMemories.find((memory) => String(memory.id) === selectedPhotoMemoryId) ?? null
   const activeShareLink = shareLinks.find((shareLink) => shareLink.is_active) ?? null
   const activeShareUrl = activeShareLink ? getShareUrl(activeShareLink) : ''
+  const visibleChapterItems: StorybookChapterItem[] = allChapterItems.length > 0
+    ? allChapterItems
+    : chapterItems.map((chapter) => ({
+        ...chapter,
+        storybookId: currentStorybook?.id ?? 'mock',
+        storybookTitle: currentStorybook?.title ?? '샘플 스토리북',
+      }))
   const coverTitle = currentStorybook?.title ?? '엄마의 따뜻한 말 한마디'
   const coverImageUrl = normalizeAssetUrl(currentStorybook?.cover_image_url) || '/images/storybook/storybook-cover-mom.png'
   const coverTitleLines = coverTitle.split(' ')
@@ -557,11 +608,15 @@ function StorybookPage() {
           : sortStorybooks([storybook, ...sortedStorybooks])
 
         setStorybookItems(nextStorybooks)
+        await loadAllStorybookChapters(nextStorybooks)
       } else {
-        setStorybookItems((current) => [
+        const nextStorybooks = [
           storybook,
-          ...current.filter((item) => !isSameApiId(item.id, storybook.id)),
-        ])
+          ...storybookItems.filter((item) => !isSameApiId(item.id, storybook.id)),
+        ]
+
+        setStorybookItems(nextStorybooks)
+        await loadAllStorybookChapters(nextStorybooks)
       }
 
       try {
@@ -597,15 +652,17 @@ function StorybookPage() {
     }
   }
 
-  const handleOpenStorybookDetail = (chapterId?: string) => {
-    if (!currentStorybook) {
+  const handleOpenStorybookDetail = (chapterId?: string, storybookId?: ApiId) => {
+    const targetStorybookId = storybookId ?? currentStorybook?.id
+
+    if (!targetStorybookId) {
       setErrorMessage('볼 스토리북이 없습니다.')
       setStatusMessage('')
       return
     }
 
     const hash = chapterId ? `#chapter-${encodeURIComponent(chapterId)}` : ''
-    window.location.assign(`/storybook/${currentStorybook.id}${hash}`)
+    window.location.assign(`/storybook/${targetStorybookId}${hash}`)
   }
 
   const handleOpenSharePanel = async () => {
@@ -618,6 +675,7 @@ function StorybookPage() {
     setIsSharePanelOpen(true)
     setErrorMessage('')
     setStatusMessage('')
+    setIsShareConsentPromptOpen(false)
     setIsLoadingShareLinks(true)
 
     try {
@@ -644,7 +702,14 @@ function StorybookPage() {
     setIsCreatingShareLink(true)
 
     try {
-      const shareLink = await shareApi.createShareLink(currentStorybook.id)
+      const hasConsent = await consentApi.hasStorybookShareConsent()
+
+      if (!hasConsent) {
+        setIsShareConsentPromptOpen(true)
+        return
+      }
+
+      const shareLink = await createShareLinkWithConsentRetry(currentStorybook.id)
       setShareLinks((current) => [shareLink, ...current.filter((link) => String(link.id) !== String(shareLink.id))])
       setStatusMessage('공유 링크를 만들었어요.')
     } catch (error) {
@@ -652,6 +717,35 @@ function StorybookPage() {
     } finally {
       setIsCreatingShareLink(false)
     }
+  }
+
+  const handleConfirmShareConsent = async () => {
+    if (!currentStorybook || isCreatingShareLink) {
+      return
+    }
+
+    setErrorMessage('')
+    setStatusMessage('')
+    setIsCreatingShareLink(true)
+
+    try {
+      await consentApi.createStorybookShareConsent()
+      const shareLink = await createShareLinkWithConsentRetry(currentStorybook.id)
+
+      setShareLinks((current) => [shareLink, ...current.filter((link) => String(link.id) !== String(shareLink.id))])
+      setIsShareConsentPromptOpen(false)
+      setStatusMessage('공유 동의를 저장하고 링크를 만들었어요.')
+    } catch (error) {
+      setErrorMessage(getApiErrorMessage(error, '공유 링크를 만들지 못했습니다.'))
+    } finally {
+      setIsCreatingShareLink(false)
+    }
+  }
+
+  const handleCancelShareConsent = () => {
+    setIsShareConsentPromptOpen(false)
+    setErrorMessage('')
+    setStatusMessage('')
   }
 
   const handleCopyShareUrl = async () => {
@@ -739,7 +833,7 @@ function StorybookPage() {
           <span className="storybook-page__ready-text">
             <strong>AI 대화 준비 완료</strong>
             <span>
-              음성 <b>0:28</b> · 사진 <b>15장</b> · 기억 <b>{chapterItems.length}챕터</b>
+              음성 <b>0:28</b> · 사진 <b>15장</b> · 기억 <b>{visibleChapterItems.length}챕터</b>
             </span>
             <small>엄마의 목소리와 사진을 바탕으로 AI가 대화를 준비했어요.</small>
           </span>
@@ -785,10 +879,26 @@ function StorybookPage() {
               </div>
             ) : (
               <div className="storybook-page__share-body">
-                <p className="storybook-page__share-helper">활성화된 공유 링크가 없습니다.</p>
-                <button className="storybook-page__share-create-button" type="button" onClick={handleCreateShareLink} disabled={isCreatingShareLink || !currentStorybook}>
-                  {isCreatingShareLink ? '공유 링크 생성 중...' : '공유 링크 만들기'}
-                </button>
+                {isShareConsentPromptOpen ? (
+                  <div className="storybook-page__share-consent">
+                    <p>스토리북을 링크로 공유하려면 공유 동의가 필요합니다. 계속하시겠어요?</p>
+                    <div className="storybook-page__share-actions">
+                      <button type="button" onClick={handleConfirmShareConsent} disabled={isCreatingShareLink}>
+                        {isCreatingShareLink ? '처리 중...' : '동의하고 공유 링크 만들기'}
+                      </button>
+                      <button type="button" onClick={handleCancelShareConsent} disabled={isCreatingShareLink}>
+                        취소
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <p className="storybook-page__share-helper">활성화된 공유 링크가 없습니다.</p>
+                    <button className="storybook-page__share-create-button" type="button" onClick={handleCreateShareLink} disabled={isCreatingShareLink || !currentStorybook}>
+                      {isCreatingShareLink ? '공유 링크 생성 중...' : '공유 링크 만들기'}
+                    </button>
+                  </>
+                )}
               </div>
             )}
           </section>
@@ -948,7 +1058,7 @@ function StorybookPage() {
             <div>
               <h2>스토리 챕터</h2>
               <p className="storybook-page__current-storybook">
-                현재 스토리북: {currentStorybook?.title ?? '선택된 스토리북 없음'}
+                전체 {visibleChapterItems.length}개 챕터 · 현재 스토리북: {currentStorybook?.title ?? '선택된 스토리북 없음'}
               </p>
             </div>
             <button type="button" onClick={() => console.log('reorder chapters')}>
@@ -956,13 +1066,16 @@ function StorybookPage() {
             </button>
           </div>
           <div className="storybook-page__chapter-card">
-            {chapterItems.map((chapter) => (
-              <button className="storybook-page__chapter-row" type="button" key={chapter.id} onClick={() => handleOpenStorybookDetail(chapter.id)}>
+            {visibleChapterItems.map((chapter) => (
+              <button className="storybook-page__chapter-row" type="button" key={`${chapter.storybookId}-${chapter.id}`} onClick={() => handleOpenStorybookDetail(chapter.id, chapter.storybookId)}>
                 <span className="storybook-page__chapter-icon">
                   <StorybookIcon name={chapter.icon} />
                 </span>
                 <span className="storybook-page__chapter-label">{chapter.label}</span>
-                <strong>{chapter.title}</strong>
+                <span className="storybook-page__chapter-title-group">
+                  <strong>{chapter.title}</strong>
+                  <small>{chapter.storybookTitle}</small>
+                </span>
                 <span className="storybook-page__chapter-duration">{chapter.duration}</span>
                 <StorybookIcon name="chevron" />
               </button>

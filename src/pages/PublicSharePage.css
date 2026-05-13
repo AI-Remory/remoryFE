@@ -1,0 +1,126 @@
+.public-share-page {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  min-height: 100dvh;
+  background: linear-gradient(180deg, #fff8ef 0%, #fffdf9 48%, #fff7ed 100%);
+  color: #33231d;
+}
+
+.public-share-page__container {
+  width: 100%;
+  max-width: 720px;
+  padding: 42px 20px 64px;
+}
+
+.public-share-page__header {
+  display: grid;
+  gap: 14px;
+  padding-bottom: 26px;
+  border-bottom: 1px solid #ead7c4;
+}
+
+.public-share-page__header span {
+  width: fit-content;
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: #fff0e2;
+  color: #c9582e;
+  font-size: 13px;
+  font-weight: 850;
+}
+
+.public-share-page__header h1,
+.public-share-page__empty h1 {
+  margin: 0;
+  color: #2f1f19;
+  font-family: Georgia, 'Times New Roman', 'Noto Serif KR', serif;
+  font-size: clamp(34px, 8vw, 54px);
+  font-weight: 850;
+  line-height: 1.15;
+}
+
+.public-share-page__header p,
+.public-share-page__empty p,
+.public-share-page__loading {
+  margin: 0;
+  color: #76675c;
+  font-size: 17px;
+  font-weight: 600;
+  line-height: 1.7;
+}
+
+.public-share-page__chapters {
+  display: grid;
+  gap: 18px;
+  margin-top: 28px;
+}
+
+.public-share-page__chapter {
+  display: grid;
+  gap: 11px;
+  padding: 22px;
+  border: 1px solid #efd8c5;
+  border-radius: 18px;
+  background: #fffdf8;
+}
+
+.public-share-page__chapter span {
+  color: #c9582e;
+  font-size: 14px;
+  font-weight: 850;
+}
+
+.public-share-page__chapter h2 {
+  margin: 0;
+  color: #2f1f19;
+  font-family: Georgia, 'Times New Roman', 'Noto Serif KR', serif;
+  font-size: 26px;
+  font-weight: 850;
+}
+
+.public-share-page__chapter p {
+  margin: 0;
+  color: #4b3931;
+  font-size: 16px;
+  line-height: 1.75;
+}
+
+.public-share-page__chapter-summary {
+  color: #8a5d43;
+  font-weight: 750;
+}
+
+.public-share-page__empty {
+  display: grid;
+  gap: 18px;
+  min-height: 60dvh;
+  align-content: center;
+}
+
+.public-share-page__home-button,
+.public-share-page__empty button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 52px;
+  margin-top: 28px;
+  padding: 0 22px;
+  border: 0;
+  border-radius: 16px;
+  background: #6b3027;
+  color: #fff;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: 850;
+}
+
+@media (max-width: 520px) {
+  .public-share-page__container {
+    padding: 30px 16px 48px;
+  }
+
+  .public-share-page__chapter {
+    padding: 18px;
+  }
+}

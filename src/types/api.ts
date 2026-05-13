@@ -167,6 +167,39 @@ export type StoryBookDetail = StoryBook & {
   chapters?: StoryChapter[]
 }
 
+export type ShareLink = {
+  id: ApiId
+  storybook_id: ApiId
+  owner_id?: ApiId
+  token: string
+  is_active: boolean
+  expires_at?: string | null
+  disabled_at?: string | null
+  share_url?: string | null
+  created_at?: string
+  updated_at?: string
+}
+
+export type ShareLinkDisableResponse = {
+  id: ApiId
+  is_active: boolean
+  disabled_at?: string | null
+}
+
+export type PublicStoryChapter = {
+  title: string
+  content: string
+  summary?: string | null
+  order_index: number
+}
+
+export type PublicSharedStoryBook = {
+  title: string
+  summary?: string | null
+  visibility?: string
+  chapters: PublicStoryChapter[]
+}
+
 export type PhotoMemory = {
   id: ApiId
   user_id?: ApiId

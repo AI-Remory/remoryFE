@@ -257,6 +257,107 @@
   color: #a43b2f;
 }
 
+.storybook-page__share-panel {
+  display: grid;
+  gap: 14px;
+  margin-top: 16px;
+  padding: 18px;
+  border: 1px solid var(--storybook-border);
+  border-radius: 18px;
+  background: var(--storybook-card);
+}
+
+.storybook-page__share-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.storybook-page__share-heading h2 {
+  color: var(--storybook-dark);
+  font-size: 20px;
+  font-weight: 850;
+}
+
+.storybook-page__share-heading button {
+  border: 0;
+  background: transparent;
+  color: var(--storybook-muted);
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.storybook-page__share-body {
+  display: grid;
+  gap: 12px;
+}
+
+.storybook-page__share-body label {
+  display: grid;
+  gap: 7px;
+  color: var(--storybook-dark);
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.storybook-page__share-body input {
+  width: 100%;
+  min-width: 0;
+  height: 44px;
+  padding: 0 12px;
+  border: 1px solid #e8d1be;
+  border-radius: 12px;
+  background: #fffaf5;
+  color: var(--storybook-text);
+  font: inherit;
+}
+
+.storybook-page__share-helper {
+  color: var(--storybook-muted);
+  font-size: 14px;
+  font-weight: 650;
+  line-height: 1.5;
+}
+
+.storybook-page__share-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.storybook-page__share-actions button,
+.storybook-page__share-create-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 46px;
+  border-radius: 14px;
+  cursor: pointer;
+  font-size: 15px;
+  font-weight: 850;
+}
+
+.storybook-page__share-actions button:first-child,
+.storybook-page__share-create-button {
+  border: 0;
+  background: var(--storybook-brown-button);
+  color: #fff;
+}
+
+.storybook-page__share-actions button:last-child {
+  border: 1px solid #dfbba7;
+  background: #fff8f1;
+  color: #8d4c36;
+}
+
+.storybook-page__share-actions button:disabled,
+.storybook-page__share-create-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.64;
+}
+
 .storybook-page__section {
   margin-top: 29px;
 }

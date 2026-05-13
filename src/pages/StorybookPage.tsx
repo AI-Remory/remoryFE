@@ -3,8 +3,9 @@ import { ApiError } from '../lib/apiClient'
 import { normalizeAssetUrl } from '../lib/mediaUrl'
 import { ensureMomPersonaId } from '../services/personaSession'
 import { photoMemoryApi } from '../services/photoMemoryApi'
+import { shareApi } from '../services/shareApi'
 import { storybookApi } from '../services/storybookApi'
-import type { ApiId, PhotoMemory, StoryBook, StoryChapter } from '../types/api'
+import type { ApiId, PhotoMemory, ShareLink, StoryBook, StoryChapter } from '../types/api'
 import './StorybookPage.css'
 
 type IconName =
@@ -121,6 +122,27 @@ function getApiErrorMessage(error: unknown, fallbackMessage: string) {
   }
 
   return fallbackMessage
+}
+
+function getShareUrl(shareLink: ShareLink) {
+  const fallbackToken = shareLink.token
+  const rawShareUrl = shareLink.share_url?.trim()
+  let token = fallbackToken
+
+  if (rawShareUrl) {
+    try {
+      const url = new URL(rawShareUrl, window.location.origin)
+      const shareToken = url.pathname.startsWith('/share/')
+        ? decodeURIComponent(url.pathname.slice('/share/'.length).split('/')[0] ?? '')
+        : ''
+
+      token = shareToken || fallbackToken
+    } catch {
+      token = fallbackToken
+    }
+  }
+
+  return `${window.location.origin}/share/${encodeURIComponent(token)}`
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -284,6 +306,11 @@ function StorybookPage() {
   const [photoUploadFile, setPhotoUploadFile] = useState<File | null>(null)
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false)
   const [isCreatingStorybook, setIsCreatingStorybook] = useState(false)
+  const [isSharePanelOpen, setIsSharePanelOpen] = useState(false)
+  const [shareLinks, setShareLinks] = useState<ShareLink[]>([])
+  const [isLoadingShareLinks, setIsLoadingShareLinks] = useState(false)
+  const [isCreatingShareLink, setIsCreatingShareLink] = useState(false)
+  const [isDisablingShareLink, setIsDisablingShareLink] = useState(false)
   const [statusMessage, setStatusMessage] = useState(() => window.localStorage.getItem(STORYBOOK_NOTICE_KEY) ?? '')
   const [errorMessage, setErrorMessage] = useState('')
 
@@ -339,6 +366,8 @@ function StorybookPage() {
 
   const selectedPhotoMemory =
     photoMemories.find((memory) => String(memory.id) === selectedPhotoMemoryId) ?? null
+  const activeShareLink = shareLinks.find((shareLink) => shareLink.is_active) ?? null
+  const activeShareUrl = activeShareLink ? getShareUrl(activeShareLink) : ''
   const coverTitle = currentStorybook?.title ?? '엄마의 따뜻한 말 한마디'
   const coverImageUrl = normalizeAssetUrl(currentStorybook?.cover_image_url) || '/images/storybook/storybook-cover-mom.png'
   const coverTitleLines = coverTitle.split(' ')
@@ -471,6 +500,97 @@ function StorybookPage() {
     }
   }
 
+  const handleOpenSharePanel = async () => {
+    if (!currentStorybook) {
+      setErrorMessage('공유할 스토리북이 없습니다.')
+      setStatusMessage('')
+      return
+    }
+
+    setIsSharePanelOpen(true)
+    setErrorMessage('')
+    setStatusMessage('')
+    setIsLoadingShareLinks(true)
+
+    try {
+      const links = await shareApi.listShareLinks(currentStorybook.id)
+      setShareLinks(links)
+
+      if (links.some((link) => link.is_active)) {
+        setStatusMessage('사용 중인 공유 링크를 불러왔어요.')
+      }
+    } catch (error) {
+      setErrorMessage(getApiErrorMessage(error, '공유 링크를 불러오지 못했습니다.'))
+    } finally {
+      setIsLoadingShareLinks(false)
+    }
+  }
+
+  const handleCreateShareLink = async () => {
+    if (!currentStorybook || isCreatingShareLink) {
+      return
+    }
+
+    setErrorMessage('')
+    setStatusMessage('')
+    setIsCreatingShareLink(true)
+
+    try {
+      const shareLink = await shareApi.createShareLink(currentStorybook.id)
+      setShareLinks((current) => [shareLink, ...current.filter((link) => String(link.id) !== String(shareLink.id))])
+      setStatusMessage('공유 링크를 만들었어요.')
+    } catch (error) {
+      setErrorMessage(getApiErrorMessage(error, '공유 링크를 만들지 못했습니다.'))
+    } finally {
+      setIsCreatingShareLink(false)
+    }
+  }
+
+  const handleCopyShareUrl = async () => {
+    if (!activeShareUrl) {
+      return
+    }
+
+    try {
+      await navigator.clipboard.writeText(activeShareUrl)
+      setStatusMessage('공유 링크를 복사했어요.')
+      setErrorMessage('')
+    } catch {
+      setErrorMessage('복사에 실패했습니다. 링크를 직접 선택해주세요.')
+    }
+  }
+
+  const handleDisableShareLink = async () => {
+    if (!activeShareLink || isDisablingShareLink) {
+      return
+    }
+
+    setErrorMessage('')
+    setStatusMessage('')
+    setIsDisablingShareLink(true)
+
+    try {
+      const response = await shareApi.disableShareLink(activeShareLink.id)
+
+      setShareLinks((current) =>
+        current.map((link) =>
+          String(link.id) === String(response.id)
+            ? {
+                ...link,
+                is_active: response.is_active,
+                disabled_at: response.disabled_at,
+              }
+            : link,
+        ),
+      )
+      setStatusMessage('공유 링크를 비활성화했어요.')
+    } catch (error) {
+      setErrorMessage(getApiErrorMessage(error, '공유 링크를 비활성화하지 못했습니다.'))
+    } finally {
+      setIsDisablingShareLink(false)
+    }
+  }
+
   return (
     <main className="storybook-page">
       <section className="storybook-page__container" aria-label="나의 스토리북">
@@ -478,7 +598,7 @@ function StorybookPage() {
           <span />
           <h1 className="storybook-page__title">나의 스토리북</h1>
           <div className="storybook-page__header-actions">
-            <button className="storybook-page__icon-button" type="button" aria-label="스토리북 공유" onClick={() => console.log('share storybook')}>
+            <button className="storybook-page__icon-button" type="button" aria-label="스토리북 공유" onClick={handleOpenSharePanel}>
               <StorybookIcon name="share" />
             </button>
             <button className="storybook-page__icon-button" type="button" aria-label="스토리북 메뉴 열기" onClick={() => console.log('open storybook menu')}>
@@ -527,6 +647,43 @@ function StorybookPage() {
           <p className="storybook-page__error-message" role="alert">
             {errorMessage}
           </p>
+        )}
+
+        {isSharePanelOpen && (
+          <section className="storybook-page__share-panel" aria-label="스토리북 공유 링크">
+            <div className="storybook-page__share-heading">
+              <h2>공유 링크</h2>
+              <button type="button" onClick={() => setIsSharePanelOpen(false)}>
+                닫기
+              </button>
+            </div>
+
+            {isLoadingShareLinks ? (
+              <p className="storybook-page__share-helper">공유 링크를 확인하고 있어요.</p>
+            ) : activeShareLink ? (
+              <div className="storybook-page__share-body">
+                <label>
+                  <span>공유 URL</span>
+                  <input type="text" value={activeShareUrl} readOnly onFocus={(event) => event.currentTarget.select()} />
+                </label>
+                <div className="storybook-page__share-actions">
+                  <button type="button" onClick={handleCopyShareUrl}>
+                    복사
+                  </button>
+                  <button type="button" onClick={handleDisableShareLink} disabled={isDisablingShareLink}>
+                    {isDisablingShareLink ? '비활성화 중...' : '링크 비활성화'}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="storybook-page__share-body">
+                <p className="storybook-page__share-helper">활성화된 공유 링크가 없습니다.</p>
+                <button className="storybook-page__share-create-button" type="button" onClick={handleCreateShareLink} disabled={isCreatingShareLink || !currentStorybook}>
+                  {isCreatingShareLink ? '공유 링크 생성 중...' : '공유 링크 만들기'}
+                </button>
+              </div>
+            )}
+          </section>
         )}
 
         <section className="storybook-page__section">

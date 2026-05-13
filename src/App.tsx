@@ -5,6 +5,7 @@ import HomePage from './pages/HomePage'
 import LandingPage from './pages/LandingPage'
 import MyPage from './pages/MyPage'
 import ProfilePage from './pages/ProfilePage'
+import PublicSharePage from './pages/PublicSharePage'
 import SetupPage from './pages/SetupPage'
 import StorybookPage from './pages/StorybookPage'
 import './App.css'
@@ -34,6 +35,10 @@ function App() {
 
   if (pathname.startsWith('/chat')) {
     return <ChatPage />
+  }
+
+  if (pathname.startsWith('/share/')) {
+    return <PublicSharePage />
   }
 
   if (pathname.startsWith('/storybook')) {

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useAuth } from '../hooks/useAuth'
 import { authApi } from '../services/authApi'
 import { ensureMomPersonaId } from '../services/personaSession'
 import { storybookApi } from '../services/storybookApi'
@@ -190,6 +191,7 @@ function ChevronIcon() {
 }
 
 function MyPage() {
+  const { logout } = useAuth()
   const [displayName, setDisplayName] = useState('현규')
   const [personaItems, setPersonaItems] = useState<MyPersona[]>(mockPersonas)
   const [storybookCount, setStorybookCount] = useState(12)
@@ -249,6 +251,11 @@ function MyPage() {
     } catch (error) {
       console.error('Failed to prepare persona before chat navigation', error)
     }
+  }
+
+  const handleLogout = async () => {
+    await logout()
+    window.location.href = '/auth'
   }
 
   return (
@@ -370,6 +377,16 @@ function MyPage() {
               <ChevronIcon />
             </button>
           ))}
+          <button className="my-page__wide-card" type="button" onClick={handleLogout}>
+            <span className="my-page__menu-icon my-page__menu-icon--settings" aria-hidden="true">
+              <AppIcon name="settings" />
+            </span>
+            <span className="my-page__menu-text">
+              <strong>로그아웃</strong>
+              <small>현재 기기에서 Remory 계정을 로그아웃합니다.</small>
+            </span>
+            <ChevronIcon />
+          </button>
         </section>
 
         <section className="my-page__monthly-banner">

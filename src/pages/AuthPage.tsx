@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react'
 import { ApiError } from '../services/apiClient'
-import { authApi } from '../services/authApi'
+import { useAuth } from '../hooks/useAuth'
 import { targetApi } from '../services/targetApi'
 import './AuthPage.css'
 
@@ -77,6 +77,7 @@ function EyeIcon() {
 }
 
 function AuthPage() {
+  const { login, register } = useAuth()
   const [activeTab, setActiveTab] = useState<AuthTab>('signup')
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
@@ -119,13 +120,13 @@ function AuthPage() {
 
     try {
       if (isSignup) {
-        await authApi.register({
+        await register({
           email,
           nickname: name,
           password,
         })
       } else {
-        await authApi.login({
+        await login({
           email,
           password,
         })
@@ -135,7 +136,6 @@ function AuthPage() {
     } catch (error) {
       const message = error instanceof ApiError ? error.message : '인증 요청에 실패했습니다.'
       setErrorMessage(message)
-      window.alert(message)
     } finally {
       setIsSubmitting(false)
     }

@@ -1,7 +1,13 @@
 import { useEffect, useState } from 'react'
 import { normalizeAssetUrl } from '../lib/mediaUrl'
 import { authApi } from '../services/authApi'
-import { ensureMomPersonaId, REMORY_CHAT_ID_KEY, REMORY_PERSONA_ID_KEY, REMORY_TARGET_ID_KEY } from '../services/personaSession'
+import {
+  ensureMomPersonaId,
+  getPersonaIdFromTarget,
+  REMORY_CHAT_ID_KEY,
+  REMORY_PERSONA_ID_KEY,
+  REMORY_TARGET_ID_KEY,
+} from '../services/personaSession'
 import { storybookApi } from '../services/storybookApi'
 import { targetApi } from '../services/targetApi'
 import type { Target } from '../types/api'
@@ -73,19 +79,33 @@ const wideMenuItems: MenuItem[] = [
 ]
 
 function mapTargetsToPersonas(targets: Target[]): MyPersona[] {
-  return targets.slice(0, 3).map((target, index) => {
-    const personaId = target.persona_id ?? target.persona?.id
+  const personas: MyPersona[] = []
 
-    return {
+  for (const target of targets) {
+    const personaId = getPersonaIdFromTarget(target)
+
+    if (!personaId) {
+      continue
+    }
+
+    const index = personas.length
+
+    personas.push({
       id: String(target.id),
-      personaId: personaId === undefined || personaId === null ? undefined : String(personaId),
+      personaId,
       name: target.nickname ?? target.name ?? target.persona?.nickname ?? target.persona?.name ?? `페르소나 ${index + 1}`,
       description: target.description ?? target.target_type ?? target.relationship ?? target.persona?.description ?? '소중한 기억을 담고 있는 분',
       image: normalizeAssetUrl(
         target.image_url ?? target.profile_image_path ?? target.persona?.image_url ?? mockPersonas[index]?.image,
       ) || '/images/my-page/persona-mom.png',
+    })
+
+    if (personas.length >= 3) {
+      break
     }
-  })
+  }
+
+  return personas
 }
 
 function clearStoredPersonaSession() {

@@ -57,21 +57,35 @@ const memoryCards = [
 ]
 
 function mapTargetsToPersonas(targets: Target[]): HomePersona[] {
-  return targets.slice(0, 3).map((target, index) => {
-    const personaId = target.persona_id ?? target.persona?.id
+  const personas: HomePersona[] = []
 
-    return {
+  for (const target of targets) {
+    const personaId = getPersonaIdFromTarget(target)
+
+    if (!personaId) {
+      continue
+    }
+
+    const index = personas.length
+
+    personas.push({
       id: String(target.id),
       targetId: String(target.id),
-      personaId: personaId === undefined || personaId === null ? undefined : String(personaId),
+      personaId,
       name: target.nickname ?? target.name ?? target.persona?.nickname ?? target.persona?.name ?? `페르소나 ${index + 1}`,
       summary: target.persona?.personality_summary ?? target.persona?.memory_summary ?? target.description ?? undefined,
       image: normalizeAssetUrl(
         target.image_url ?? target.profile_image_path ?? target.persona?.image_url ?? mockPersonas[index]?.image,
       ) || '/images/my-page/persona-mom.png',
       active: index === 0,
+    })
+
+    if (personas.length >= 3) {
+      break
     }
-  })
+  }
+
+  return personas
 }
 
 function getPersonaDisplayName(persona: Persona, fallbackName = '페르소나') {

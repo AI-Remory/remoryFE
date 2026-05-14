@@ -8,6 +8,7 @@ import {
   getPersonaIdFromTarget,
   REMORY_CHAT_ID_KEY,
   REMORY_PERSONA_ID_KEY,
+  REMORY_TARGET_ID_KEY,
   storeActivePersonaSession,
 } from '../services/personaSession'
 import { storybookApi } from '../services/storybookApi'
@@ -148,6 +149,12 @@ async function resolveHomePersonaId(persona: HomePersona | undefined) {
   return getPersonaIdFromTarget(target)
 }
 
+function clearStoredPersonaSession() {
+  window.localStorage.removeItem(REMORY_TARGET_ID_KEY)
+  window.localStorage.removeItem(REMORY_PERSONA_ID_KEY)
+  window.localStorage.removeItem(REMORY_CHAT_ID_KEY)
+}
+
 function getChatPath(personaId: string) {
   return `/chat?personaId=${encodeURIComponent(personaId)}`
 }
@@ -238,10 +245,13 @@ function HomePageIcon({ name }: { name: IconName }) {
 
 function HomePage() {
   const [displayName, setDisplayName] = useState('현규')
-  const [personaItems, setPersonaItems] = useState<HomePersona[]>(mockPersonas)
+  const [personaItems, setPersonaItems] = useState<HomePersona[]>([])
+  const [isLoadingHomeData, setIsLoadingHomeData] = useState(true)
+  const [hasLoadedRealTargets, setHasLoadedRealTargets] = useState(false)
   const [errorMessage, setErrorMessage] = useState('')
   const activePersona = personaItems.find((persona) => persona.active)
-  const activePersonaName = activePersona?.name ?? '엄마'
+  const hasNoPersonas = hasLoadedRealTargets && personaItems.length === 0
+  const activePersonaName = activePersona?.name ?? '페르소나'
   const activePersonaSummary = activePersona?.summary
 
   useEffect(() => {
@@ -261,44 +271,69 @@ function HomePage() {
       try {
         const response = await targetApi.listTargets()
         const targets = response.items
-        const storedPersonaId = window.localStorage.getItem(REMORY_PERSONA_ID_KEY)
-        const targetPersonas = targets.length > 0 ? mapTargetsToPersonas(targets) : []
-        let loadedPersonaDetail = false
-        let stalePersonaId: string | null = null
 
-        if (storedPersonaId) {
-          try {
-            const personaDetail = await personaApi.getPersona(storedPersonaId)
-            loadedPersonaDetail = true
-
-            if (!ignore) {
-              setPersonaItems(mergePersonaDetailIntoItems(targetPersonas, personaDetail, targets))
-              window.localStorage.setItem(REMORY_PERSONA_ID_KEY, String(personaDetail.id))
-            }
-          } catch (error) {
-            if (!ignore && error instanceof ApiError && error.status === 404) {
-              window.localStorage.removeItem(REMORY_PERSONA_ID_KEY)
-              window.localStorage.removeItem(REMORY_CHAT_ID_KEY)
-              stalePersonaId = storedPersonaId
-              setErrorMessage('이전 페르소나 정보를 초기화했어요. 다시 설정해주세요.')
-            }
-            // Fall back to target-provided persona summaries when persona detail is unavailable.
-          }
+        if (!ignore) {
+          setHasLoadedRealTargets(true)
         }
 
-        const fallbackPersonas = stalePersonaId
-          ? targetPersonas.filter((persona) => persona.personaId !== stalePersonaId)
-          : targetPersonas
+        if (targets.length === 0) {
+          if (!ignore) {
+            clearStoredPersonaSession()
+            setPersonaItems([])
+            setErrorMessage('')
+          }
+        } else {
+          const storedPersonaId = window.localStorage.getItem(REMORY_PERSONA_ID_KEY)
+          const targetPersonas = mapTargetsToPersonas(targets)
+          let loadedPersonaDetail = false
+          let stalePersonaId: string | null = null
 
-        if (!ignore && !loadedPersonaDetail && fallbackPersonas.length > 0) {
-          setPersonaItems(fallbackPersonas)
+          if (storedPersonaId) {
+            try {
+              const personaDetail = await personaApi.getPersona(storedPersonaId)
+              loadedPersonaDetail = true
 
-          if (fallbackPersonas[0].personaId) {
-            storeActivePersonaSession(fallbackPersonas[0].personaId, fallbackPersonas[0].targetId)
+              if (!ignore) {
+                setPersonaItems(mergePersonaDetailIntoItems(targetPersonas, personaDetail, targets))
+                window.localStorage.setItem(REMORY_PERSONA_ID_KEY, String(personaDetail.id))
+              }
+            } catch (error) {
+              if (!ignore && error instanceof ApiError && error.status === 404) {
+                window.localStorage.removeItem(REMORY_PERSONA_ID_KEY)
+                window.localStorage.removeItem(REMORY_CHAT_ID_KEY)
+                stalePersonaId = storedPersonaId
+                setErrorMessage('이전 페르소나 정보를 초기화했어요. 다시 설정해주세요.')
+              }
+              // Fall back to target-provided persona summaries when persona detail is unavailable.
+            }
+          }
+
+          const fallbackPersonas = stalePersonaId
+            ? targetPersonas.filter((persona) => persona.personaId !== stalePersonaId)
+            : targetPersonas
+
+          if (!ignore && !loadedPersonaDetail && fallbackPersonas.length > 0) {
+            setPersonaItems(fallbackPersonas)
+
+            if (fallbackPersonas[0].personaId) {
+              storeActivePersonaSession(fallbackPersonas[0].personaId, fallbackPersonas[0].targetId)
+            }
+          }
+
+          if (!ignore && !loadedPersonaDetail && fallbackPersonas.length === 0) {
+            setPersonaItems([])
           }
         }
       } catch {
-        // Keep the existing mock persona cards when targets cannot be loaded.
+        if (!ignore) {
+          setHasLoadedRealTargets(false)
+          setPersonaItems(mockPersonas)
+        }
+        // Keep mock persona cards only when targets cannot be loaded.
+      } finally {
+        if (!ignore) {
+          setIsLoadingHomeData(false)
+        }
       }
 
       storybookApi.listStorybooks().catch(() => undefined)
@@ -343,6 +378,11 @@ function HomePage() {
   const handleChatNavigation = async () => {
     setErrorMessage('')
 
+    if (hasNoPersonas) {
+      window.location.assign('/setup')
+      return
+    }
+
     try {
       let personaId = await resolveHomePersonaId(activePersona)
 
@@ -363,12 +403,18 @@ function HomePage() {
   }
 
   const handleMemoryCardClick = (cardId: string) => {
+    if (hasNoPersonas) {
+      setErrorMessage('먼저 페르소나를 만들어주세요.')
+      window.location.assign('/setup')
+      return
+    }
+
     if (cardId === 'interview') {
       window.location.assign('/interview')
       return
     }
 
-    console.log('add memory by photo')
+    window.location.assign('/setup')
   }
 
   return (
@@ -376,7 +422,7 @@ function HomePage() {
       <section className="home-page__container" aria-label="Remory home">
         <header className="home-page__header">
           <h1>안녕하세요, {displayName}님</h1>
-          <button className="home-page__notification" type="button" aria-label="알림 열기" onClick={() => console.log('open notifications')}>
+          <button className="home-page__notification" type="button" aria-label="알림 열기" onClick={() => window.alert('알림 기능은 준비 중입니다.')}>
             <HomePageIcon name="bell" />
             <span />
           </button>
@@ -397,8 +443,8 @@ function HomePage() {
               AI 페르소나와 이야기를 이어가세요.
             </p>
             <button className="home-page__hero-button" type="button" onClick={handleChatNavigation}>
-              <HomePageIcon name="chat" />
-              {activePersonaName}와 대화하기
+              <HomePageIcon name={hasNoPersonas ? 'plus' : 'chat'} />
+              {hasNoPersonas ? '페르소나 만들기' : `${activePersonaName}와 대화하기`}
             </button>
           </div>
         </section>
@@ -406,66 +452,84 @@ function HomePage() {
         <section className="home-page__persona-section">
           <div className="home-page__section-heading">
             <h2>내 페르소나</h2>
-            <button type="button" onClick={() => console.log('view all personas')}>
-              전체 보기 <HomePageIcon name="chevron" />
-            </button>
-          </div>
-
-          <div className="home-page__persona-list" aria-label="페르소나 선택">
-            {personaItems.map((persona) => (
-              <button
-                className={`home-page__persona-item${persona.active ? ' is-active' : ''}`}
-                type="button"
-                key={persona.id}
-                onClick={() => void handlePersonaClick(persona)}
-              >
-                <span className="home-page__persona-avatar">
-                  <img src={persona.image} alt={`${persona.name} 페르소나`} />
-                </span>
-                {persona.active && (
-                  <span className="home-page__persona-check">
-                    <HomePageIcon name="check" />
-                  </span>
-                )}
-                <strong>{persona.name}</strong>
+            {!hasNoPersonas && personaItems.length > 0 && (
+              <button type="button" onClick={() => { window.location.href = '/my' }}>
+                전체 보기 <HomePageIcon name="chevron" />
               </button>
-            ))}
-
-            <button className="home-page__persona-item home-page__persona-item--add" type="button" onClick={() => { window.location.href = '/setup' }}>
-              <span className="home-page__add-avatar">
-                <HomePageIcon name="plus" />
-              </span>
-              <strong>추가</strong>
-            </button>
+            )}
           </div>
 
-          <div className="home-page__persona-preview">
-            <h3>
-              <HomePageIcon name="sparkle" />
-              {activePersonaName}와 대화
-            </h3>
-            {activePersonaSummary && (
-              <p className="home-page__persona-summary">{activePersonaSummary}</p>
-            )}
-            <div className="home-page__preview-body">
-              <div className="home-page__chat-preview">
-                {chatLines.map((line, index) => (
-                  <p className="home-page__chat-line" key={`${line.speaker}-${index}`}>
-                    <span>{line.speaker}</span>
-                    {line.text}
-                  </p>
-                ))}
-              </div>
-              <button type="button" onClick={handleChatNavigation}>
-                이어서 대화하기
+          {isLoadingHomeData && <p className="home-page__persona-loading">페르소나를 불러오는 중입니다.</p>}
+
+          {!isLoadingHomeData && hasNoPersonas ? (
+            <div className="home-page__persona-empty" role="status">
+              <h3>아직 생성된 페르소나가 없습니다.</h3>
+              <p>소중한 사람의 사진과 목소리를 등록해 페르소나를 만들어보세요.</p>
+              <small>생성된 페르소나가 없습니다. 설정에서 페르소나를 만들어주세요.</small>
+              <button type="button" onClick={() => { window.location.href = '/setup' }}>
+                <HomePageIcon name="plus" />
+                페르소나 만들기
               </button>
             </div>
-          </div>
+          ) : !isLoadingHomeData && (
+            <>
+              <div className="home-page__persona-list" aria-label="페르소나 선택">
+                {personaItems.map((persona) => (
+                  <button
+                    className={`home-page__persona-item${persona.active ? ' is-active' : ''}`}
+                    type="button"
+                    key={persona.id}
+                    onClick={() => void handlePersonaClick(persona)}
+                  >
+                    <span className="home-page__persona-avatar">
+                      <img src={persona.image} alt={`${persona.name} 페르소나`} />
+                    </span>
+                    {persona.active && (
+                      <span className="home-page__persona-check">
+                        <HomePageIcon name="check" />
+                      </span>
+                    )}
+                    <strong>{persona.name}</strong>
+                  </button>
+                ))}
 
-          <p className="home-page__hint">
-            <HomePageIcon name="info" />
-            다른 페르소나를 선택하면 이야기감 대화가 바뀝니다.
-          </p>
+                <button className="home-page__persona-item home-page__persona-item--add" type="button" onClick={() => { window.location.href = '/setup' }}>
+                  <span className="home-page__add-avatar">
+                    <HomePageIcon name="plus" />
+                  </span>
+                  <strong>추가</strong>
+                </button>
+              </div>
+
+              <div className="home-page__persona-preview">
+                <h3>
+                  <HomePageIcon name="sparkle" />
+                  {activePersonaName}와 대화
+                </h3>
+                {activePersonaSummary && (
+                  <p className="home-page__persona-summary">{activePersonaSummary}</p>
+                )}
+                <div className="home-page__preview-body">
+                  <div className="home-page__chat-preview">
+                    {chatLines.map((line, index) => (
+                      <p className="home-page__chat-line" key={`${line.speaker}-${index}`}>
+                        <span>{line.speaker}</span>
+                        {line.text}
+                      </p>
+                    ))}
+                  </div>
+                  <button type="button" onClick={handleChatNavigation}>
+                    이어서 대화하기
+                  </button>
+                </div>
+              </div>
+
+              <p className="home-page__hint">
+                <HomePageIcon name="info" />
+                다른 페르소나를 선택하면 이야기감 대화가 바뀝니다.
+              </p>
+            </>
+          )}
         </section>
 
         <section className="home-page__memory-section">

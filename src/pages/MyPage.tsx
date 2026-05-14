@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { normalizeAssetUrl } from '../lib/mediaUrl'
 import { authApi } from '../services/authApi'
-import { ensureMomPersonaId, REMORY_PERSONA_ID_KEY } from '../services/personaSession'
+import { ensureMomPersonaId, REMORY_CHAT_ID_KEY, REMORY_PERSONA_ID_KEY, REMORY_TARGET_ID_KEY } from '../services/personaSession'
 import { storybookApi } from '../services/storybookApi'
 import { targetApi } from '../services/targetApi'
 import type { Target } from '../types/api'
@@ -86,6 +86,12 @@ function mapTargetsToPersonas(targets: Target[]): MyPersona[] {
       ) || '/images/my-page/persona-mom.png',
     }
   })
+}
+
+function clearStoredPersonaSession() {
+  window.localStorage.removeItem(REMORY_TARGET_ID_KEY)
+  window.localStorage.removeItem(REMORY_PERSONA_ID_KEY)
+  window.localStorage.removeItem(REMORY_CHAT_ID_KEY)
 }
 
 function AppIcon({ name }: { name: IconName }) {
@@ -194,8 +200,11 @@ function ChevronIcon() {
 
 function MyPage() {
   const [displayName, setDisplayName] = useState('현규')
-  const [personaItems, setPersonaItems] = useState<MyPersona[]>(mockPersonas)
+  const [personaItems, setPersonaItems] = useState<MyPersona[]>([])
+  const [isLoadingPersonas, setIsLoadingPersonas] = useState(true)
+  const [hasLoadedRealTargets, setHasLoadedRealTargets] = useState(false)
   const [storybookCount, setStorybookCount] = useState(12)
+  const hasNoPersonas = hasLoadedRealTargets && personaItems.length === 0
 
   useEffect(() => {
     let ignore = false
@@ -215,7 +224,16 @@ function MyPage() {
         const response = await targetApi.listTargets()
         const targets = response.items
 
-        if (!ignore && targets.length > 0) {
+        if (!ignore) {
+          setHasLoadedRealTargets(true)
+        }
+
+        if (targets.length === 0) {
+          if (!ignore) {
+            clearStoredPersonaSession()
+            setPersonaItems([])
+          }
+        } else if (!ignore) {
           const nextPersonas = mapTargetsToPersonas(targets)
           setPersonaItems(nextPersonas)
 
@@ -224,7 +242,15 @@ function MyPage() {
           }
         }
       } catch {
-        // Keep mock persona cards when targets cannot be loaded.
+        if (!ignore) {
+          setHasLoadedRealTargets(false)
+          setPersonaItems(mockPersonas)
+        }
+        // Keep mock persona cards only when targets cannot be loaded.
+      } finally {
+        if (!ignore) {
+          setIsLoadingPersonas(false)
+        }
       }
 
       try {
@@ -246,6 +272,11 @@ function MyPage() {
   }, [])
 
   const handleChatNavigation = async () => {
+    if (hasNoPersonas) {
+      window.location.href = '/setup'
+      return
+    }
+
     try {
       await ensureMomPersonaId()
       window.location.href = '/chat'
@@ -301,7 +332,7 @@ function MyPage() {
                 AI로 기록하고 있어요.
               </p>
             </div>
-            <button className="my-page__profile-link" type="button" onClick={() => console.log('view profile')}>
+            <button className="my-page__profile-link" type="button" onClick={() => { window.location.href = '/profile' }}>
               프로필 보기 <ChevronIcon />
             </button>
           </div>
@@ -328,33 +359,43 @@ function MyPage() {
         <section className="my-page__persona-section">
           <div className="my-page__section-heading">
             <h2>내 페르소나 관리</h2>
-            <button type="button" onClick={() => console.log('view all personas')}>
-              전체 보기 <ChevronIcon />
-            </button>
-          </div>
-          <div className="my-page__persona-list">
-            {personaItems.map((persona) => (
-              <button
-                className="my-page__persona-card"
-                type="button"
-                key={persona.id}
-              onClick={() => {
-                if (persona.personaId) {
-                    window.localStorage.setItem(REMORY_PERSONA_ID_KEY, persona.personaId)
-                  }
-                }}
-              >
-                <span className="my-page__persona-avatar">
-                  <img src={persona.image} alt={`${persona.name} 페르소나`} />
-                </span>
-                <span>
-                  <strong>{persona.name}</strong>
-                  <small>{persona.description}</small>
-                </span>
-                <ChevronIcon />
+            {!hasNoPersonas && personaItems.length > 0 && (
+              <button type="button" onClick={() => { window.location.href = '/my' }}>
+                전체 보기 <ChevronIcon />
               </button>
-            ))}
+            )}
           </div>
+          {isLoadingPersonas && <p className="my-page__persona-loading">페르소나를 불러오는 중입니다.</p>}
+          {!isLoadingPersonas && hasNoPersonas ? (
+            <div className="my-page__persona-empty" role="status">
+              <strong>내 페르소나가 없습니다</strong>
+              <p>소중한 사람의 사진과 목소리를 등록해 페르소나를 만들어보세요.</p>
+            </div>
+          ) : !isLoadingPersonas && (
+            <div className="my-page__persona-list">
+              {personaItems.map((persona) => (
+                <button
+                  className="my-page__persona-card"
+                  type="button"
+                  key={persona.id}
+                  onClick={() => {
+                    if (persona.personaId) {
+                      window.localStorage.setItem(REMORY_PERSONA_ID_KEY, persona.personaId)
+                    }
+                  }}
+                >
+                  <span className="my-page__persona-avatar">
+                    <img src={persona.image} alt={`${persona.name} 페르소나`} />
+                  </span>
+                  <span>
+                    <strong>{persona.name}</strong>
+                    <small>{persona.description}</small>
+                  </span>
+                  <ChevronIcon />
+                </button>
+              ))}
+            </div>
+          )}
           <button className="my-page__create-persona" type="button" onClick={() => { window.location.href = '/setup' }}>
             + 새 페르소나 만들기
           </button>
@@ -399,7 +440,7 @@ function MyPage() {
               계속 기록하며 소중한 기억을 모아보세요.
             </p>
           </div>
-          <button type="button" onClick={() => console.log('view monthly memories')}>
+          <button type="button" onClick={() => { window.location.href = '/storybook' }}>
             기록 보러 가기 <ChevronIcon />
           </button>
           <img

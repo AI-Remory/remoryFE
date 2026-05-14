@@ -41,6 +41,8 @@ const targetIdRequiredTypes = new Set<DeletionTargetType>([
   'VERIFICATION_REQUEST',
 ])
 
+const lastPersonaDeletionMessage = '최소 1개의 페르소나는 필요합니다. 마지막 페르소나는 삭제할 수 없습니다.'
+
 function usesTargetSelect(targetType: DeletionTargetType) {
   return targetType === 'TARGET' || targetType === 'STORYBOOK'
 }
@@ -51,6 +53,18 @@ function usesTargetInput(targetType: DeletionTargetType) {
 
 function isNumericId(value: string) {
   return value.trim() !== '' && Number.isFinite(Number(value))
+}
+
+function isTargetOrPersonaDeletion(targetType: DeletionTargetType) {
+  return targetType === 'TARGET' || targetType === 'PERSONA'
+}
+
+function targetHasPersona(target: Target) {
+  return (
+    (target.persona_id !== undefined && target.persona_id !== null) ||
+    (target.persona !== undefined && target.persona !== null) ||
+    target.has_persona === true
+  )
 }
 
 function DeletionRequestPage() {
@@ -123,6 +137,19 @@ function DeletionRequestPage() {
     setIsSubmitting(true)
 
     try {
+      if (isTargetOrPersonaDeletion(targetType)) {
+        const latestTargetResponse = await targetApi.listTargets()
+        const latestTargets = latestTargetResponse.items
+        const personaTargetCount = latestTargets.filter(targetHasPersona).length
+
+        setTargets(latestTargets)
+
+        if (personaTargetCount <= 1) {
+          setErrorMessage(lastPersonaDeletionMessage)
+          return
+        }
+      }
+
       const requestTargetId = targetType === 'ACCOUNT'
         ? (await authApi.me()).id
         : Number(trimmedTargetId)

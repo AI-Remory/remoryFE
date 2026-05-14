@@ -1,21 +1,25 @@
 const DEFAULT_API_BASE_URL = '/api/v1'
+const API_VERSION_PREFIX = '/api/v1'
+const ABSOLUTE_HTTP_URL_PATTERN = /^https?:\/\//i
 
-function normalizeApiBaseUrl(baseUrl: string) {
+export function normalizeApiBaseUrl(baseUrl: string) {
   const trimmedBaseUrl = baseUrl.trim() || DEFAULT_API_BASE_URL
   let normalizedBase = trimmedBaseUrl
 
-  if (/^https?:\/\//i.test(trimmedBaseUrl)) {
+  if (ABSOLUTE_HTTP_URL_PATTERN.test(trimmedBaseUrl)) {
     try {
       const url = new URL(trimmedBaseUrl)
-      normalizedBase = url.pathname || DEFAULT_API_BASE_URL
+      normalizedBase = `${url.origin}${url.pathname === '/' ? '' : url.pathname}`
     } catch {
       normalizedBase = DEFAULT_API_BASE_URL
     }
+  } else if (!normalizedBase.startsWith('/')) {
+    normalizedBase = `/${normalizedBase}`
   }
 
   normalizedBase = normalizedBase.replace(/\/+$/, '')
 
-  return normalizedBase.endsWith('/api/v1') ? normalizedBase : `${normalizedBase}/api/v1`
+  return normalizedBase.endsWith(API_VERSION_PREFIX) ? normalizedBase : `${normalizedBase}${API_VERSION_PREFIX}`
 }
 
 export const API_BASE_URL = normalizeApiBaseUrl(import.meta.env.VITE_API_BASE_URL || DEFAULT_API_BASE_URL)
@@ -69,10 +73,33 @@ function redirectToAuth() {
   }
 }
 
-function buildUrl(path: string) {
-  const normalizedPath = path.startsWith('/') ? path : `/${path}`
+function stripApiVersionPrefix(path: string) {
+  if (path === API_VERSION_PREFIX) {
+    return ''
+  }
 
-  return `${API_BASE_URL}${normalizedPath}`
+  if (path.startsWith(`${API_VERSION_PREFIX}/`) || path.startsWith(`${API_VERSION_PREFIX}?`)) {
+    return path.slice(API_VERSION_PREFIX.length)
+  }
+
+  return path
+}
+
+export function resolveApiUrl(path: string) {
+  const trimmedPath = path.trim()
+
+  if (!trimmedPath) {
+    return API_BASE_URL
+  }
+
+  if (ABSOLUTE_HTTP_URL_PATTERN.test(trimmedPath)) {
+    return trimmedPath
+  }
+
+  const normalizedPath = trimmedPath.startsWith('/') ? trimmedPath : `/${trimmedPath}`
+  const apiPath = stripApiVersionPrefix(normalizedPath)
+
+  return `${API_BASE_URL}${apiPath}`
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -223,7 +250,7 @@ async function refreshAccessToken() {
   }
 
   try {
-    const response = await fetch(buildUrl('/auth/refresh-token'), {
+    const response = await fetch(resolveApiUrl('/auth/refresh-token'), {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -268,7 +295,7 @@ export async function apiRequest<T>(
   let response: Response
 
   try {
-    response = await fetch(buildUrl(path), buildRequestInit(options))
+    response = await fetch(resolveApiUrl(path), buildRequestInit(options))
   } catch {
     throw new ApiError('백엔드 서버에 연결할 수 없습니다. 서버 실행 상태와 API 주소를 확인해주세요.', 0, null)
   }

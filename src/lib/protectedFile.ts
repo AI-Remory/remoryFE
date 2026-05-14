@@ -1,4 +1,4 @@
-import { API_BASE_URL, getAccessToken } from './apiClient'
+import { getAccessToken, resolveApiUrl } from './apiClient'
 
 function normalizeProtectedFilePath(path: string) {
   const trimmedPath = path.trim()
@@ -18,17 +18,7 @@ function normalizeProtectedFilePath(path: string) {
     throw new Error('보호 파일은 인증된 파일 API로만 조회할 수 있습니다.')
   }
 
-  if (pathnameWithSearch.startsWith('/api/v1/')) {
-    return pathnameWithSearch
-  }
-
-  if (pathnameWithSearch.startsWith('api/v1/')) {
-    return `/${pathnameWithSearch}`
-  }
-
-  const normalizedPath = pathnameWithSearch.startsWith('/') ? pathnameWithSearch : `/${pathnameWithSearch}`
-
-  return `${API_BASE_URL}${normalizedPath}`
+  return resolveApiUrl(pathnameWithSearch)
 }
 
 export async function fetchProtectedFileObjectUrl(path: string) {

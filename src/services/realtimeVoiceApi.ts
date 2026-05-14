@@ -1,5 +1,7 @@
-import { API_BASE_URL, getAccessToken } from '../lib/apiClient'
+import { getAccessToken } from '../lib/apiClient'
 import type { ApiId } from '../types/api'
+
+const WS_BASE_URL = import.meta.env.VITE_WS_BASE_URL
 
 export type RealtimeVoiceMessage = {
   type: string
@@ -11,8 +13,13 @@ export type RealtimeVoiceMessage = {
 }
 
 export function buildRealtimeVoiceUrl(personaId: ApiId) {
+  const normalizedWsBaseUrl = WS_BASE_URL?.trim().replace(/\/+$/, '')
+
+  if (!normalizedWsBaseUrl) {
+    return null
+  }
+
   const token = getAccessToken()
-  const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
   const encodedPersonaId = encodeURIComponent(String(personaId))
   const params = new URLSearchParams()
 
@@ -20,5 +27,7 @@ export function buildRealtimeVoiceUrl(personaId: ApiId) {
     params.set('token', token)
   }
 
-  return `${protocol}//${window.location.host}${API_BASE_URL}/ws/personas/${encodedPersonaId}/voice?${params}`
+  const queryString = params.toString()
+
+  return `${normalizedWsBaseUrl}/ws/personas/${encodedPersonaId}/voice${queryString ? `?${queryString}` : ''}`
 }

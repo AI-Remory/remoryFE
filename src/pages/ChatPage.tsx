@@ -103,6 +103,7 @@ async function getReadyPersonaStatus(personaId: ApiId) {
 }
 const MOCK_CHAT_MESSAGES_KEY = 'remory_mock_chat_messages'
 const STORYBOOK_NOTICE_KEY = 'remory_storybook_notice'
+const REALTIME_VOICE_URL_MISSING_MESSAGE = '실시간 음성 연결 주소가 설정되지 않았습니다. 오디오 메시지를 대신 사용해주세요.'
 
 const initialMessages: ChatMessage[] = [
   { id: '1', sender: 'user', text: '엄마, 우리 제주도 여행 기억나?', time: '오후 3:21' },
@@ -557,9 +558,31 @@ function ChatPage() {
       return
     }
 
+    let realtimeVoiceUrl: string | null
+
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
-      const socket = new WebSocket(buildRealtimeVoiceUrl(personaId))
+      realtimeVoiceUrl = buildRealtimeVoiceUrl(personaId)
+    } catch {
+      setErrorMessage(REALTIME_VOICE_URL_MISSING_MESSAGE)
+      return
+    }
+
+    if (!realtimeVoiceUrl) {
+      setErrorMessage(REALTIME_VOICE_URL_MISSING_MESSAGE)
+      return
+    }
+
+    let stream: MediaStream
+
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+    } catch {
+      setErrorMessage('마이크 권한을 확인해주세요.')
+      return
+    }
+
+    try {
+      const socket = new WebSocket(realtimeVoiceUrl)
 
       mediaStreamRef.current = stream
       voiceSocketRef.current = socket
@@ -605,8 +628,9 @@ function ChatPage() {
         cleanupVoiceSession()
       }
     } catch {
+      stream.getTracks().forEach((track) => track.stop())
       cleanupVoiceSession()
-      setErrorMessage('마이크 권한을 확인해주세요.')
+      setErrorMessage('실시간 음성 WebSocket 연결에 실패했습니다.')
     }
   }
 

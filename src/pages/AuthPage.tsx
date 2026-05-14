@@ -159,146 +159,160 @@ function AuthPage() {
   return (
     <main className="auth-page">
       <section className="auth-container" aria-label="Remory authentication">
-        <button
-          className="auth-back-button"
-          type="button"
-          aria-label="이전 화면으로 돌아가기"
-          onClick={() => window.history.back()}
-        >
-          <BackIcon />
-        </button>
+        <aside className="auth-visual-panel" aria-hidden="true">
+          <div className="auth-visual-brand">
+            <span className="auth-visual-logo">
+              <i />
+              <i />
+              <i />
+            </span>
+            <span>Remory</span>
+          </div>
+          <img className="auth-visual-image" src="/images/remory-hero.png" alt="" />
+        </aside>
 
-        <h1 className="auth-logo-title">Remory</h1>
-
-        <div className="auth-tab-wrapper" role="tablist" aria-label="인증 방식 선택">
+        <section className="auth-form-panel" aria-label="Remory authentication form">
           <button
-            className={`auth-tab-button${isSignup ? ' active' : ''}`}
+            className="auth-back-button"
             type="button"
-            role="tab"
-            aria-selected={isSignup}
-            onClick={() => handleSwitchTab('signup')}
+            aria-label="이전 화면으로 돌아가기"
+            onClick={() => window.history.back()}
           >
-            회원가입
+            <BackIcon />
           </button>
-          <button
-            className={`auth-tab-button${!isSignup ? ' active' : ''}`}
-            type="button"
-            role="tab"
-            aria-selected={!isSignup}
-            onClick={() => handleSwitchTab('login')}
-          >
-            로그인
-          </button>
-        </div>
 
-        <form className="auth-form" onSubmit={handleSubmit}>
-          {isSignup && (
+          <h1 className="auth-logo-title">Remory</h1>
+
+          <div className="auth-tab-wrapper" role="tablist" aria-label="인증 방식 선택">
+            <button
+              className={`auth-tab-button${isSignup ? ' active' : ''}`}
+              type="button"
+              role="tab"
+              aria-selected={isSignup}
+              onClick={() => handleSwitchTab('signup')}
+            >
+              회원가입
+            </button>
+            <button
+              className={`auth-tab-button${!isSignup ? ' active' : ''}`}
+              type="button"
+              role="tab"
+              aria-selected={!isSignup}
+              onClick={() => handleSwitchTab('login')}
+            >
+              로그인
+            </button>
+          </div>
+
+          <form className="auth-form" onSubmit={handleSubmit}>
+            {isSignup && (
+              <label className="auth-input-box">
+                <span className="auth-input-icon">
+                  <UserIcon />
+                </span>
+                <input
+                  aria-label="이름"
+                  type="text"
+                  placeholder="이름"
+                  value={name}
+                  onChange={(event) => setName(event.target.value)}
+                />
+              </label>
+            )}
+
             <label className="auth-input-box">
               <span className="auth-input-icon">
-                <UserIcon />
+                <MailIcon />
               </span>
               <input
-                aria-label="이름"
-                type="text"
-                placeholder="이름"
-                value={name}
-                onChange={(event) => setName(event.target.value)}
+                aria-label="이메일"
+                type="email"
+                placeholder="이메일"
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
               />
             </label>
-          )}
 
-          <label className="auth-input-box">
-            <span className="auth-input-icon">
-              <MailIcon />
-            </span>
-            <input
-              aria-label="이메일"
-              type="email"
-              placeholder="이메일"
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
-            />
-          </label>
-
-          <label className="auth-input-box">
-            <span className="auth-input-icon">
-              <LockIcon />
-            </span>
-            <input
-              aria-label="비밀번호"
-              type={showPassword ? 'text' : 'password'}
-              placeholder="비밀번호"
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-            />
-            <button
-              className="auth-eye-button"
-              type="button"
-              aria-label={showPassword ? '비밀번호 숨기기' : '비밀번호 보기'}
-              onClick={() => setShowPassword((current) => !current)}
-            >
-              <EyeIcon />
-            </button>
-          </label>
-
-          {isSignup && (
             <label className="auth-input-box">
               <span className="auth-input-icon">
                 <LockIcon />
               </span>
               <input
-                aria-label="비밀번호 확인"
-                type={showPasswordConfirm ? 'text' : 'password'}
-                placeholder="비밀번호 확인"
-                value={passwordConfirm}
-                onChange={(event) => setPasswordConfirm(event.target.value)}
+                aria-label="비밀번호"
+                type={showPassword ? 'text' : 'password'}
+                placeholder="비밀번호"
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
               />
               <button
                 className="auth-eye-button"
                 type="button"
-                aria-label={showPasswordConfirm ? '비밀번호 확인 숨기기' : '비밀번호 확인 보기'}
-                onClick={() => setShowPasswordConfirm((current) => !current)}
+                aria-label={showPassword ? '비밀번호 숨기기' : '비밀번호 보기'}
+                onClick={() => setShowPassword((current) => !current)}
               >
                 <EyeIcon />
               </button>
             </label>
-          )}
 
-          {isSignup && (
-            <div className="auth-terms-row">
-              <button
-                className={`auth-check-circle${agreedToTerms ? ' checked' : ''}`}
-                type="button"
-                aria-label="개인정보 및 데이터 사용 동의"
-                aria-pressed={agreedToTerms}
-                onClick={() => setAgreedToTerms((current) => !current)}
-              >
-                <span />
-              </button>
-              <p className="auth-terms-text">개인정보 수집 및 이용, 음성 및 데이터 사용에 동의합니다. (필수)</p>
-              <button
-                className="auth-detail-button"
-                type="button"
-                onClick={() => console.log('show terms detail')}
-              >
-                자세히 보기
-              </button>
-            </div>
-          )}
+            {isSignup && (
+              <label className="auth-input-box">
+                <span className="auth-input-icon">
+                  <LockIcon />
+                </span>
+                <input
+                  aria-label="비밀번호 확인"
+                  type={showPasswordConfirm ? 'text' : 'password'}
+                  placeholder="비밀번호 확인"
+                  value={passwordConfirm}
+                  onChange={(event) => setPasswordConfirm(event.target.value)}
+                />
+                <button
+                  className="auth-eye-button"
+                  type="button"
+                  aria-label={showPasswordConfirm ? '비밀번호 확인 숨기기' : '비밀번호 확인 보기'}
+                  onClick={() => setShowPasswordConfirm((current) => !current)}
+                >
+                  <EyeIcon />
+                </button>
+              </label>
+            )}
 
-          {errorMessage && <p className="auth-error-message" role="alert">{errorMessage}</p>}
+            {isSignup && (
+              <div className="auth-terms-row">
+                <button
+                  className={`auth-check-circle${agreedToTerms ? ' checked' : ''}`}
+                  type="button"
+                  aria-label="개인정보 및 데이터 사용 동의"
+                  aria-pressed={agreedToTerms}
+                  onClick={() => setAgreedToTerms((current) => !current)}
+                >
+                  <span />
+                </button>
+                <p className="auth-terms-text">개인정보 수집 및 이용, 음성 및 데이터 사용에 동의합니다. (필수)</p>
+                <button
+                  className="auth-detail-button"
+                  type="button"
+                  onClick={() => window.alert('약관 상세 내용은 준비 중입니다.')}
+                >
+                  자세히 보기
+                </button>
+              </div>
+            )}
 
-          <button className="auth-submit-button" type="submit" disabled={isSubmitting}>
-            {isSubmitting ? '처리 중...' : isSignup ? '회원가입 완료' : '로그인'}
-          </button>
-        </form>
+            {errorMessage && <p className="auth-error-message" role="alert">{errorMessage}</p>}
 
-        <p className="auth-bottom-text">
-          {isSignup ? '이미 계정이 있나요?' : '아직 계정이 없나요?'}{' '}
-          <button className="auth-login-link" type="button" onClick={handleBottomAction}>
-            {isSignup ? '로그인' : '회원가입'}
-          </button>
-        </p>
+            <button className="auth-submit-button" type="submit" disabled={isSubmitting}>
+              {isSubmitting ? '처리 중...' : isSignup ? '회원가입 완료' : '로그인'}
+            </button>
+          </form>
+
+          <p className="auth-bottom-text">
+            {isSignup ? '이미 계정이 있나요?' : '아직 계정이 없나요?'}{' '}
+            <button className="auth-login-link" type="button" onClick={handleBottomAction}>
+              {isSignup ? '로그인' : '회원가입'}
+            </button>
+          </p>
+        </section>
       </section>
     </main>
   )

@@ -5753,6 +5753,470 @@ export function MockFeaturePage({ pageKey }: { pageKey: MockFeaturePageKey }) {
   )
 }
 
+function toFriendlyErrorMessage(error: unknown) {
+  if (error instanceof ApiError && error.status === 403) {
+    const detail = typeof error.detail === 'string' ? error.detail : ''
+    return detail ? `관리자 승인 후 이용할 수 있어요. ${detail}` : '관리자 승인 후 이용할 수 있어요.'
+  }
+
+  return getApiErrorMessage(error)
+}
+
+function ConsentApiPageV2() {
+  const [initialTargetId] = useState(() => getTargetIdFromLocation())
+  const [activeTargetId, setActiveTargetId] = useState<number | null>(null)
+  const [consents, setConsents] = useState<ConsentResponse[]>([])
+  const [consentNote, setConsentNote] = useState('')
+  const [isLoading, setIsLoading] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [revokingConsentId, setRevokingConsentId] = useState<number | null>(null)
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const [notice, setNotice] = useState<string | null>(null)
+
+  const requiredConsentOptions: ConsentType[] = [
+    'ai_persona_creation_consent',
+    'ai_response_notice_consent',
+    'voice_cloning_consent',
+    'data_retention_consent',
+    'third_party_ai_processing_consent',
+  ]
+  const optionalConsentOptions: ConsentType[] = [
+    'target_profile_consent',
+    'photo_upload_consent',
+    'voice_upload_consent',
+    'storybook_share_consent',
+    'group_share_consent',
+  ]
+
+  const [selectedConsentTypes, setSelectedConsentTypes] = useState<ConsentType[]>(requiredConsentOptions)
+
+  const loadConsents = useCallback(async (targetId: number) => {
+    setIsLoading(true)
+    setErrorMessage(null)
+    setNotice(null)
+
+    try {
+      const response = await consentService.listTargetConsents(targetId)
+      setConsents(response)
+      setActiveTargetId(targetId)
+    } catch (error) {
+      setErrorMessage(toFriendlyErrorMessage(error))
+    } finally {
+      setIsLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!initialTargetId) {
+      return
+    }
+
+    const timerId = window.setTimeout(() => {
+      void loadConsents(initialTargetId)
+    }, 0)
+
+    return () => {
+      window.clearTimeout(timerId)
+    }
+  }, [initialTargetId, loadConsents])
+
+  function toggleConsent(type: ConsentType) {
+    setSelectedConsentTypes((previous) => {
+      if (previous.includes(type)) {
+        return previous.filter((item) => item !== type)
+      }
+
+      return [...previous, type]
+    })
+  }
+
+  async function handleCreateConsent(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+
+    if (!activeTargetId) {
+      setErrorMessage('대상을 먼저 선택해 주세요.')
+      return
+    }
+
+    if (selectedConsentTypes.length === 0) {
+      setErrorMessage('저장할 동의 항목을 선택해 주세요.')
+      return
+    }
+
+    setIsSubmitting(true)
+    setErrorMessage(null)
+    setNotice(null)
+
+    try {
+      await Promise.all(
+        selectedConsentTypes.map((consentType) => consentService.createConsent({
+          target_id: activeTargetId,
+          consent_type: consentType,
+          consent_version: 'v1',
+          details: consentNote || null,
+          is_agreed: true,
+          is_consented: true,
+        })),
+      )
+      setNotice('선택한 동의를 저장했어요.')
+      await loadConsents(activeTargetId)
+    } catch (error) {
+      setErrorMessage(toFriendlyErrorMessage(error))
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  async function handleRevoke(consentId: number) {
+    if (!activeTargetId) {
+      return
+    }
+
+    setRevokingConsentId(consentId)
+    setErrorMessage(null)
+    setNotice(null)
+
+    try {
+      await consentService.revokeConsent(consentId)
+      setNotice('동의를 철회했어요.')
+      await loadConsents(activeTargetId)
+    } catch (error) {
+      setErrorMessage(toFriendlyErrorMessage(error))
+    } finally {
+      setRevokingConsentId(null)
+    }
+  }
+
+  return (
+    <AppShell title="동의 관리" subtitle="페르소나를 만들기 전에 필요한 동의 항목을 한 번에 확인할 수 있어요." badge="필수 단계">
+      <main className="domain-page target-api-page">
+        <header className="domain-page__hero">
+          <div>
+            <span className="domain-page__eyebrow">동의</span>
+            <h1>필요한 동의를 확인해 주세요.</h1>
+            <p>필수 동의와 선택 동의를 구분해서 저장할 수 있어요.</p>
+          </div>
+          <span className="domain-page__badge domain-page__badge--connected">필수 단계</span>
+        </header>
+
+        <TargetSelector
+          selectedId={activeTargetId}
+          title="동의를 확인할 대상을 선택해 주세요."
+          onSelect={(target) => {
+            void loadConsents(target.id)
+          }}
+        />
+
+        <form className="target-form" onSubmit={handleCreateConsent}>
+          <div className="target-form__field">
+            <label>필수 동의</label>
+            <div className="target-form__checkbox-list">
+              {requiredConsentOptions.map((option) => (
+                <label className="target-form__checkbox" key={option}>
+                  <input checked={selectedConsentTypes.includes(option)} onChange={() => toggleConsent(option)} type="checkbox" />
+                  <span>{getDisplayLabel(option)}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+
+          <div className="target-form__field">
+            <label>선택 동의</label>
+            <div className="target-form__checkbox-list">
+              {optionalConsentOptions.map((option) => (
+                <label className="target-form__checkbox" key={option}>
+                  <input checked={selectedConsentTypes.includes(option)} onChange={() => toggleConsent(option)} type="checkbox" />
+                  <span>{getDisplayLabel(option)}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+
+          <div className="target-form__field">
+            <label htmlFor="consent-note-v2">관리자에게 남길 메모, 선택 사항</label>
+            <textarea id="consent-note-v2" onChange={(event) => setConsentNote(event.target.value)} rows={3} value={consentNote} />
+          </div>
+
+          {notice && <p className="target-form__notice">{notice}</p>}
+          {errorMessage && <p className="target-form__error" role="alert">{errorMessage}</p>}
+
+          <div className="target-form__actions">
+            <button disabled={isSubmitting} type="submit">
+              {isSubmitting ? '저장 중...' : '선택한 동의 저장하기'}
+            </button>
+          </div>
+        </form>
+
+        <section className="target-card-grid" aria-label="동의 기록">
+          {consents.map((consent) => (
+            <article className="target-card" key={consent.id}>
+              <div className="target-card__body">
+                <div className="target-card__title-row">
+                  <h2>{getDisplayLabel(consent.consent_type)}</h2>
+                  <span>{consent.revoked_at ? '철회됨' : consent.is_consented ? '동의 완료' : '미동의'}</span>
+                </div>
+                <dl>
+                  <div>
+                    <dt>동의 버전</dt>
+                    <dd>{consent.consent_version}</dd>
+                  </div>
+                  <div>
+                    <dt>동의 시각</dt>
+                    <dd>{consent.agreed_at ? formatDateTime(consent.agreed_at) : '없음'}</dd>
+                  </div>
+                  <div>
+                    <dt>철회 시각</dt>
+                    <dd>{consent.revoked_at ? formatDateTime(consent.revoked_at) : '없음'}</dd>
+                  </div>
+                </dl>
+                {consent.details && <p>{consent.details}</p>}
+                <button disabled={Boolean(consent.revoked_at) || revokingConsentId === consent.id} onClick={() => void handleRevoke(consent.id)} type="button">
+                  {revokingConsentId === consent.id ? '철회 중...' : '동의 철회'}
+                </button>
+              </div>
+            </article>
+          ))}
+        </section>
+
+        {activeTargetId && consents.length === 0 && !isLoading && (
+          <TargetStateMessage title="동의 기록이 없어요" message="아직 저장된 동의가 없어요. 위에서 필요한 항목을 선택해 저장해 주세요." />
+        )}
+      </main>
+    </AppShell>
+  )
+}
+
+function getVerificationStatusMessageV2(status: VerificationStatus) {
+  if (status === 'APPROVED') return '승인 완료 상태예요. 페르소나 만들기를 진행할 수 있어요.'
+  if (status === 'PENDING') return '관리자 검토를 기다리는 중이에요.'
+  if (status === 'NEED_MORE_INFO') return '추가 자료가 필요해요. 상세 안내를 확인해 주세요.'
+  if (status === 'REJECTED') return '요청이 반려되었어요. 안내 사유를 확인해 주세요.'
+  if (status === 'EXPIRED') return '유효 기간이 지났어요. 다시 요청해 주세요.'
+  if (status === 'REVOKED') return '철회된 요청이에요. 필요하면 새로 요청해 주세요.'
+  return status
+}
+
+function TargetVerificationApiPageV2() {
+  const [initialTargetId] = useState(() => getTargetIdFromLocation())
+  const [activeTargetId, setActiveTargetId] = useState<number | null>(null)
+  const [requests, setRequests] = useState<VerificationRequestResponse[]>([])
+  const [selectedRequest, setSelectedRequest] = useState<VerificationRequestResponse | null>(null)
+  const [verificationType, setVerificationType] = useState<VerificationType>('SELF_DECLARATION')
+  const [applicantNote, setApplicantNote] = useState('')
+  const [file, setFile] = useState<File | null>(null)
+  const [isLoading, setIsLoading] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const [notice, setNotice] = useState<string | null>(null)
+
+  const loadRequests = useCallback(async (targetId: number) => {
+    setIsLoading(true)
+    setErrorMessage(null)
+    setNotice(null)
+
+    try {
+      const response = await verificationService.listTargetVerificationRequests(targetId, { skip: 0, limit: 20 })
+      setRequests(response.items)
+      setActiveTargetId(targetId)
+    } catch (error) {
+      setErrorMessage(toFriendlyErrorMessage(error))
+    } finally {
+      setIsLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!initialTargetId) {
+      return
+    }
+
+    const timerId = window.setTimeout(() => {
+      void loadRequests(initialTargetId)
+    }, 0)
+
+    return () => {
+      window.clearTimeout(timerId)
+    }
+  }, [initialTargetId, loadRequests])
+
+  async function handleSubmitVerification(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+
+    if (!activeTargetId) {
+      setErrorMessage('대상을 먼저 선택해 주세요.')
+      return
+    }
+
+    if (!file) {
+      setErrorMessage('증빙 자료 파일을 선택해 주세요.')
+      return
+    }
+
+    setIsSubmitting(true)
+    setErrorMessage(null)
+    setNotice(null)
+
+    try {
+      await verificationService.createVerificationRequest(activeTargetId, {
+        verification_type_param: verificationType,
+        applicant_note: applicantNote || null,
+        file,
+      })
+      setNotice('관계 입증 요청을 보냈어요.')
+      setFile(null)
+      await loadRequests(activeTargetId)
+    } catch (error) {
+      setErrorMessage(toFriendlyErrorMessage(error))
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  async function handleOpenDetail(requestId: number) {
+    setErrorMessage(null)
+    setNotice(null)
+
+    try {
+      const detail = await verificationService.getVerificationRequest(requestId)
+      setSelectedRequest(detail)
+    } catch (error) {
+      setErrorMessage(toFriendlyErrorMessage(error))
+    }
+  }
+
+  return (
+    <AppShell title="관계 입증 요청" subtitle="안전한 페르소나 생성을 위해 관계를 확인할 수 있는 자료가 필요해요." badge="승인 필요">
+      <main className="domain-page target-api-page">
+        <header className="domain-page__hero">
+          <div>
+            <span className="domain-page__eyebrow">관계 입증</span>
+            <h1>관계 입증 요청하기</h1>
+            <p>입증 방식과 증빙 자료를 선택해 요청을 제출해 주세요.</p>
+          </div>
+          <span className="domain-page__badge domain-page__badge--connected">승인 필요</span>
+        </header>
+
+        <TargetSelector
+          selectedId={activeTargetId}
+          title="관계를 확인할 대상을 선택해 주세요."
+          onSelect={(target) => {
+            void loadRequests(target.id)
+          }}
+        />
+
+        <form className="target-form" onSubmit={handleSubmitVerification}>
+          <div className="target-form__field">
+            <label htmlFor="verification-type-v2">입증 방식 선택</label>
+            <select
+              id="verification-type-v2"
+              onChange={(event) => setVerificationType(event.target.value as VerificationType)}
+              value={verificationType}
+            >
+              {verificationTypeOptions.map((option) => (
+                <option key={option} value={option}>
+                  {getDisplayLabel(option)}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="target-form__field">
+            <label htmlFor="applicant-note-v2">관리자에게 남길 메모, 선택 사항</label>
+            <textarea id="applicant-note-v2" onChange={(event) => setApplicantNote(event.target.value)} rows={4} value={applicantNote} />
+          </div>
+
+          <div className="target-form__field">
+            <label htmlFor="verification-file-v2">증빙 자료 올리기</label>
+            <input id="verification-file-v2" onChange={(event) => setFile(event.target.files?.[0] ?? null)} required type="file" />
+            <p className="target-form__helper">가족관계증명서, 신분증 일부 가림본, 서명 확인서 등 관계를 확인할 수 있는 파일을 올려 주세요.</p>
+          </div>
+
+          {notice && <p className="target-form__notice">{notice}</p>}
+          {errorMessage && <p className="target-form__error" role="alert">{errorMessage}</p>}
+
+          <div className="target-form__actions">
+            <button disabled={isSubmitting} type="submit">
+              {isSubmitting ? '요청 중...' : '관계 입증 요청하기'}
+            </button>
+          </div>
+        </form>
+
+        <section className="target-card-grid" aria-label="입증 요청">
+          {requests.map((request) => (
+            <article className="target-card" key={request.id}>
+              <div className="target-card__body">
+                <div className="target-card__title-row">
+                  <h2>{getDisplayLabel(request.verification_type)}</h2>
+                  <span>{getDisplayLabel(request.status)}</span>
+                </div>
+                <p>{getVerificationStatusMessageV2(request.status)}</p>
+                <dl>
+                  <div>
+                    <dt>제출 파일</dt>
+                    <dd>{request.original_filename}</dd>
+                  </div>
+                  <div>
+                    <dt>파일 형식</dt>
+                    <dd>{request.mime_type}</dd>
+                  </div>
+                  <div>
+                    <dt>파일 크기</dt>
+                    <dd>{formatFileSize(request.file_size)}</dd>
+                  </div>
+                  <div>
+                    <dt>요청일</dt>
+                    <dd>{formatDateTime(request.created_at)}</dd>
+                  </div>
+                </dl>
+                {request.admin_note && <p>검토 메모: {request.admin_note}</p>}
+                {request.rejection_reason && <p>안내 사유: {request.rejection_reason}</p>}
+                <button onClick={() => void handleOpenDetail(request.id)} type="button">
+                  상세 보기
+                </button>
+              </div>
+            </article>
+          ))}
+        </section>
+
+        {activeTargetId && requests.length === 0 && !isLoading && (
+          <TargetStateMessage title="관계 입증 요청이 없어요" message="페르소나를 만들기 전에 관계 입증 요청을 진행해 주세요." />
+        )}
+
+        {selectedRequest && (
+          <section className="target-detail-card">
+            <h2>입증 상세</h2>
+            <dl>
+              <div>
+                <dt>상태</dt>
+                <dd>{getDisplayLabel(selectedRequest.status)}</dd>
+              </div>
+              <div>
+                <dt>추가 설명</dt>
+                <dd>{selectedRequest.applicant_note ?? '없음'}</dd>
+              </div>
+              <div>
+                <dt>관리자 메모</dt>
+                <dd>{selectedRequest.admin_note ?? '없음'}</dd>
+              </div>
+              <div>
+                <dt>검토 시각</dt>
+                <dd>{selectedRequest.reviewed_at ? formatDateTime(selectedRequest.reviewed_at) : '없음'}</dd>
+              </div>
+              <div>
+                <dt>유효 기한</dt>
+                <dd>{selectedRequest.expires_at ? formatDateTime(selectedRequest.expires_at) : '없음'}</dd>
+              </div>
+            </dl>
+          </section>
+        )}
+      </main>
+    </AppShell>
+  )
+}
+
+void ConsentApiPage
+void TargetVerificationApiPage
+
 
 export function TargetListPage() {
   return <TargetListApiPage />
@@ -5771,11 +6235,11 @@ export function TargetMediaPage() {
 }
 
 export function ConsentPage() {
-  return <ConsentApiPage />
+  return <ConsentApiPageV2 />
 }
 
 export function TargetVerificationPage() {
-  return <TargetVerificationApiPage />
+  return <TargetVerificationApiPageV2 />
 }
 
 export function PersonaListPage() {

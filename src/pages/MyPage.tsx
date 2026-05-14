@@ -10,11 +10,13 @@ function formatDateTime(value: string) {
 }
 
 function getRoleLabel(role: string) {
-  if (role === 'admin' || role === 'ADMIN') {
+  const normalized = String(role).toUpperCase()
+
+  if (normalized === 'ADMIN') {
     return '관리자'
   }
 
-  if (role === 'user' || role === 'USER') {
+  if (normalized === 'USER') {
     return '일반 사용자'
   }
 
@@ -26,18 +28,20 @@ function MyPage() {
 
   async function handleLogout() {
     await logout()
-    window.location.href = '/auth'
+    window.location.href = '/login'
   }
 
+  const userRole = user?.role ?? user?.ROLE
+
   return (
-    <AppShell title="내 계정" subtitle="현재 로그인한 계정 정보를 확인할 수 있어요." badge="연결됨">
+    <AppShell title="내 계정" subtitle="현재 로그인된 계정 정보를 확인할 수 있어요." badge="로그인됨">
       <main className="account-page" aria-label="내 계정">
         <section className="account-page__profile">
           <div className="account-page__avatar" aria-hidden="true">
             {user?.nickname?.slice(0, 1) || user?.email?.slice(0, 1) || 'R'}
           </div>
           <div>
-            <p className="account-page__eyebrow">로그인한 계정</p>
+            <p className="account-page__eyebrow">로그인된 계정</p>
             <h1>{user?.nickname ?? '이름 없음'}</h1>
             <p>{user?.email ?? '이메일 없음'}</p>
           </div>
@@ -46,7 +50,7 @@ function MyPage() {
         <section className="account-page__section" aria-label="계정 정보">
           <div className="account-page__section-heading">
             <h2>계정 정보</h2>
-            <span>로그인 계정</span>
+            <span>기본 정보</span>
           </div>
 
           <dl className="account-page__details">
@@ -58,10 +62,10 @@ function MyPage() {
               <dt>이름</dt>
               <dd>{user?.nickname ?? '정보 없음'}</dd>
             </div>
-            {user?.role && (
+            {userRole && (
               <div>
                 <dt>권한</dt>
-                <dd>{getRoleLabel(user.role)}</dd>
+                <dd>{getRoleLabel(userRole)}</dd>
               </div>
             )}
             <div>
@@ -69,7 +73,7 @@ function MyPage() {
               <dd>{user?.created_at ? formatDateTime(user.created_at) : '정보 없음'}</dd>
             </div>
             <div>
-              <dt>최근 수정일</dt>
+              <dt>최근 수정</dt>
               <dd>{user?.updated_at ? formatDateTime(user.updated_at) : '정보 없음'}</dd>
             </div>
           </dl>
@@ -82,11 +86,11 @@ function MyPage() {
           <div className="account-page__actions">
             <a href="/safety/deletion-requests">데이터 삭제 요청 관리</a>
             {isAdmin && <a href="/admin">관리자 페이지</a>}
-            <button type="button" onClick={handleLogout}>
+            <button type="button" onClick={() => void handleLogout()}>
               로그아웃
             </button>
           </div>
-          <p className="account-page__note">알림, 결제, 구독, 저장공간처럼 아직 준비되지 않은 기능은 계정 페이지에 표시하지 않아요.</p>
+          <p className="account-page__note">지원하지 않는 기능은 화면에 노출하지 않았어요.</p>
         </section>
       </main>
     </AppShell>

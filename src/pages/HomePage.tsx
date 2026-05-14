@@ -114,14 +114,14 @@ function HomePage() {
     return [
       {
         title: '대상 추가하기',
-        description: hasTarget ? '기억을 이어갈 대상이 등록되어 있어요. 필요하면 새 대상을 추가해 주세요.' : '기억을 남길 사람을 먼저 추가해 주세요.',
+        description: hasTarget ? '기억을 이어갈 대상이 이미 있어요. 필요하면 새 대상을 추가해 주세요.' : '기억을 남길 사람을 먼저 추가해 주세요.',
         href: '/targets/new',
         actionLabel: '대상 추가하기',
         tone: hasTarget ? ('ready' as const) : ('required' as const),
       },
       {
         title: '사진·음성 올리기',
-        description: hasMedia ? '사진 또는 음성 자료가 준비되어 있어요.' : '스토리북과 대화를 위한 사진·음성 자료를 추가해 주세요.',
+        description: hasMedia ? '사진 또는 음성 자료가 준비되어 있어요.' : '스토리북과 대화를 위한 사진·음성 자료를 올려 주세요.',
         href: latestTarget ? `/targets/media?target_id=${latestTarget.id}` : '/targets/media',
         actionLabel: '사진·음성 올리기',
         tone: hasMedia ? ('ready' as const) : ('required' as const),
@@ -143,8 +143,8 @@ function HomePage() {
       {
         title: '페르소나 만들기',
         description: hasTarget && hasConsent && approvedVerification
-          ? '필수 준비가 완료되었어요. 페르소나를 만들 수 있어요.'
-          : '대상, 동의, 관계 입증 준비가 끝나면 바로 만들 수 있어요.',
+          ? '필수 준비가 완료되었어요. 이제 페르소나를 만들 수 있어요.'
+          : '대상, 동의, 관계 입증이 완료되면 바로 페르소나를 만들 수 있어요.',
         href: latestTarget ? `/personas?target_id=${latestTarget.id}` : '/personas',
         actionLabel: '페르소나 만들기',
         tone: hasTarget && hasConsent && approvedVerification ? ('ready' as const) : ('optional' as const),

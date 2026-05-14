@@ -5,9 +5,9 @@ import './App.css'
 function AdminAccessDenied() {
   return (
     <main className="app-loading" role="alert">
-      관리자 권한이 필요해요. 관리자 기능은 승인된 계정만 이용할 수 있어요.
+      관리자 권한이 필요해요. 관리자 권한이 있는 계정으로 로그인해 주세요.
       <br />
-      <a href="/dashboard">대시보드로 이동</a>
+      <a href="/dashboard">홈으로 이동</a>
     </main>
   )
 }
@@ -21,13 +21,13 @@ function App() {
     return <main className="app-loading">불러오는 중...</main>
   }
 
-  if (pathname.startsWith('/auth') && isAuthenticated) {
+  if ((pathname.startsWith('/auth') || pathname === '/login' || pathname === '/signup') && isAuthenticated) {
     window.location.replace('/dashboard')
     return <main className="app-loading">이동하는 중...</main>
   }
 
   if (route?.protected && !isAuthenticated) {
-    window.location.replace('/auth')
+    window.location.replace('/login')
     return <main className="app-loading">로그인 화면으로 이동하는 중...</main>
   }
 

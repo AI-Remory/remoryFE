@@ -80,25 +80,42 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const login = useCallback(async (payload: LoginRequest) => {
     const response = await authService.login(payload)
     setUser(response.user)
-    return response
-  }, [])
+    const currentUser = await refreshMe()
+    return {
+      ...response,
+      user: currentUser ?? response.user,
+    }
+  }, [refreshMe])
 
   const register = useCallback(async (payload: RegisterRequest) => {
     const response = await authService.register(payload)
     setUser(response.user)
-    return response
-  }, [])
+    const currentUser = await refreshMe()
+    return {
+      ...response,
+      user: currentUser ?? response.user,
+    }
+  }, [refreshMe])
 
   const logout = useCallback(async () => {
     await authService.logout()
     setUser(null)
   }, [])
 
+  function getNormalizedRole(currentUser: UserResponse | null) {
+    if (!currentUser) {
+      return ''
+    }
+
+    const role = currentUser.role ?? currentUser.ROLE ?? ''
+    return String(role).toUpperCase()
+  }
+
   const value = useMemo<AuthContextValue>(
     () => ({
       user,
       isAuthenticated: Boolean(user && getAccessToken()),
-      isAdmin: user?.role === 'admin' || user?.role === 'ADMIN',
+      isAdmin: getNormalizedRole(user) === 'ADMIN',
       isLoading,
       login,
       register,

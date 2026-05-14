@@ -47,7 +47,11 @@ export type AppRoute = {
 }
 
 export const routes: AppRoute[] = [
-  { path: '/auth', component: AuthPage, group: 'public' },
+  { path: '/login', component: AuthPage, group: 'public', exact: true },
+  { path: '/signup', component: AuthPage, group: 'public', exact: true },
+  { path: '/auth/login', component: AuthPage, group: 'public', exact: true },
+  { path: '/auth/signup', component: AuthPage, group: 'public', exact: true },
+  { path: '/auth', component: AuthPage, group: 'public', exact: true, legacy: true },
   { path: '/share/', component: PublicSharePage, group: 'sharing' },
   { path: '/onboarding', component: OnboardingPage, protected: true, group: 'dashboard' },
   { path: '/setup', component: OnboardingPage, protected: true, group: 'dashboard', legacy: true },

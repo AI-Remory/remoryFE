@@ -5,7 +5,8 @@ export type UserResponse = {
   email: string
   nickname: string
   // backend docs describe User.role for admin checks, but current OpenAPI UserResponse does not require it.
-  role?: 'admin' | 'user' | 'ADMIN' | 'USER'
+  role?: 'admin' | 'user' | 'ADMIN' | 'USER' | string
+  ROLE?: 'admin' | 'user' | 'ADMIN' | 'USER' | string
 }
 
 export type RegisterRequest = {

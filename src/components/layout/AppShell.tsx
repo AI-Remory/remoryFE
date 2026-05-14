@@ -21,34 +21,57 @@ type AppShellProps = {
 
 function getGroupedNav(items: NavItem[]) {
   return items.reduce<Record<string, NavItem[]>>((groups, item) => {
-    const groupName = item.group ?? '탐색'
+    const groupName = item.group ?? '메뉴'
     groups[groupName] = [...(groups[groupName] ?? []), item]
     return groups
   }, {})
 }
 
+function isVisibleBadge(badge?: string) {
+  if (!badge) {
+    return false
+  }
+
+  return badge !== '이용 가능'
+}
+
+function useLogoutAction() {
+  const { logout } = useAuth()
+
+  return async () => {
+    await logout()
+    window.location.href = '/login'
+  }
+}
+
 export function Header({ title, subtitle, badge }: Pick<AppShellProps, 'title' | 'subtitle' | 'badge'>) {
-  const shouldShowBadge = badge && badge !== '이용 가능'
+  const handleLogout = useLogoutAction()
 
   return (
     <header className="app-shell__header">
       <div>
-        <a className="app-shell__brand" href="/home">Remory</a>
+        <a className="app-shell__brand" href="/dashboard">Remory</a>
         {title && <h1>{title}</h1>}
         {subtitle && <p>{subtitle}</p>}
       </div>
-      {shouldShowBadge && <span className="app-shell__header-badge">{badge}</span>}
+      <div className="app-shell__header-actions">
+        {isVisibleBadge(badge) && <span className="app-shell__header-badge">{badge}</span>}
+        <button className="app-shell__logout" onClick={() => void handleLogout()} type="button">
+          로그아웃
+        </button>
+      </div>
     </header>
   )
 }
 
 export function DesktopNav({ items = defaultNavItems }: { items?: NavItem[] }) {
-  const groups = getGroupedNav(items)
   const pathname = typeof window === 'undefined' ? '' : window.location.pathname
+  const groups = getGroupedNav(items)
+  const handleLogout = useLogoutAction()
 
   return (
     <aside className="app-shell__desktop-nav" aria-label="데스크톱 메뉴">
-      <a className="app-shell__desktop-brand" href="/home">Remory</a>
+      <a className="app-shell__desktop-brand" href="/dashboard">Remory</a>
       {Object.entries(groups).map(([group, groupItems]) => (
         <section key={group}>
           <h2>{group}</h2>
@@ -59,12 +82,16 @@ export function DesktopNav({ items = defaultNavItems }: { items?: NavItem[] }) {
           ))}
         </section>
       ))}
+      <div className="app-shell__desktop-footer">
+        <button onClick={() => void handleLogout()} type="button">로그아웃</button>
+      </div>
     </aside>
   )
 }
 
 export function BottomNav({ items = defaultNavItems.filter((item) => item.mobile) }: { items?: NavItem[] }) {
   const pathname = typeof window === 'undefined' ? '' : window.location.pathname
+  const handleLogout = useLogoutAction()
 
   return (
     <nav className="app-shell__bottom-nav" aria-label="모바일 메뉴">
@@ -74,6 +101,10 @@ export function BottomNav({ items = defaultNavItems.filter((item) => item.mobile
           {item.label}
         </a>
       ))}
+      <button className="app-shell__bottom-nav-action" onClick={() => void handleLogout()} type="button">
+        <span aria-hidden="true">↗</span>
+        로그아웃
+      </button>
     </nav>
   )
 }

@@ -49,9 +49,17 @@ function EyeIcon() {
   )
 }
 
+function getTabFromPathname(pathname: string): AuthTab {
+  if (pathname === '/signup' || pathname === '/auth/signup') {
+    return 'signup'
+  }
+
+  return 'login'
+}
+
 function AuthPage() {
   const { login, register } = useAuth()
-  const [activeTab, setActiveTab] = useState<AuthTab>('signup')
+  const [activeTab, setActiveTab] = useState<AuthTab>(() => getTabFromPathname(window.location.pathname))
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -84,7 +92,7 @@ function AuthPage() {
       }
 
       if (!agreedToTerms) {
-        setErrorMessage('필수 항목에 동의해야 가입할 수 있어요.')
+        setErrorMessage('필수 약관 동의가 필요해요.')
         return
       }
     }
@@ -97,7 +105,7 @@ function AuthPage() {
         window.location.href = '/onboarding'
       } else {
         await login({ email, password })
-        window.location.href = '/home'
+        window.location.href = '/dashboard'
       }
     } catch (error) {
       setErrorMessage(error instanceof ApiError ? error.message : '로그인 정보를 확인하지 못했어요.')
@@ -109,6 +117,7 @@ function AuthPage() {
   const handleSwitchTab = (tab: AuthTab) => {
     setActiveTab(tab)
     setErrorMessage('')
+    window.history.replaceState(null, '', tab === 'signup' ? '/signup' : '/login')
   }
 
   return (
@@ -119,7 +128,7 @@ function AuthPage() {
             <BackIcon />
           </button>
           <p className="auth-kicker">Remory</p>
-          <h1>기억을 차분히 모아 오래 남길 수 있도록 도와드릴게요.</h1>
+          <h1>기억을 차분히 모아 오래 간직할 수 있도록 도와드려요.</h1>
           <p>계정으로 로그인하면 대상, 페르소나, 스토리북을 한곳에서 안전하게 관리할 수 있어요.</p>
         </aside>
 
@@ -184,7 +193,7 @@ function AuthPage() {
             {isSignup && (
               <label className="auth-terms-row">
                 <input type="checkbox" checked={agreedToTerms} onChange={(event) => setAgreedToTerms(event.target.checked)} />
-                <span>개인정보 수집과 서비스 이용에 동의합니다. (필수)</span>
+                <span>개인정보 수집과 서비스 이용 약관에 동의합니다. (필수)</span>
               </label>
             )}
 

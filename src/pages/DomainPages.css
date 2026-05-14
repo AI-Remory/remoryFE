@@ -2249,3 +2249,30 @@
     width: fit-content;
   }
 }
+
+.target-form__checkbox-list {
+  display: grid;
+  gap: 10px;
+  margin-top: 2px;
+}
+
+.target-form__checkbox-list .target-form__checkbox {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--domain-border);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.74);
+}
+
+.target-form__checkbox-list .target-form__checkbox input {
+  width: 18px;
+  height: 18px;
+  margin-top: 2px;
+}
+
+.target-form__checkbox-list .target-form__checkbox span {
+  min-width: 0;
+  line-height: 1.45;
+}

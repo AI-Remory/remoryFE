@@ -167,6 +167,7 @@ function DeletionRequestPage() {
           <span className="ops-page__eyebrow">Deletion</span>
           <h1>삭제 요청</h1>
           <p>내 데이터 삭제 요청을 만들고 진행 상태를 확인합니다.</p>
+          <p className="ops-page__warning">삭제 요청은 실제 소유 데이터에 반영될 수 있습니다. 테스트할 때는 삭제해도 되는 리소스 ID만 사용해주세요.</p>
         </header>
 
         {statusMessage && <p className="ops-page__status">{statusMessage}</p>}

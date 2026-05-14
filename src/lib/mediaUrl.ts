@@ -1,5 +1,5 @@
 // Protected backend files must be loaded through authenticated file APIs, not /uploads paths.
-// Keep this helper for app-owned public assets and legacy non-protected URLs only.
+// Keep this helper for app-owned public assets and non-protected URLs only.
 export function normalizeAssetUrl(value: string | null | undefined) {
   if (!value) {
     return ''
@@ -11,12 +11,8 @@ export function normalizeAssetUrl(value: string | null | undefined) {
     return ''
   }
 
-  if (trimmedValue.startsWith('/uploads/')) {
-    return trimmedValue
-  }
-
-  if (trimmedValue.startsWith('uploads/')) {
-    return `/${trimmedValue}`
+  if (trimmedValue.startsWith('/uploads/') || trimmedValue.startsWith('uploads/')) {
+    return ''
   }
 
   if (/^https?:\/\//i.test(trimmedValue)) {
@@ -24,7 +20,7 @@ export function normalizeAssetUrl(value: string | null | undefined) {
       const url = new URL(trimmedValue)
 
       if (url.pathname.startsWith('/uploads/')) {
-        return `${url.pathname}${url.search}${url.hash}`
+        return ''
       }
     } catch {
       return trimmedValue

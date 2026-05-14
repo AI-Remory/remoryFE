@@ -140,10 +140,6 @@ function getApiErrorMessage(error: unknown, fallbackMessage: string) {
     return error.message
   }
 
-  if (error instanceof Error) {
-    return error.message
-  }
-
   return fallbackMessage
 }
 

@@ -233,6 +233,27 @@ function getChatErrorMessage(error: unknown, fallbackMessage: string) {
   return fallbackMessage
 }
 
+function getChatSetupErrorMessage(error: unknown) {
+  if (error instanceof ApiError) {
+    return getChatErrorMessage(error, '페르소나를 준비하지 못했습니다. 다시 시도해주세요.')
+  }
+
+  if (error instanceof Error) {
+    const message = error.message
+
+    if (
+      message.includes('페르소나가 아직 준비 중') ||
+      message.includes('페르소나 생성에 실패') ||
+      message.includes('이전 페르소나 정보를 초기화') ||
+      message.includes('설정에서 검증 승인 후 페르소나')
+    ) {
+      return message
+    }
+  }
+
+  return '페르소나를 준비하지 못했습니다. 다시 시도해주세요.'
+}
+
 function getVoiceLog(message: RealtimeVoiceMessage): Omit<VoiceLog, 'id'> {
   switch (message.type) {
     case 'session_started':
@@ -421,7 +442,7 @@ function ChatPage() {
         }
       } catch (error) {
         if (!ignore) {
-          setErrorMessage(error instanceof Error ? error.message : '페르소나를 준비하지 못했습니다. 다시 시도해주세요.')
+          setErrorMessage(getChatSetupErrorMessage(error))
         }
       } finally {
         if (!ignore) {
@@ -583,9 +604,9 @@ function ChatPage() {
       socket.onclose = () => {
         cleanupVoiceSession()
       }
-    } catch (error) {
+    } catch {
       cleanupVoiceSession()
-      setErrorMessage(error instanceof Error ? error.message : '마이크 권한을 확인해주세요.')
+      setErrorMessage('마이크 권한을 확인해주세요.')
     }
   }
 

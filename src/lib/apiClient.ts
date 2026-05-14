@@ -107,6 +107,22 @@ function getDetailMessage(detail: ApiErrorDetail) {
   return 'API 요청에 실패했습니다.'
 }
 
+function getStatusMessage(status: number, detail: ApiErrorDetail) {
+  if (status === 401) {
+    return '로그인이 필요합니다. 다시 로그인해주세요.'
+  }
+
+  if (status === 403) {
+    return '권한이 없습니다. 접근 권한을 확인해주세요.'
+  }
+
+  if (status === 429) {
+    return '요청이 너무 많습니다. 잠시 후 다시 시도해주세요.'
+  }
+
+  return getDetailMessage(detail)
+}
+
 function isAuthenticationFailure(status: number, detail: ApiErrorDetail) {
   if (status === 401) {
     return true
@@ -276,7 +292,7 @@ export async function apiRequest<T>(
     redirectToAuth()
   }
 
-  throw new ApiError(getDetailMessage(detail), response.status, detail)
+  throw new ApiError(getStatusMessage(response.status, detail), response.status, detail)
 }
 
 export const apiClient = {

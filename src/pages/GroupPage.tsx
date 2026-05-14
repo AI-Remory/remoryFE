@@ -7,7 +7,11 @@ import type { GroupMember, GroupStoryBookListItem, MemoryGroup, StoryBook } from
 import './OperationsPage.css'
 
 function getErrorMessage(error: unknown, fallback: string) {
-  return error instanceof ApiError || error instanceof Error ? error.message : fallback
+  return error instanceof ApiError ? error.message : fallback
+}
+
+function isNumericId(value: string) {
+  return value.trim() !== '' && Number.isFinite(Number(value))
 }
 
 function GroupPage() {
@@ -127,6 +131,11 @@ function GroupPage() {
       return
     }
 
+    if (!isNumericId(memberUserId)) {
+      setErrorMessage('사용자 ID는 숫자로 입력해주세요.')
+      return
+    }
+
     setIsSubmitting(true)
     setErrorMessage('')
     setStatusMessage('')
@@ -221,7 +230,12 @@ function GroupPage() {
             <div className="ops-page__form">
               <label>
                 사용자 ID
-                <input value={memberUserId} onChange={(event) => setMemberUserId(event.currentTarget.value)} />
+                <input
+                  type="number"
+                  inputMode="numeric"
+                  value={memberUserId}
+                  onChange={(event) => setMemberUserId(event.currentTarget.value)}
+                />
               </label>
               <label>
                 역할

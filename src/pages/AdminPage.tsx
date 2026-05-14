@@ -6,7 +6,7 @@ import type { DeletionRequest, Report, VerificationRequest } from '../types/api'
 import './OperationsPage.css'
 
 function getErrorMessage(error: unknown, fallback: string) {
-  return error instanceof ApiError || error instanceof Error ? error.message : fallback
+  return error instanceof ApiError ? error.message : fallback
 }
 
 function isForbiddenError(error: unknown) {

@@ -307,7 +307,7 @@ function HomePage() {
 
       window.location.href = '/chat'
     } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : '설정에서 검증 승인 후 페르소나를 만들어주세요.')
+      setErrorMessage(error instanceof ApiError ? error.message : '설정에서 검증 승인 후 페르소나를 만들어주세요.')
     }
   }
 

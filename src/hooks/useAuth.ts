@@ -1,5 +1,5 @@
 import { createContext, createElement, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
-import { ACCESS_TOKEN_KEY, getAccessToken } from '../services/apiClient'
+import { ACCESS_TOKEN_KEY, ApiError, getAccessToken } from '../services/apiClient'
 import { authService } from '../services/authService'
 import type { AuthResponse, LoginRequest, RegisterRequest, UserResponse } from '../types/auth'
 
@@ -34,9 +34,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
       const currentUser = await authService.me()
       setUser(currentUser)
       return currentUser
-    } catch {
-      authService.clearSession()
-      setUser(null)
+    } catch (error) {
+      if (error instanceof ApiError && (error.status === 401 || error.status === 403)) {
+        authService.clearSession()
+        setUser(null)
+        return null
+      }
+
       return null
     }
   }, [])
@@ -102,20 +106,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
     setUser(null)
   }, [])
 
-  function getNormalizedRole(currentUser: UserResponse | null) {
-    if (!currentUser) {
-      return ''
-    }
-
-    const role = currentUser.role ?? currentUser.ROLE ?? ''
-    return String(role).toUpperCase()
-  }
-
   const value = useMemo<AuthContextValue>(
     () => ({
       user,
       isAuthenticated: Boolean(user && getAccessToken()),
-      isAdmin: getNormalizedRole(user) === 'ADMIN',
+      isAdmin: String(user?.role ?? '').toUpperCase() === 'ADMIN',
       isLoading,
       login,
       register,

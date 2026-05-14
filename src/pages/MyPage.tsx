@@ -31,7 +31,7 @@ function MyPage() {
     window.location.href = '/login'
   }
 
-  const userRole = user?.role ?? user?.ROLE
+  const userRole = user?.role
 
   return (
     <AppShell title="내 계정" subtitle="현재 로그인된 계정 정보를 확인할 수 있어요." badge="로그인됨">

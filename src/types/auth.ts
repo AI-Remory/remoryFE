@@ -1,12 +1,12 @@
+export type UserRole = 'USER' | 'ADMIN'
+
 export type UserResponse = {
   created_at: string
   updated_at: string
   id: number
   email: string
   nickname: string
-  // backend docs describe User.role for admin checks, but current OpenAPI UserResponse does not require it.
-  role?: 'admin' | 'user' | 'ADMIN' | 'USER' | string
-  ROLE?: 'admin' | 'user' | 'ADMIN' | 'USER' | string
+  role: UserRole
 }
 
 export type RegisterRequest = {
@@ -22,7 +22,7 @@ export type LoginRequest = {
 
 export type AuthResponse = {
   access_token: string
-  refresh_token: string
+  refresh_token?: string
   token_type?: string
   user: UserResponse
 }

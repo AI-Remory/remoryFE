@@ -12,12 +12,52 @@ import type {
   RefreshTokenRequest,
   RegisterRequest,
   TokenResponse,
+  UserRole,
   UserResponse,
 } from '../types/auth'
 
-function persistAuthResponse(response: AuthResponse) {
-  setTokens(response.access_token, response.refresh_token)
-  return response
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null
+}
+
+function normalizeUserResponse(raw: unknown): UserResponse {
+  if (!isRecord(raw)) {
+    throw new Error('Invalid /auth/me response shape.')
+  }
+
+  const candidate = isRecord(raw.user) ? raw.user : raw
+  const rawRole = candidate.role
+  const normalizedRole: UserRole = String(rawRole).toUpperCase() === 'ADMIN' ? 'ADMIN' : 'USER'
+
+  return {
+    ...(candidate as Omit<UserResponse, 'role'>),
+    role: normalizedRole,
+  }
+}
+
+function normalizeAuthResponse(raw: unknown): AuthResponse {
+  if (!isRecord(raw)) {
+    throw new Error('Invalid /auth/login response shape.')
+  }
+
+  const accessToken = typeof raw.access_token === 'string' ? raw.access_token : null
+  if (!accessToken) {
+    throw new Error('Login response does not include access_token.')
+  }
+
+  const refreshToken = typeof raw.refresh_token === 'string' ? raw.refresh_token : null
+  const tokenType = typeof raw.token_type === 'string' ? raw.token_type : 'bearer'
+  const user = normalizeUserResponse(raw.user ?? raw)
+
+  const normalized: AuthResponse = {
+    access_token: accessToken,
+    refresh_token: refreshToken ?? undefined,
+    token_type: tokenType,
+    user,
+  }
+
+  setTokens(accessToken, refreshToken)
+  return normalized
 }
 
 function persistTokenResponse(response: TokenResponse) {
@@ -27,17 +67,18 @@ function persistTokenResponse(response: TokenResponse) {
 
 export const authService = {
   async register(payload: RegisterRequest) {
-    const response = await apiClient.post<AuthResponse>('/auth/register', payload, { auth: false })
-    return persistAuthResponse(response)
+    const response = await apiClient.post<unknown>('/auth/register', payload, { auth: false })
+    return normalizeAuthResponse(response)
   },
 
   async login(payload: LoginRequest) {
-    const response = await apiClient.post<AuthResponse>('/auth/login', payload, { auth: false })
-    return persistAuthResponse(response)
+    const response = await apiClient.post<unknown>('/auth/login', payload, { auth: false })
+    return normalizeAuthResponse(response)
   },
 
-  me() {
-    return apiClient.get<UserResponse>('/auth/me')
+  async me() {
+    const response = await apiClient.get<unknown>('/auth/me')
+    return normalizeUserResponse(response)
   },
 
   async refreshToken(payload?: RefreshTokenRequest) {

@@ -5,7 +5,7 @@ import './App.css'
 function AdminAccessDenied() {
   return (
     <main className="app-loading" role="alert">
-      관리자 권한이 필요해요. 관리자 권한이 있는 계정으로 로그인해 주세요.
+      관리자 권한이 필요해요.
       <br />
       <a href="/dashboard">홈으로 이동</a>
     </main>

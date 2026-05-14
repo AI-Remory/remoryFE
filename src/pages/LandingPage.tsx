@@ -49,7 +49,8 @@ function LandingPage() {
 
         <section className="remory-onboarding-copy">
           <h1 className="remory-onboarding-title">
-            소중한 사람의 목소리와
+            소중한 사람의 <br className="remory-onboarding-mobile-break" />
+            목소리와
             <br />
             기억을, 다시 <span>대화로.</span>
           </h1>

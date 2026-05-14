@@ -168,6 +168,12 @@ function getStatusMessage(status: number) {
 function getFriendlyDetailMessage(message: string, status: number) {
   const normalized = message.toLowerCase()
 
+  if (/(sqlalchemy|pymysql|programmingerror|operationalerror|traceback|sql syntax|base table|undefined table|relation .* does not exist|table .* doesn't exist)/.test(normalized)) {
+    return status >= 500
+      ? '서버 설정이 아직 준비되지 않았어요.'
+      : '요청 처리 중 문제가 발생했어요.'
+  }
+
   if (status === 401 || /login required|not authenticated|invalid token|token expired|unauthorized/.test(normalized)) {
     return '로그인이 필요해요. 다시 로그인해 주세요.'
   }

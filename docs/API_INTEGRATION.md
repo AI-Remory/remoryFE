@@ -8,6 +8,7 @@
 검증 기준 상태 값
 - `connected`
 - `partially-connected`
+- `backend-pending`
 - `missing`
 - `incorrect`
 - `backend-not-supported`
@@ -89,7 +90,7 @@
 | Admin Verification | 검수 목록/상세/상태변경 | GET/PATCH | `/admin/verification-requests*` | `adminService.listVerificationRequests` 등 | `AdminVerificationReviewPage` | 각 request type | `VerificationRequestAdminResponse` | connected | N |
 | Admin Report | 신고 목록/상세/처리 | GET/PATCH | `/admin/reports*` | `adminService.listReports` 등 | `AdminReportsPage` | `Record<string,unknown>` | `Record<string,unknown>` | partially-connected | Y (백엔드 스키마 비구체) |
 | Admin Audit | 감사 로그 | GET | `/admin/audit-logs` | `adminService.listAuditLogs` | `AdminAuditLogsPage` | query | `PaginatedResponse<AuditLogResponse>` | connected | N |
-| Admin Usage | 사용량 조회/수정 | GET/PATCH | `/admin/usage-limits`, `/admin/users/{id}/usage-limit`, `/admin/personas/{id}/usage-limit` | `adminService.listUsageLimits` 등 | `AdminDashboardPage` | `UpdateUsageLimitRequest` 등 | usage types | connected | N |
+| Admin Usage | 사용량 조회/수정 | GET/PATCH | `/admin/usage-limits`, `/admin/users/{id}/usage-limit`, `/admin/personas/{id}/usage-limit` | `adminService.listUsageLimits` 등 | `AdminDashboardPage` | `UpdateUsageLimitRequest` 등 | usage types | backend-pending | Y (백엔드 migration 적용 전 500 가능) |
 | Admin RateLimit | 이벤트 조회 | GET | `/admin/rate-limit-events` | `adminService.listRateLimitEvents` | `AdminAuditLogsPage` | query | `PaginatedResponse<RateLimitEventResponse>` | connected | N |
 | Admin VoiceProfile | 검수 조회/처리 | GET/PATCH | `/admin/voice-profiles*` | `adminService.getVoiceProfile` 등 | `AdminVoiceProfileReviewPage` | `VoiceProfileReviewRequest` | `PersonaVoiceProfileResponse` | connected | N |
 | Admin Deletion | 삭제요청 운영 | GET/PATCH | `/admin/deletion-requests*` | `adminService.listDeletionRequests` 등 | Admin pages(연결 준비) | query | `DeletionRequestResponse` | connected | N |

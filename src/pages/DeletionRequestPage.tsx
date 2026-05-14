@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { ArrowLeft, RotateCcw, Trash2 } from 'lucide-react'
 import { ApiError } from '../lib/apiClient'
+import { authApi } from '../services/authApi'
 import { deletionApi } from '../services/deletionApi'
 import { storybookApi } from '../services/storybookApi'
 import { targetApi } from '../services/targetApi'
@@ -8,22 +9,49 @@ import type { DeletionRequest, StoryBook, Target } from '../types/api'
 import './OperationsPage.css'
 
 function getErrorMessage(error: unknown, fallback: string) {
-  return error instanceof ApiError || error instanceof Error ? error.message : fallback
+  return error instanceof ApiError ? error.message : fallback
 }
 
 const deletionTargetOptions = [
   { value: 'TARGET', label: 'Target' },
-  { value: 'STORYBOOK', label: 'StoryBook' },
-  { value: 'PHOTO_MEMORY', label: 'Photo Memory' },
-  { value: 'PERSONA', label: 'Persona' },
-  { value: 'ACCOUNT', label: 'Account' },
   { value: 'TARGET_MEDIA', label: 'Target Media' },
+  { value: 'PERSONA', label: 'Persona' },
+  { value: 'PERSONA_CHAT', label: 'Persona Chat' },
+  { value: 'PERSONA_MESSAGE', label: 'Persona Message' },
+  { value: 'PHOTO_MEMORY', label: 'Photo Memory' },
+  { value: 'STORYBOOK', label: 'StoryBook' },
   { value: 'SHARE_LINK', label: 'Share Link' },
   { value: 'MEMORY_GROUP', label: 'Memory Group' },
-  { value: 'VOICE_PROFILE', label: 'Voice Profile' },
+  { value: 'VERIFICATION_REQUEST', label: 'Verification Request' },
+  { value: 'ACCOUNT', label: 'Account' },
 ] as const
 
 type DeletionTargetType = (typeof deletionTargetOptions)[number]['value']
+
+const targetIdRequiredTypes = new Set<DeletionTargetType>([
+  'TARGET',
+  'TARGET_MEDIA',
+  'PERSONA',
+  'PERSONA_CHAT',
+  'PERSONA_MESSAGE',
+  'PHOTO_MEMORY',
+  'STORYBOOK',
+  'SHARE_LINK',
+  'MEMORY_GROUP',
+  'VERIFICATION_REQUEST',
+])
+
+function usesTargetSelect(targetType: DeletionTargetType) {
+  return targetType === 'TARGET' || targetType === 'STORYBOOK'
+}
+
+function usesTargetInput(targetType: DeletionTargetType) {
+  return targetIdRequiredTypes.has(targetType) && !usesTargetSelect(targetType)
+}
+
+function isNumericId(value: string) {
+  return value.trim() !== '' && Number.isFinite(Number(value))
+}
 
 function DeletionRequestPage() {
   const [requests, setRequests] = useState<DeletionRequest[]>([])
@@ -77,17 +105,35 @@ function DeletionRequestPage() {
       return
     }
 
-    setIsSubmitting(true)
     setErrorMessage('')
     setStatusMessage('')
 
+    const trimmedTargetId = targetId.trim()
+
+    if (targetIdRequiredTypes.has(targetType) && !trimmedTargetId) {
+      setErrorMessage('삭제 대상 ID를 입력해주세요.')
+      return
+    }
+
+    if (targetIdRequiredTypes.has(targetType) && !isNumericId(trimmedTargetId)) {
+      setErrorMessage('삭제 대상 ID는 숫자로 입력해주세요.')
+      return
+    }
+
+    setIsSubmitting(true)
+
     try {
+      const requestTargetId = targetType === 'ACCOUNT'
+        ? (await authApi.me()).id
+        : trimmedTargetId
+
       await deletionApi.createDeletionRequest({
         target_type: targetType,
-        target_id: targetId.trim() || null,
+        target_id: requestTargetId,
         reason: reason.trim() || null,
       })
 
+      setTargetId('')
       setReason('')
       await loadRequests()
       setStatusMessage('삭제 요청을 제출했어요.')
@@ -140,18 +186,32 @@ function DeletionRequestPage() {
                 ))}
               </select>
             </label>
-            <label>
-              대상 ID
-              <select value={targetId} onChange={(event) => setTargetId(event.currentTarget.value)}>
-                <option value="">직접 지정 없음</option>
-                {targetType === 'TARGET' && targets.map((target) => (
-                  <option value={String(target.id)} key={String(target.id)}>{target.name ?? `Target #${target.id}`}</option>
-                ))}
-                {targetType === 'STORYBOOK' && storybooks.map((storybook) => (
-                  <option value={String(storybook.id)} key={String(storybook.id)}>{storybook.title}</option>
-                ))}
-              </select>
-            </label>
+            {usesTargetSelect(targetType) && (
+              <label>
+                대상 ID
+                <select value={targetId} onChange={(event) => setTargetId(event.currentTarget.value)}>
+                  <option value="">삭제할 대상을 선택해주세요</option>
+                  {targetType === 'TARGET' && targets.map((target) => (
+                    <option value={String(target.id)} key={String(target.id)}>{target.name ?? `Target #${target.id}`}</option>
+                  ))}
+                  {targetType === 'STORYBOOK' && storybooks.map((storybook) => (
+                    <option value={String(storybook.id)} key={String(storybook.id)}>{storybook.title}</option>
+                  ))}
+                </select>
+              </label>
+            )}
+            {usesTargetInput(targetType) && (
+              <label>
+                대상 ID
+                <input
+                  type="number"
+                  inputMode="numeric"
+                  placeholder="삭제할 리소스 ID를 입력해주세요"
+                  value={targetId}
+                  onChange={(event) => setTargetId(event.currentTarget.value)}
+                />
+              </label>
+            )}
             <label>
               사유
               <textarea rows={4} value={reason} onChange={(event) => setReason(event.currentTarget.value)} />

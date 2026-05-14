@@ -59,8 +59,15 @@ function ReportPage() {
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
 
-    if (!targetId.trim() || isSubmitting) {
+    const trimmedTargetId = targetId.trim()
+
+    if (!trimmedTargetId || isSubmitting) {
       setErrorMessage('신고 대상 ID를 입력해주세요.')
+      return
+    }
+
+    if (!Number.isFinite(Number(trimmedTargetId))) {
+      setErrorMessage('신고 대상 ID는 숫자로 입력해주세요.')
       return
     }
 
@@ -71,7 +78,7 @@ function ReportPage() {
     try {
       await reportApi.createReport({
         target_type: targetType,
-        target_id: targetId.trim(),
+        target_id: trimmedTargetId,
         reason_type: reasonType,
         reason_detail: reasonDetail.trim() || null,
       })
@@ -114,7 +121,12 @@ function ReportPage() {
             </label>
             <label>
               대상 ID
-              <input value={targetId} onChange={(event) => setTargetId(event.currentTarget.value)} />
+              <input
+                type="number"
+                inputMode="numeric"
+                value={targetId}
+                onChange={(event) => setTargetId(event.currentTarget.value)}
+              />
             </label>
             <label>
               사유 유형

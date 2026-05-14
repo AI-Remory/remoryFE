@@ -11,7 +11,7 @@ const features = [
     },
     {
         title: '스토리북으로 추억 공유하기',
-        description: '정리된 이야기를 가족과 가까운 사람에게 조심스럽게 공유해요.',
+        description: '정리된 이야기를 가족과 가까운 사람에게 안전하게 공유해요.',
     },
 ]
 
@@ -41,7 +41,7 @@ function LandingPage() {
                     <span className="ui-badge">기억을 다정하게 남기는 공간</span>
                     <h1 id="landing-title">Remory</h1>
                     <p>
-                        Remory는 사진과 음성, 이야기를 모아 소중한 사람의 기억을 페르소나와 스토리북으로 이어 주는 플랫폼입니다.
+                        Remory는 사진과 음성, 이야기를 모아 소중한 사람의 기억을 페르소나와 스토리북으로 연결해 주는 플랫폼입니다.
                     </p>
                     <div className="landing-hero__actions" aria-label="Remory 시작하기">
                         <a className="landing-button landing-button--primary" href="/auth">로그인</a>

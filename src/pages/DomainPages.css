@@ -2130,3 +2130,122 @@
     width: 100%;
   }
 }
+
+/* Practical UI refinement: compact headers, stable card titles, and balanced card content */
+.domain-page__hero {
+  align-items: center;
+  padding: 16px 18px;
+  border-color: var(--domain-border);
+  background: rgba(255, 255, 255, 0.7);
+  box-shadow: none;
+}
+
+.domain-page__hero h1 {
+  display: none;
+}
+
+.domain-page__eyebrow {
+  color: var(--domain-muted);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: none;
+}
+
+.domain-page__hero p {
+  margin-top: 2px;
+  max-width: 74ch;
+  font-size: 15px;
+  line-height: 1.55;
+}
+
+.domain-page__badge {
+  min-height: 30px;
+  padding: 0 10px;
+  font-size: 12px;
+}
+
+.target-api-state,
+.target-card,
+.target-detail-card,
+.target-form,
+.target-media-upload-card,
+.target-media-card,
+.persona-summary-card,
+.persona-action-card,
+.persona-chat-sidebar,
+.persona-chat-thread,
+.voice-call-panel,
+.mock-feature-panel {
+  backdrop-filter: none;
+}
+
+.target-card {
+  min-height: 200px;
+}
+
+.target-card__title-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 8px;
+}
+
+.target-card__title-row h2,
+.target-detail-card h2 {
+  min-width: 0;
+  font-size: clamp(1.2rem, 1.8vw, 1.5rem);
+  line-height: 1.35;
+  letter-spacing: 0;
+  word-break: keep-all;
+  overflow-wrap: break-word;
+}
+
+.target-card__title-row h2 {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
+
+.target-card__title-row span {
+  white-space: nowrap;
+}
+
+.target-card__body {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  gap: 10px;
+  min-height: 100%;
+}
+
+.target-card p,
+.target-detail-card p {
+  max-width: none;
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+.target-card .target-form__actions {
+  justify-content: flex-end;
+  margin-top: auto;
+}
+
+.target-card dt,
+.target-detail-card dt,
+.target-media-card dt,
+.persona-summary-card dt,
+.persona-action-card dt {
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+@media (max-width: 680px) {
+  .target-card__title-row {
+    grid-template-columns: 1fr;
+  }
+
+  .target-card__title-row span {
+    width: fit-content;
+  }
+}

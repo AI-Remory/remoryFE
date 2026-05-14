@@ -434,7 +434,7 @@ function TargetListApiPage() {
                       </div>
                       <div>
                         <dt>상태</dt>
-                        <dd>{target.is_deleted ? '삭제됨' : '이용 가능'}</dd>
+          <dd>{target.is_deleted ? '삭제됨' : '사용 중'}</dd>
                       </div>
                     </dl>
                     <a href={`/targets/detail?target_id=${target.id}`}>상세 보기</a>
@@ -732,7 +732,7 @@ function TargetDetailApiPage() {
             <h1>기억 대상 상세</h1>
             <p>기억 대상의 기본 정보와 준비 상태를 확인합니다.</p>
           </div>
-          <span className="domain-page__badge domain-page__badge--connected">이용 가능</span>
+          <span className="domain-page__badge domain-page__badge--connected">준비 상태</span>
         </header>
 
         {isLoading && <TargetStateMessage title="대상 정보를 불러오는 중" message="잠시만 기다려 주세요." />}
@@ -764,7 +764,7 @@ function TargetDetailApiPage() {
                 </div>
                 <div>
                   <dt>상태</dt>
-                  <dd>{target.is_deleted ? '삭제됨' : '이용 가능'}</dd>
+              <dd>{target.is_deleted ? '삭제됨' : '사용 중'}</dd>
                 </div>
                 {target.media_count !== undefined && (
                   <div>
@@ -806,8 +806,8 @@ function TargetDetailApiPage() {
                 <p>
                   페르소나를 만들려면 관계 입증 승인이 필요해요. 승인 후 다시 진행해 주세요.</p>
                 <div className="target-form__actions">
-          <a href={`/compliance/verification?target_id=${target.id}`}>입증 열기</a>
-          <a href={`/compliance/consent?target_id=${target.id}`}>동의 열기</a>
+          <a href={`/compliance/verification?target_id=${target.id}`}>관계 입증 요청 보기</a>
+          <a href={`/compliance/consent?target_id=${target.id}`}>동의 기록 보기</a>
                 </div>
               </section>
 
@@ -1161,7 +1161,7 @@ function TargetMediaApiPage() {
                     </div>
                     <div>
                       <dt>상태</dt>
-                      <dd>{media.is_deleted ? '삭제됨' : '이용 가능'}</dd>
+                    <dd>{media.is_deleted ? '삭제됨' : '사용 중'}</dd>
                     </div>
                     <div>
                       <dt>등록일</dt>
@@ -1249,7 +1249,7 @@ function PersonaDetailCard({
         <p>{isReady ? '대화가 가능한 상태예요. 음성 대화를 시작하려면 음성 프로필 확인도 필요해요.' : '아직 준비 중이라 대화 기능을 사용할 수 없어요.'}</p>
         <div className="persona-action-card__actions">
           <a aria-disabled={!isReady} href={isReady ? `/persona-chat?persona_id=${persona.id}` : undefined}>
-            채팅 열기</a>
+            대화 시작하기</a>
           <a aria-disabled={!canUseVoiceCall} href={canUseVoiceCall ? `/persona-voice-call?persona_id=${persona.id}` : undefined}>
             음성 대화</a>
           <a href={`/personas/voice-profile?persona_id=${persona.id}`}>음성 프로필</a>
@@ -1650,7 +1650,7 @@ function TargetVerificationApiPage() {
             <h1>관계 입증 요청</h1>
             <p>입증 자료를 제출하고 검토 상태를 확인해 주세요.</p>
           </div>
-          <span className="domain-page__badge domain-page__badge--connected">이용 가능</span>
+          <span className="domain-page__badge domain-page__badge--connected">승인 필요</span>
         </header>
 
         <TargetSelector
@@ -2602,7 +2602,7 @@ function InterviewSessionCard({ session }: { session: AIInterviewSessionResponse
           </div>
         </dl>
         <div className="target-form__actions">
-          <a href={`/interviews/session?session_id=${session.id}`}>세션 열기</a>
+          <a href={`/interviews/session?session_id=${session.id}`}>인터뷰 보기</a>
           <a href={`/storybooks/create?interview_session_id=${session.id}`}>스토리북에 사용</a>
         </div>
       </div>
@@ -3238,7 +3238,7 @@ function PhotoMemoryUploadApiPage() {
             <p>{createdPhotoMemory.title}</p>
             <div className="target-form__actions">
               <a href={`/storybooks/create?photo_memory_id=${createdPhotoMemory.id}`}>스토리북에 사용</a>
-              <a href="/memories/photos">목록 열기</a>
+          <a href="/memories/photos">사진 기억 보기</a>
             </div>
           </section>
         )}
@@ -3575,7 +3575,7 @@ function StorybookDetailApiPage() {
             <h1>스토리북 상세</h1>
             <p>스토리북 본문과 챕터를 확인해 보세요.</p>
           </div>
-          <span className="domain-page__badge domain-page__badge--connected">이용 가능</span>
+          <span className="domain-page__badge domain-page__badge--connected">관리 가능</span>
         </header>
 
         <StorybookSelector
@@ -3735,7 +3735,7 @@ function StorybookShareApiPage() {
             <h1>공유 링크</h1>
             <p>공유 링크를 생성하고 필요할 때 비활성화해 주세요.</p>
           </div>
-          <span className="domain-page__badge domain-page__badge--connected">이용 가능</span>
+          <span className="domain-page__badge domain-page__badge--connected">관리 가능</span>
         </header>
 
         <StorybookSelector
@@ -3782,7 +3782,7 @@ function StorybookShareApiPage() {
                   </div>
                 </dl>
                 <div className="target-form__actions">
-                  <a href={`/share/${shareLink.token}`}>공개 페이지 열기</a>
+          <a href={`/share/${shareLink.token}`}>공유 페이지 보기</a>
                   <button disabled={!shareLink.is_active || disablingId === shareLink.id} onClick={() => void handleDisableShareLink(shareLink.id)} type="button">
                     {disablingId === shareLink.id ? '중지 중...' : '공유 중지'}
                   </button>
@@ -3907,7 +3907,7 @@ function MemoryGroupCard({ group }: { group: MemoryGroupResponse }) {
           </div>
         </dl>
         <div className="target-form__actions">
-          <a href={`/groups/detail?group_id=${group.id}`}>그룹 열기</a>
+        <a href={`/groups/detail?group_id=${group.id}`}>그룹 보기</a>
         </div>
       </div>
     </article>
@@ -4151,7 +4151,7 @@ function MemoryGroupDetailApiPage() {
             <h1>기억 그룹 상세</h1>
             <p>그룹 정보와 공유 상태를 한눈에 확인해 보세요.</p>
           </div>
-          <span className="domain-page__badge domain-page__badge--connected">이용 가능</span>
+          <span className="domain-page__badge domain-page__badge--connected">관리 가능</span>
         </header>
 
         <MemoryGroupSelector
@@ -4269,7 +4269,7 @@ function MemoryGroupDetailApiPage() {
                   </div>
                 </dl>
                 <div className="target-form__actions">
-                  <a href={`/storybooks/detail?storybook_id=${storybook.id}`}>스토리북 열기</a>
+        <a href={`/storybooks/detail?storybook_id=${storybook.id}`}>스토리북 보기</a>
                 </div>
               </div>
             </article>
@@ -4851,7 +4851,7 @@ function PersonaVoiceCallApiPage() {
             <h1>음성 대화</h1>
             <p>음성 프로필 준비 상태를 확인한 뒤 대화를 시작해 주세요.</p>
           </div>
-          <span className="domain-page__badge domain-page__badge--connected">이용 가능</span>
+          <span className="domain-page__badge domain-page__badge--connected">준비 확인</span>
         </header>
 
         <section className="voice-call-layout">
@@ -5212,7 +5212,7 @@ function AdminVerificationReviewApiPage() {
           </div>
           <div className="target-form__actions">
             <button type="submit">상세 불러오기</button>
-            <button onClick={() => void handleDownloadFile()} type="button">파일 열기</button>
+            <button onClick={() => void handleDownloadFile()} type="button">증빙 파일 내려받기</button>
             <button onClick={() => void handleVerificationAction('approve')} type="button">승인</button>
             <button disabled={rejectionReason.length < 5} onClick={() => void handleVerificationAction('reject')} type="button">거절</button>
             <button disabled={adminNote.length < 5} onClick={() => void handleVerificationAction('need-more-info')} type="button">추가 정보 요청</button>

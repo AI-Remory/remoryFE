@@ -1,94 +1,189 @@
 import { AppShell } from '../../components/layout/AppShell'
+import './HubPages.css'
 
-type HubLink = {
-  href: string
+type HubAction = {
   title: string
   description: string
-  badge?: string
+  href: string
+  actionLabel: string
+  status?: string
 }
 
-function HubPage({ title, subtitle, links }: { title: string; subtitle: string; links: HubLink[] }) {
+function HubActionList({ title, description, actions, ariaLabel }: { title: string; description: string; actions: HubAction[]; ariaLabel: string }) {
   return (
-    <AppShell title={title} subtitle={subtitle} badge="서비스 메뉴">
-      <main className="domain-page target-api-page">
-        <header className="domain-page__hero">
-          <div>
-            <span className="domain-page__eyebrow">{title}</span>
-            <h1>{title}</h1>
-            <p>{subtitle}</p>
-          </div>
-          <span className="domain-page__badge domain-page__badge--connected">이용 가능</span>
-        </header>
-        <section className="target-card-grid" aria-label={`${title} 메뉴`}>
-          {links.map((link) => (
-            <article className="target-card" key={link.href}>
-              <div className="target-card__body">
-                <div className="target-card__title-row">
-                  <h2>{link.title}</h2>
-                  {link.badge && <span>{link.badge}</span>}
-                </div>
-                <p>{link.description}</p>
-                <div className="target-form__actions">
-                  <a href={link.href}>열기</a>
-                </div>
-              </div>
-            </article>
-          ))}
-        </section>
-      </main>
-    </AppShell>
+    <section className="hub-section" aria-label={ariaLabel}>
+      <header className="hub-section__header">
+        <h2>{title}</h2>
+        <p>{description}</p>
+      </header>
+      <div className="hub-card-grid">
+        {actions.map((action) => (
+          <article className="hub-card" key={action.href}>
+            <header className="hub-card__header">
+              <h3>{action.title}</h3>
+              {action.status && <span className="hub-card__badge">{action.status}</span>}
+            </header>
+            <p>{action.description}</p>
+            <div className="hub-card__actions">
+              <a href={action.href}>{action.actionLabel}</a>
+            </div>
+          </article>
+        ))}
+      </div>
+    </section>
   )
 }
 
 export function ComplianceHubPage() {
   return (
-    <HubPage
-      title="동의와 관계 입증"
-      subtitle="페르소나를 만들기 전에 필요한 동의와 관계 입증을 확인해요."
-      links={[
-        { href: '/compliance/consent', title: '동의 기록', description: '대상별 동의 상태를 확인하고 철회할 수 있어요.', badge: '이용 가능' },
-        { href: '/compliance/verification', title: '관계 입증 요청', description: '증빙 자료를 제출하고 승인 상태를 확인해요.', badge: '이용 가능' },
-      ]}
-    />
+    <AppShell title="동의와 관계 입증" subtitle="페르소나를 만들기 전에 동의와 관계 입증 상태를 확인하세요." badge="필수 단계">
+      <main className="hub-page">
+        <section className="hub-section hub-checklist" aria-label="준비 순서">
+          <header className="hub-section__header">
+            <h2>준비 순서</h2>
+            <p>필수 단계를 먼저 확인하면 페르소나 준비가 빨라져요.</p>
+          </header>
+          <ol>
+            <li><span>1</span>관계 입증 요청하기</li>
+            <li><span>2</span>동의 기록 확인하기</li>
+            <li><span>3</span>페르소나 만들기</li>
+          </ol>
+        </section>
+
+        <HubActionList
+          ariaLabel="동의와 관계 입증 기능"
+          title="상태 카드"
+          description="각 단계의 상태를 확인하고 필요한 작업을 바로 진행할 수 있어요."
+          actions={[
+            {
+              href: '/compliance/verification',
+              title: '관계 입증 요청',
+              description: '증빙 자료를 제출하고 승인 상태를 확인해요.',
+              actionLabel: '관계 입증 요청하기',
+              status: '승인 필요',
+            },
+            {
+              href: '/compliance/consent',
+              title: '동의 기록',
+              description: '대상별 동의 상태를 확인하고 필요하면 철회할 수 있어요.',
+              actionLabel: '동의 기록 보기',
+              status: '필수 단계',
+            },
+          ]}
+        />
+      </main>
+    </AppShell>
   )
 }
 
 export function MemoriesHubPage() {
   return (
-    <HubPage
-      title="기억 자료"
-      subtitle="사진과 인터뷰를 모아 스토리북으로 이어갈 수 있어요."
-      links={[
-        { href: '/memories/photos', title: '사진 기억', description: '사진으로 남긴 기억을 확인하고 관리해요.', badge: '이용 가능' },
-        { href: '/memories/photos/upload', title: '사진 기억 올리기', description: '스토리북에 사용할 사진 기억을 추가해요.', badge: '이용 가능' },
-        { href: '/memories/interviews', title: 'AI 인터뷰', description: '질문과 답변으로 기억을 더 자세히 남겨요.', badge: '이용 가능' },
-      ]}
-    />
+    <AppShell title="기억 자료" subtitle="사진과 인터뷰를 모아 스토리북을 만들 수 있어요." badge="재료 관리">
+      <main className="hub-page">
+        <HubActionList
+          ariaLabel="사진 기억 관리"
+          title="사진 기억"
+          description="사진 기억을 정리하고 필요한 사진을 추가해 스토리북 재료를 준비해요."
+          actions={[
+            {
+              href: '/memories/photos',
+              title: '사진 기억',
+              description: '사진으로 남긴 기억을 확인하고 관리해요.',
+              actionLabel: '사진 기억 보기',
+              status: '관리 가능',
+            },
+            {
+              href: '/memories/photos/upload',
+              title: '사진 기억 올리기',
+              description: '스토리북에 사용할 사진 기억을 추가해요.',
+              actionLabel: '사진 올리기',
+              status: '준비 완료',
+            },
+          ]}
+        />
+        <HubActionList
+          ariaLabel="인터뷰 관리"
+          title="인터뷰 세션"
+          description="질문과 답변을 남겨 스토리북 내용을 더 풍부하게 만들어요."
+          actions={[
+            {
+              href: '/memories/interviews',
+              title: '인터뷰',
+              description: '이미 진행한 인터뷰를 확인하고 새 인터뷰를 이어서 진행해요.',
+              actionLabel: '인터뷰 시작하기',
+              status: '선택 사항',
+            },
+          ]}
+        />
+      </main>
+    </AppShell>
   )
 }
 
 export function SharingHubPage() {
   return (
-    <HubPage
-      title="공유"
-      subtitle="스토리북을 링크나 그룹으로 조심스럽게 공유해요."
-      links={[
-        { href: '/storybooks/share', title: '공유 링크', description: '스토리북을 볼 수 있는 공유 링크를 관리해요.', badge: '이용 가능' },
-        { href: '/groups', title: '기억 그룹', description: '가족이나 가까운 사람들과 스토리북을 함께 봐요.', badge: '이용 가능' },
-      ]}
-    />
+    <AppShell title="공유" subtitle="스토리북을 링크나 그룹으로 안전하게 공유해요." badge="공유 관리">
+      <main className="hub-page">
+        <HubActionList
+          ariaLabel="공유 도구"
+          title="공유 링크와 그룹"
+          description="공유 방식에 맞게 링크 또는 그룹을 선택해 관리할 수 있어요."
+          actions={[
+            {
+              href: '/storybooks/share',
+              title: '공유 링크',
+              description: '스토리북을 볼 수 있는 공유 링크를 생성하고 만료 상태를 관리해요.',
+              actionLabel: '공유 링크 관리',
+              status: '관리 가능',
+            },
+            {
+              href: '/groups',
+              title: '기억 그룹',
+              description: '가족이나 가까운 사람들과 함께 볼 그룹을 만들고 멤버를 관리해요.',
+              actionLabel: '그룹 보기',
+              status: '선택 사항',
+            },
+          ]}
+        />
+      </main>
+    </AppShell>
   )
 }
 
 export function SafetyCenterPage() {
   return (
-    <HubPage
-      title="안전 센터"
-      subtitle="내 데이터와 서비스 이용 안전을 직접 관리할 수 있어요."
-      links={[
-        { href: '/safety/deletion-requests', title: '데이터 삭제 요청', description: '원하지 않는 데이터를 삭제해 달라고 요청해요.', badge: '이용 가능' },
-        { href: '/safety/reports', title: '신고하기', description: '문제가 있는 콘텐츠나 이용 상황을 신고해요.', badge: '이용 가능' },
-      ]}
-    />
+    <AppShell title="안전 센터" subtitle="내 데이터와 서비스 이용 상태를 직접 관리할 수 있어요." badge="보호 관리">
+      <main className="hub-page">
+        <HubActionList
+          ariaLabel="데이터 보호"
+          title="데이터 보호"
+          description="내 데이터 처리와 삭제 요청 상태를 확인할 수 있어요."
+          actions={[
+            {
+              href: '/safety/deletion-requests',
+              title: '데이터 삭제 요청',
+              description: '원하지 않는 데이터를 삭제해 달라고 요청하고 처리 상태를 확인해요.',
+              actionLabel: '삭제 요청하기',
+              status: '관리 가능',
+            },
+          ]}
+        />
+        <HubActionList
+          ariaLabel="신고"
+          title="신고"
+          description="문제가 있는 이용 상황이나 콘텐츠를 신고할 수 있어요."
+          actions={[
+            {
+              href: '/safety/reports',
+              title: '신고하기',
+              description: '문제가 있는 콘텐츠나 이용 상황을 신고해 안전한 이용을 돕습니다.',
+              actionLabel: '신고하기',
+              status: '필수 단계',
+            },
+          ]}
+        />
+      </main>
+    </AppShell>
   )
 }
+

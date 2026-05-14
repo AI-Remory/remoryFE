@@ -28,6 +28,8 @@ function getGroupedNav(items: NavItem[]) {
 }
 
 export function Header({ title, subtitle, badge }: Pick<AppShellProps, 'title' | 'subtitle' | 'badge'>) {
+  const shouldShowBadge = badge && badge !== '이용 가능'
+
   return (
     <header className="app-shell__header">
       <div>
@@ -35,7 +37,7 @@ export function Header({ title, subtitle, badge }: Pick<AppShellProps, 'title' |
         {title && <h1>{title}</h1>}
         {subtitle && <p>{subtitle}</p>}
       </div>
-      {badge && <span className="app-shell__header-badge">{badge}</span>}
+      {shouldShowBadge && <span className="app-shell__header-badge">{badge}</span>}
     </header>
   )
 }

@@ -24,6 +24,16 @@ export type AuthResponse = {
   user: User
 }
 
+export type TokenResponse = {
+  access_token: string
+  refresh_token: string
+  token_type?: string
+}
+
+export type MessageResponse = {
+  message: string
+}
+
 export type PersonaStatus = 'PENDING' | 'READY' | 'FAILED' | string
 
 export type VoiceProfile = {

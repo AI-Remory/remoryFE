@@ -1,5 +1,5 @@
 import { apiClient, clearTokens, getRefreshToken, setTokens } from '../lib/apiClient'
-import type { AuthResponse, User } from '../types/api'
+import type { AuthResponse, TokenResponse, User } from '../types/api'
 
 type RegisterPayload = {
   email: string
@@ -12,7 +12,7 @@ type LoginPayload = {
   password: string
 }
 
-function persistAuthResponse(response: AuthResponse) {
+function persistTokenPair<T extends TokenResponse>(response: T) {
   setTokens(response.access_token, response.refresh_token)
   return response
 }
@@ -20,12 +20,12 @@ function persistAuthResponse(response: AuthResponse) {
 export const authApi = {
   async register(payload: RegisterPayload) {
     const response = await apiClient.post<AuthResponse>('/auth/register', payload, { auth: false })
-    return persistAuthResponse(response)
+    return persistTokenPair(response)
   },
 
   async login(payload: LoginPayload) {
     const response = await apiClient.post<AuthResponse>('/auth/login', payload, { auth: false })
-    return persistAuthResponse(response)
+    return persistTokenPair(response)
   },
 
   me() {
@@ -39,13 +39,13 @@ export const authApi = {
       throw new Error('저장된 refresh token이 없습니다.')
     }
 
-    const response = await apiClient.post<AuthResponse>(
+    const response = await apiClient.post<TokenResponse>(
       '/auth/refresh-token',
       { refresh_token: refreshToken },
       { auth: false },
     )
 
-    return persistAuthResponse(response)
+    return persistTokenPair(response)
   },
 
   async logout() {
@@ -53,7 +53,7 @@ export const authApi = {
 
     try {
       if (refreshToken) {
-        await apiClient.post<void>('/auth/logout', { refresh_token: refreshToken })
+        await apiClient.post<void>('/auth/logout', { refresh_token: refreshToken }, { auth: false })
       }
     } catch {
       // Logout must clear local auth state even if the server-side revoke fails.

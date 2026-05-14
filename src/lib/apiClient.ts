@@ -107,6 +107,25 @@ function getDetailMessage(detail: ApiErrorDetail) {
   return 'API 요청에 실패했습니다.'
 }
 
+function isAuthenticationFailure(status: number, detail: ApiErrorDetail) {
+  if (status === 401) {
+    return true
+  }
+
+  if (status !== 403) {
+    return false
+  }
+
+  const message = getDetailMessage(detail).toLowerCase()
+
+  return (
+    message.includes('not authenticated') ||
+    message.includes('could not validate') ||
+    message.includes('credential') ||
+    message.includes('token')
+  )
+}
+
 function extractErrorDetail(parsed: unknown): ApiErrorDetail {
   if (typeof parsed === 'string') {
     return parsed
@@ -246,7 +265,7 @@ export async function apiRequest<T>(
 
   const detail = extractErrorDetail(parsed)
 
-  if (response.status === 401 && options.auth !== false && retryOnUnauthorized && path !== '/auth/refresh-token') {
+  if (isAuthenticationFailure(response.status, detail) && options.auth !== false && retryOnUnauthorized && path !== '/auth/refresh-token') {
     const refreshed = await refreshAccessTokenOnce()
 
     if (refreshed) {

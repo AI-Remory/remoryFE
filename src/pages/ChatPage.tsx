@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { ApiError } from '../lib/apiClient'
 import { normalizeAssetUrl } from '../lib/mediaUrl'
+import { fetchProtectedFileObjectUrl, revokeObjectUrl } from '../lib/protectedFile'
 import { chatApi } from '../services/chatApi'
 import { personaApi } from '../services/personaApi'
 import { ensureMomPersonaId, REMORY_CHAT_ID_KEY, REMORY_PERSONA_ID_KEY } from '../services/personaSession'
@@ -14,7 +15,7 @@ type ChatMessage = {
   id: string
   sender: Sender
   text: string
-  audioUrl?: string
+  audioPath?: string
   time: string
 }
 
@@ -142,16 +143,71 @@ function isUserMessage(message: ApiChatMessage) {
   return senderType === 'user' || sender === 'user' || role === 'user'
 }
 
+function getMessageAudioApiPath(message: ApiChatMessage) {
+  const audioApiUrl = message.audio_api_url?.trim()
+
+  if (audioApiUrl) {
+    return audioApiUrl
+  }
+
+  const isAudioMessage = String(message.message_type ?? '').toUpperCase() === 'AUDIO'
+
+  if (!isAudioMessage || message.chat_id === undefined || message.chat_id === null) {
+    return ''
+  }
+
+  return `/api/v1/chats/${message.chat_id}/messages/${message.id}/audio`
+}
+
 function mapApiMessage(message: ApiChatMessage): ChatMessage {
-  const audioUrl = normalizeAssetUrl(message.audio_file_path)
+  const audioPath = getMessageAudioApiPath(message)
 
   return {
     id: String(message.id),
     sender: isUserMessage(message) ? 'user' : 'mom',
-    text: message.content ?? (audioUrl ? '음성 메시지' : ''),
-    audioUrl: audioUrl || undefined,
+    text: message.content ?? (audioPath ? '음성 메시지' : ''),
+    audioPath: audioPath || undefined,
     time: formatMessageTime(message.created_at),
   }
+}
+
+function ProtectedAudio({ path }: { path: string }) {
+  const [src, setSrc] = useState('')
+
+  useEffect(() => {
+    let ignore = false
+    let objectUrl = ''
+
+    fetchProtectedFileObjectUrl(path)
+      .then((nextObjectUrl) => {
+        if (ignore) {
+          revokeObjectUrl(nextObjectUrl)
+          return
+        }
+
+        objectUrl = nextObjectUrl
+        setSrc(nextObjectUrl)
+      })
+      .catch(() => {
+        if (!ignore) {
+          setSrc('')
+        }
+      })
+
+    return () => {
+      ignore = true
+
+      if (objectUrl) {
+        revokeObjectUrl(objectUrl)
+      }
+    }
+  }, [path])
+
+  if (!src) {
+    return null
+  }
+
+  return <audio className="chat-page__audio" src={src} controls />
 }
 
 function isBackendPersonaId(personaId: string) {
@@ -414,7 +470,7 @@ function ChatPage() {
                     <span className="chat-page__time">{message.time}</span>
                     <p className="chat-page__bubble chat-page__bubble--user">
                       {message.text}
-                      {message.audioUrl && <audio className="chat-page__audio" src={message.audioUrl} controls />}
+                      {message.audioPath && <ProtectedAudio path={message.audioPath} />}
                     </p>
                   </div>
                 )
@@ -426,7 +482,7 @@ function ChatPage() {
                   <div>
                     <p className="chat-page__bubble chat-page__bubble--persona">
                       {message.text}
-                      {message.audioUrl && <audio className="chat-page__audio" src={message.audioUrl} controls />}
+                      {message.audioPath && <ProtectedAudio path={message.audioPath} />}
                     </p>
                     <span className="chat-page__time">{message.time}</span>
                   </div>

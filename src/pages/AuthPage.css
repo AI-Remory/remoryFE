@@ -15,6 +15,7 @@
   justify-content: center;
   width: 100%;
   min-height: 100dvh;
+  overflow-x: hidden;
   overflow-y: auto;
   background:
     radial-gradient(circle at top left, rgba(255, 238, 220, 0.85), transparent 34%),
@@ -27,7 +28,7 @@
 .auth-container {
   position: relative;
   width: 100%;
-  max-width: 504px;
+  max-width: min(504px, 100vw);
   min-height: 100dvh;
   padding: 88px 34px 56px;
 }
@@ -54,7 +55,7 @@
   font-family: "Gowun Batang", Georgia, 'Times New Roman', serif;
   font-size: 48px;
   font-weight: 700;
-  letter-spacing: -1.5px;
+  letter-spacing: 0;
   line-height: 1;
   text-align: center;
 }
@@ -289,7 +290,7 @@
 
 @media (max-width: 420px) {
   .auth-container {
-    padding: 74px 26px 46px;
+    padding: 74px 22px 46px;
   }
 
   .auth-back-button {
@@ -308,22 +309,36 @@
 
   .auth-input-box {
     height: 60px;
-    padding: 0 16px;
+    padding: 0 14px;
   }
 
   .auth-input-box input {
-    font-size: 19px;
+    font-size: 18px;
+  }
+
+  .auth-input-icon {
+    margin-right: 14px;
+  }
+
+  .auth-eye-button {
+    width: 38px;
+    height: 38px;
+    margin-left: 4px;
   }
 
   .auth-terms-row {
+    flex-wrap: wrap;
     gap: 0;
   }
 
   .auth-terms-text {
+    flex-basis: calc(100% - 44px);
     font-size: 16px;
   }
 
   .auth-detail-button {
+    margin-top: 8px;
+    margin-left: 44px;
     font-size: 16px;
   }
 

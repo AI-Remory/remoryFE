@@ -1,6 +1,7 @@
 import { apiClient } from '../lib/apiClient'
 import type {
   ApiId,
+  MessageResponse,
   PaginatedTargets,
   Persona,
   Target,
@@ -56,6 +57,6 @@ export const targetApi = {
   },
 
   deleteMedia(mediaId: ApiId) {
-    return apiClient.delete<void>(`/media/${mediaId}`)
+    return apiClient.delete<MessageResponse>(`/media/${mediaId}`)
   },
 }

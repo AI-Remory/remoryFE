@@ -18,7 +18,6 @@ export const chatApi = {
     return apiClient.post<SendMessageResponse>(`/chats/${chatId}/messages`, {
       message_type: 'TEXT',
       content,
-      audio_file_path: null,
     })
   },
 }

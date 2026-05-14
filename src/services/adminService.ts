@@ -1,6 +1,7 @@
 import { apiClient } from './apiClient'
 import type { ReportStatus } from '../types/report'
 import type { VerificationStatus } from '../types/verification'
+import type { DeletionRequestResponse, DeletionStatus } from '../types/deletion'
 import type {
   AdminReportAction,
   AdminReportResponse,
@@ -64,6 +65,24 @@ export const adminService = {
 
   revokeVerificationRequest(requestId: number, payload: VerificationRequestRevokeRequest | null) {
     return apiClient.patch<VerificationRequestAdminResponse>(`/admin/verification-requests/${requestId}/revoke`, payload)
+  },
+
+  listDeletionRequests(params: { status?: DeletionStatus | '' } = {}) {
+    return apiClient.get<DeletionRequestResponse[]>(`/admin/deletion-requests${compactQuery(params)}`)
+  },
+
+  getDeletionRequest(requestId: number) {
+    return apiClient.get<DeletionRequestResponse>(`/admin/deletion-requests/${requestId}`)
+  },
+
+  approveAndProcessDeletionRequest(requestId: number, adminNote?: string | null) {
+    const query = compactQuery({ admin_note: adminNote ?? undefined })
+    return apiClient.patch<DeletionRequestResponse>(`/admin/deletion-requests/${requestId}/approve-and-process${query}`)
+  },
+
+  rejectDeletionRequest(requestId: number, adminNote?: string | null) {
+    const query = compactQuery({ admin_note: adminNote ?? undefined })
+    return apiClient.patch<DeletionRequestResponse>(`/admin/deletion-requests/${requestId}/reject${query}`)
   },
 
   listReports(params: { status?: ReportStatus | ''; page?: number; size?: number } = {}) {

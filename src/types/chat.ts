@@ -29,6 +29,7 @@ export type PersonaMessageResponse = {
   sender_type: SenderType
   message_type: MessageType
   content: string | null
+  audio_api_url: string | null
   audio_file_path: string | null
   is_ai_generated: boolean
   created_at: string

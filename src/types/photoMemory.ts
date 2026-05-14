@@ -5,6 +5,7 @@ export type PhotoMemoryResponse = {
   user_id: number
   title: string
   description: string | null
+  image_api_url?: string | null
   file_path: string
   original_filename: string
   stored_filename: string
@@ -28,4 +29,3 @@ export type PhotoMemoryCreatePayload = {
 export type PhotoMemoryDeleteResponse = {
   message?: string
 }
-

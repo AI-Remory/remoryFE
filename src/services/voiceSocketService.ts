@@ -23,18 +23,22 @@ export function sendVoiceSocketMessage(socket: WebSocket | null, message: VoiceC
   socket.send(JSON.stringify(message))
 }
 
-export function sendVoiceStart(socket: WebSocket | null, chatId: number) {
+export function sendVoiceStart(socket: WebSocket | null, chatId?: number) {
   sendVoiceSocketMessage(socket, {
     type: 'start',
     chat_id: chatId,
   })
 }
 
-export function sendVoiceAudioChunk(socket: WebSocket | null, data: string) {
+export function sendVoiceAudioChunk(
+  socket: WebSocket | null,
+  data: string,
+  mimeType: 'audio/webm' | 'audio/wav' | 'audio/mpeg' | 'audio/mp4' = 'audio/webm',
+) {
   sendVoiceSocketMessage(socket, {
     type: 'audio_chunk',
     data,
-    mime_type: 'audio/webm',
+    mime_type: mimeType,
   })
 }
 

@@ -7,6 +7,7 @@ export type MediaUploadResponse = {
   uploaded_by: number
   original_filename: string
   stored_filename: string
+  file_api_url?: string | null
   file_path: string
   media_type: MediaType
   file_size: number
@@ -23,6 +24,7 @@ export type TargetMediaResponse = {
   media_type: MediaType
   original_filename: string
   stored_filename: string
+  file_api_url?: string | null
   file_path: string
   mime_type: string
   file_size: number

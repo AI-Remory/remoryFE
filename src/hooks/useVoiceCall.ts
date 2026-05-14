@@ -28,13 +28,14 @@ function createTextMessage(sender: VoiceCallMessage['sender'], text: string): Vo
   }
 }
 
-function createAudioMessage(message: Pick<VoiceCallMessage, 'audio_file_path' | 'audio_url'>): VoiceCallMessage {
+function createAudioMessage(message: Pick<VoiceCallMessage, 'audio_file_path' | 'audio_url' | 'audio_api_url'>): VoiceCallMessage {
   return {
     id: createMessageId(),
     sender: 'PERSONA',
     message_type: 'AUDIO',
     audio_file_path: message.audio_file_path,
     audio_url: message.audio_url,
+    audio_api_url: message.audio_api_url,
     created_at: new Date().toISOString(),
   }
 }
@@ -118,6 +119,7 @@ export function useVoiceCall() {
             ...current,
             createAudioMessage({
               audio_file_path: message.audio_file_path ?? undefined,
+              audio_api_url: message.audio_api_url ?? undefined,
               audio_url: message.audio_url ?? undefined,
             }),
           ])
@@ -245,7 +247,7 @@ export function useVoiceCall() {
 
         void blobToBase64(event.data)
           .then((data) => {
-            sendVoiceAudioChunk(socketRef.current, data)
+            sendVoiceAudioChunk(socketRef.current, data, mimeType)
           })
           .catch((error: unknown) => {
             setErrorMessage(error instanceof Error ? error.message : '음성 전송 중 문제가 발생했어요.')

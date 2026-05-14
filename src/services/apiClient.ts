@@ -147,22 +147,68 @@ function getDetailMessage(detail: ApiErrorDetail): string | null {
 function getStatusMessage(status: number) {
   switch (status) {
     case 0:
-      return 'Unable to connect to the API server. Check the server status and API base URL.'
+      return '서버에 연결하지 못했어요. 잠시 후 다시 시도해 주세요.'
     case 400:
-      return 'The request could not be processed. Please check the submitted values.'
+      return '요청 내용을 다시 확인해 주세요.'
     case 401:
-      return 'Authentication is required. Please sign in again.'
+      return '로그인이 필요해요. 다시 로그인해 주세요.'
     case 403:
-      return 'You do not have permission to perform this request.'
+      return '권한이 없거나 필요한 조건이 아직 충족되지 않았어요.'
     case 404:
-      return 'The requested resource could not be found.'
+      return '요청한 데이터를 찾을 수 없어요.'
     case 429:
-      return 'Too many requests. Please try again later.'
+      return '요청이 많아요. 잠시 후 다시 시도해 주세요.'
     case 500:
-      return 'A server error occurred. Please try again later.'
+      return '서버에서 오류가 발생했어요. 잠시 후 다시 시도해 주세요.'
     default:
-      return 'The API request failed.'
+      return '요청 처리 중 문제가 발생했어요.'
   }
+}
+
+function getFriendlyDetailMessage(message: string, status: number) {
+  const normalized = message.toLowerCase()
+
+  if (status === 401 || /login required|not authenticated|invalid token|token expired|unauthorized/.test(normalized)) {
+    return '로그인이 필요해요. 다시 로그인해 주세요.'
+  }
+
+  if (status === 403 || /forbidden|permission denied/.test(normalized)) {
+    return '권한이 없거나 필요한 조건이 아직 충족되지 않았어요.'
+  }
+
+  if (/admin/.test(normalized) && /(required|only|forbidden|permission)/.test(normalized)) {
+    return '관리자 권한이 필요해요.'
+  }
+
+  if (/verification/.test(normalized) && /(approval|required|approve)/.test(normalized)) {
+    return '관계 입증 승인 후 이용할 수 있어요.'
+  }
+
+  if (/consent/.test(normalized) && /(required|missing)/.test(normalized)) {
+    return '필수 동의를 먼저 완료해 주세요.'
+  }
+
+  if (/(photo|image|voice|audio)/.test(normalized) && /(required|insufficient|not enough|missing)/.test(normalized)) {
+    return '사진 또는 음성 자료를 먼저 준비해 주세요.'
+  }
+
+  if (/persona/.test(normalized) && /(not ready|not available|not prepared|not found)/.test(normalized)) {
+    return '페르소나가 아직 준비되지 않았어요.'
+  }
+
+  if (/(invalid file|unsupported|mime|file type)/.test(normalized)) {
+    return '지원하지 않는 파일 형식이에요. 다른 파일을 올려 주세요.'
+  }
+
+  if (/(file too large|too large|max size|size exceeds)/.test(normalized)) {
+    return '파일 크기가 너무 커요. 더 작은 파일을 올려 주세요.'
+  }
+
+  if (status === 404 || /(not found|resource missing|does not exist)/.test(normalized)) {
+    return '요청한 데이터를 찾을 수 없어요.'
+  }
+
+  return message
 }
 
 async function parseResponse(response: Response) {
@@ -243,7 +289,11 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
     }
 
     const detail = getErrorDetail(parsed)
-    throw new ApiError(getDetailMessage(detail) ?? getStatusMessage(response.status), response.status, detail)
+    const detailMessage = getDetailMessage(detail)
+    const message = detailMessage
+      ? getFriendlyDetailMessage(detailMessage, response.status)
+      : getStatusMessage(response.status)
+    throw new ApiError(message, response.status, detail)
   }
 
   return parsed as T
@@ -276,7 +326,11 @@ export async function apiDownload(path: string, options: Omit<RequestOptions, 'b
 
     const parsed = await parseResponse(response)
     const detail = getErrorDetail(parsed)
-    throw new ApiError(getDetailMessage(detail) ?? getStatusMessage(response.status), response.status, detail)
+    const detailMessage = getDetailMessage(detail)
+    const message = detailMessage
+      ? getFriendlyDetailMessage(detailMessage, response.status)
+      : getStatusMessage(response.status)
+    throw new ApiError(message, response.status, detail)
   }
 
   return response.blob()

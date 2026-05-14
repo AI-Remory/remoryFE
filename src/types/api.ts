@@ -4,6 +4,7 @@ export type User = {
   id: ApiId
   email: string
   nickname: string
+  role?: 'USER' | 'ADMIN'
   created_at?: string
   updated_at?: string
 }
@@ -78,6 +79,7 @@ export type ChatMessage = {
   role?: 'user' | 'assistant' | 'system' | string
   message_type?: 'TEXT' | 'AUDIO' | string
   content?: string | null
+  audio_api_url?: string | null
   audio_file_path?: string | null
   is_ai_generated?: boolean
   created_at?: string
@@ -131,6 +133,7 @@ export type TargetMediaUploadResponse = {
   uploaded_by: ApiId
   original_filename: string
   stored_filename: string
+  file_api_url?: string | null
   file_path: string
   media_type: 'image' | 'voice' | string
   file_size: number

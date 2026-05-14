@@ -3,12 +3,12 @@ export type VoiceCallStatus = 'disconnected' | 'connecting' | 'connected' | 'rec
 export type VoiceClientMessage =
   | {
       type: 'start'
-      chat_id: number
+      chat_id?: number
     }
   | {
       type: 'audio_chunk'
       data: string
-      mime_type: 'audio/webm'
+      mime_type: 'audio/webm' | 'audio/wav' | 'audio/mpeg' | 'audio/mp4'
     }
   | {
       type: 'end_utterance'
@@ -37,6 +37,7 @@ export type VoiceServerMessage =
   | {
       type: 'persona_audio'
       audio_url?: string | null
+      audio_api_url?: string | null
       audio_file_path?: string | null
     }
   | {
@@ -53,6 +54,7 @@ export type VoiceCallMessage = {
   message_type: 'TEXT' | 'AUDIO'
   text?: string
   audio_url?: string
+  audio_api_url?: string
   audio_file_path?: string
   created_at: string
 }

@@ -190,7 +190,7 @@
   backdrop-filter: blur(14px);
 }
 
-.app-shell__bottom-nav a {
+.app-shell__bottom-nav a,
 .app-shell__bottom-nav-action {
   display: flex;
   min-width: 0;

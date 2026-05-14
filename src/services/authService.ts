@@ -25,8 +25,10 @@ function normalizeUserResponse(raw: unknown): UserResponse {
     throw new Error('Invalid /auth/me response shape.')
   }
 
-  const candidate = isRecord(raw.user) ? raw.user : raw
-  const rawRole = candidate.role
+  const nested = isRecord(raw.data) ? raw.data : null
+  const nestedUser = nested && isRecord(nested.user) ? nested.user : null
+  const candidate = (isRecord(raw.user) ? raw.user : nestedUser) ?? raw
+  const rawRole = candidate.role ?? candidate.ROLE
   const normalizedRole: UserRole = String(rawRole).toUpperCase() === 'ADMIN' ? 'ADMIN' : 'USER'
 
   return {

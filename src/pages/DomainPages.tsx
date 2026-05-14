@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+﻿import { useCallback, useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
 import { AppShell } from '../components/layout/AppShell'
 import { MemoryGroupSelector, StorybookSelector, TargetSelector } from '../components/selectors/EntitySelectors'
@@ -370,7 +370,7 @@ function TargetListApiPage() {
   }, [])
 
   return (
-    <AppShell title="기억 대상" subtitle="등록한 대상을 확인하고 다음 작업으로 이어갈 수 있어요." badge="이용 가능">
+    <AppShell title="기억 대상" subtitle="등록한 대상을 확인하고 다음 작업으로 이어갈 수 있어요.">
       <main className="domain-page target-api-page">
         <header className="domain-page__hero">
           <div>
@@ -480,7 +480,7 @@ function TargetCreateApiPage() {
   }
 
   return (
-    <AppShell title="대상 추가하기" subtitle="기억을 남길 사람의 기본 정보를 입력해 주세요." badge="이용 가능">
+    <AppShell title="대상 추가하기" subtitle="기억을 남길 사람의 기본 정보를 입력해 주세요.">
       <main className="domain-page target-api-page">
         <header className="domain-page__hero">
           <div>
@@ -724,7 +724,7 @@ function TargetDetailApiPage() {
   }
 
   return (
-    <AppShell title="대상 정보" subtitle="대상 정보를 수정하고 준비 상태를 확인할 수 있어요." badge="이용 가능">
+    <AppShell title="대상 정보" subtitle="대상 정보를 수정하고 준비 상태를 확인할 수 있어요.">
       <main className="domain-page target-api-page">
         <header className="domain-page__hero">
           <div>
@@ -881,7 +881,7 @@ function TargetDetailApiPage() {
 }
 
 function MediaPreview({ media }: { media: TargetMediaResponse }) {
-  const fileUrl = toPlayableFileUrl(media.file_path)
+  const fileUrl = toPlayableFileUrl(media.file_api_url ?? media.file_path)
 
   if (media.media_type === 'image') {
     return <img alt={media.original_filename} src={fileUrl} />
@@ -1049,7 +1049,7 @@ function TargetMediaApiPage() {
   void handleTargetSubmit
 
   return (
-    <AppShell title="사진·음성 올리기" subtitle="대상을 선택한 뒤 사진과 음성을 등록할 수 있어요." badge="이용 가능">
+    <AppShell title="사진·음성 올리기" subtitle="대상을 선택한 뒤 사진과 음성을 등록할 수 있어요.">
       <main className="domain-page target-api-page">
         <header className="domain-page__hero">
           <div>
@@ -1409,7 +1409,7 @@ function ConsentApiPage() {
   void handleSelectTarget
 
   return (
-    <AppShell title="동의 관리" subtitle="대상별 동의 상태를 확인하고 새 동의를 기록할 수 있어요." badge="이용 가능">
+    <AppShell title="동의 관리" subtitle="대상별 동의 상태를 확인하고 새 동의를 기록할 수 있어요.">
       <main className="domain-page target-api-page">
         <header className="domain-page__hero">
           <div>
@@ -1642,7 +1642,7 @@ function TargetVerificationApiPage() {
   void handleSelectTarget
 
   return (
-    <AppShell title="관계 입증 요청" subtitle="대상별 관계 입증 요청 상태를 확인할 수 있어요." badge="이용 가능">
+    <AppShell title="관계 입증 요청" subtitle="대상별 관계 입증 요청 상태를 확인할 수 있어요.">
       <main className="domain-page target-api-page">
         <header className="domain-page__hero">
           <div>
@@ -1810,7 +1810,7 @@ function PersonaListApiPage() {
   }
 
   return (
-    <AppShell title="페르소나 만들기" subtitle="대상을 선택해 새로운 페르소나를 만들 수 있어요." badge="이용 가능">
+    <AppShell title="페르소나 만들기" subtitle="대상을 선택해 새로운 페르소나를 만들 수 있어요.">
       <main className="domain-page target-api-page">
         <header className="domain-page__hero">
           <div>
@@ -1919,7 +1919,7 @@ function PersonaDetailApiPage() {
   }, [personaId])
 
   return (
-    <AppShell title="페르소나 상세" subtitle="페르소나 상태와 준비 정보를 확인할 수 있어요." badge="이용 가능">
+    <AppShell title="페르소나 상세" subtitle="페르소나 상태와 준비 정보를 확인할 수 있어요.">
       <main className="domain-page target-api-page">
         <header className="domain-page__hero">
           <div>
@@ -1960,7 +1960,8 @@ function PersonaDetailApiPage() {
 }
 
 function ChatMessageBubble({ message }: { message: PersonaMessageResponse }) {
-  const audioUrl = message.audio_file_path ? toPlayableFileUrl(message.audio_file_path) : null
+  const audioPath = message.audio_api_url ?? message.audio_file_path
+  const audioUrl = audioPath ? toPlayableFileUrl(audioPath) : null
 
   return (
     <article className={`persona-chat-message persona-chat-message--${message.sender_type.toLowerCase()}`}>
@@ -2134,7 +2135,7 @@ function PersonaChatApiPage() {
   void handlePersonaSubmit
 
   return (
-    <AppShell title="대화" subtitle="페르소나와의 대화를 시작하고 이어갈 수 있어요." badge="이용 가능">
+    <AppShell title="대화" subtitle="페르소나와의 대화를 시작하고 이어갈 수 있어요.">
       <main className="domain-page target-api-page persona-chat-page">
         <header className="domain-page__hero">
           <div>
@@ -2513,7 +2514,7 @@ function PersonaVoiceProfileApiPage() {
   void handleEvaluate
 
   return (
-    <AppShell title="음성 프로필" subtitle="음성 프로필 상태를 확인하고 사용자 확인을 진행할 수 있어요." badge="이용 가능">
+    <AppShell title="음성 프로필" subtitle="음성 프로필 상태를 확인하고 사용자 확인을 진행할 수 있어요.">
       <main className="domain-page target-api-page">
         <header className="domain-page__hero">
           <div>
@@ -2572,7 +2573,7 @@ function getSessionIdFromLocation() {
 }
 
 function PhotoMemoryPreview({ photoMemory }: { photoMemory: PhotoMemoryResponse }) {
-  return <img alt={photoMemory.title} src={toPlayableFileUrl(photoMemory.file_path)} />
+  return <img alt={photoMemory.title} src={toPlayableFileUrl(photoMemory.image_api_url ?? photoMemory.file_path)} />
 }
 
 function InterviewSessionCard({ session }: { session: AIInterviewSessionResponse }) {
@@ -2672,7 +2673,7 @@ function InterviewListApiPage() {
   }
 
   return (
-    <AppShell title="인터뷰" subtitle="인터뷰를 만들고 스토리북 재료로 활용할 수 있어요." badge="이용 가능">
+    <AppShell title="인터뷰" subtitle="인터뷰를 만들고 스토리북 재료로 활용할 수 있어요.">
       <main className="domain-page target-api-page">
         <header className="domain-page__hero">
           <div>
@@ -2872,7 +2873,7 @@ function InterviewSessionApiPage() {
   void handleCreateQuestion
 
   return (
-    <AppShell title="인터뷰 세션" subtitle="질문과 답변을 확인하고 답변을 저장할 수 있어요." badge="이용 가능">
+    <AppShell title="인터뷰 세션" subtitle="질문과 답변을 확인하고 답변을 저장할 수 있어요.">
       <main className="domain-page target-api-page">
         <header className="domain-page__hero">
           <div>
@@ -3038,7 +3039,7 @@ function PhotoMemoryListApiPage() {
   }
 
   return (
-    <AppShell title="사진 기억" subtitle="사진 기억을 확인하고 정리할 수 있어요." badge="이용 가능">
+    <AppShell title="사진 기억" subtitle="사진 기억을 확인하고 정리할 수 있어요.">
       <main className="domain-page target-api-page">
         <header className="domain-page__hero">
           <div>
@@ -3183,7 +3184,7 @@ function PhotoMemoryUploadApiPage() {
   }
 
   return (
-    <AppShell title="사진 기억 올리기" subtitle="사진과 설명을 등록해 스토리북 재료로 사용할 수 있어요." badge="이용 가능">
+    <AppShell title="사진 기억 올리기" subtitle="사진과 설명을 등록해 스토리북 재료로 사용할 수 있어요.">
       <main className="domain-page target-api-page">
         <header className="domain-page__hero">
           <div>
@@ -3334,7 +3335,7 @@ function StorybookListApiPage() {
   }, [loadStorybooks])
 
   return (
-    <AppShell title="스토리북" subtitle="스토리북 목록을 확인하고 공유할 수 있어요." badge="이용 가능">
+    <AppShell title="스토리북" subtitle="스토리북 목록을 확인하고 공유할 수 있어요.">
       <main className="domain-page target-api-page">
         <header className="domain-page__hero">
           <div>
@@ -3398,7 +3399,7 @@ function StorybookCreateApiPage() {
   }
 
   return (
-    <AppShell title="스토리북 만들기" subtitle="인터뷰나 사진 기억을 바탕으로 스토리북을 만들어요." badge="이용 가능">
+    <AppShell title="스토리북 만들기" subtitle="인터뷰나 사진 기억을 바탕으로 스토리북을 만들어요.">
       <main className="domain-page target-api-page">
         <header className="domain-page__hero">
           <div>
@@ -3567,7 +3568,7 @@ function StorybookDetailApiPage() {
   void handleLoad
 
   return (
-    <AppShell title="스토리북 상세" subtitle="스토리북 내용과 챕터를 확인할 수 있어요." badge="이용 가능">
+    <AppShell title="스토리북 상세" subtitle="스토리북 내용과 챕터를 확인할 수 있어요.">
       <main className="domain-page target-api-page">
         <header className="domain-page__hero">
           <div>
@@ -3727,7 +3728,7 @@ function StorybookShareApiPage() {
   void handleLoad
 
   return (
-    <AppShell title="스토리북 공유" subtitle="공유 링크를 만들고 사용 여부를 관리할 수 있어요." badge="이용 가능">
+    <AppShell title="스토리북 공유" subtitle="공유 링크를 만들고 사용 여부를 관리할 수 있어요.">
       <main className="domain-page target-api-page">
         <header className="domain-page__hero">
           <div>
@@ -3968,7 +3969,7 @@ function MemoryGroupListApiPage() {
   }
 
   return (
-    <AppShell title="기억 그룹" subtitle="그룹을 만들고 공유할 수 있어요." badge="이용 가능">
+    <AppShell title="기억 그룹" subtitle="그룹을 만들고 공유할 수 있어요.">
       <main className="domain-page target-api-page">
         <header className="domain-page__hero">
           <div>
@@ -4143,7 +4144,7 @@ function MemoryGroupDetailApiPage() {
   void handleLoadGroup
 
   return (
-    <AppShell title="기억 그룹 상세" subtitle="그룹 멤버와 공유된 스토리북을 확인할 수 있어요." badge="이용 가능">
+    <AppShell title="기억 그룹 상세" subtitle="그룹 멤버와 공유된 스토리북을 확인할 수 있어요.">
       <main className="domain-page target-api-page">
         <header className="domain-page__hero">
           <div>
@@ -4446,7 +4447,7 @@ function DeletionRequestApiPage() {
   }
 
   return (
-    <AppShell title="삭제 요청" subtitle="데이터 삭제 요청을 보내고 상태를 확인할 수 있어요." badge="이용 가능">
+    <AppShell title="삭제 요청" subtitle="데이터 삭제 요청을 보내고 상태를 확인할 수 있어요.">
       <main className="domain-page target-api-page">
         <header className="domain-page__hero">
           <div>
@@ -4661,7 +4662,7 @@ function ReportApiPage() {
   }
 
   return (
-    <AppShell title="신고하기" subtitle="문제가 있는 내용을 신고하고 처리 상태를 확인할 수 있어요." badge="이용 가능">
+    <AppShell title="신고하기" subtitle="문제가 있는 내용을 신고하고 처리 상태를 확인할 수 있어요.">
       <main className="domain-page target-api-page">
         <header className="domain-page__hero">
           <div>
@@ -4760,7 +4761,7 @@ function ReportApiPage() {
           </section>
         )}
 
-        {!isLoading && reports.length === 0 && <TargetStateMessage title="신고가 없습니다" message="백엔드가 반환한 신고가 없습니다." />}
+        {!isLoading && reports.length === 0 && <TargetStateMessage title="신고가 없어요" message="등록된 신고가 없어요." />}
 
         <section className="target-card-grid" aria-label="신고">
           {reports.map((report) => (
@@ -4782,7 +4783,7 @@ const voiceStatusLabel: Record<VoiceCallStatus, string> = {
 }
 
 function VoiceCallBubble({ message }: { message: VoiceCallMessage }) {
-  const audioPath = message.audio_url ?? message.audio_file_path
+  const audioPath = message.audio_api_url ?? message.audio_url ?? message.audio_file_path
   const audioUrl = audioPath ? toPlayableFileUrl(audioPath) : null
 
   return (
@@ -4843,7 +4844,7 @@ function PersonaVoiceCallApiPage() {
   }
 
   return (
-    <AppShell title="음성 대화" subtitle="페르소나와 실시간 음성 대화를 진행할 수 있어요." badge="이용 가능">
+    <AppShell title="음성 대화" subtitle="페르소나와 실시간 음성 대화를 진행할 수 있어요.">
       <main className="domain-page target-api-page voice-call-page">
         <header className="domain-page__hero">
           <div>
@@ -5006,7 +5007,7 @@ function AdminDashboardApiPage() {
   }, [loadDashboard])
 
   return (
-    <AppShell title="관리자" subtitle="관리자 권한이 있는 계정만 이 화면을 이용할 수 있어요." badge="이용 가능">
+    <AppShell title="관리자" subtitle="관리자 권한이 있는 계정만 이 화면을 이용할 수 있어요.">
       <main className="domain-page target-api-page">
         <header className="domain-page__hero">
           <div>
@@ -5171,7 +5172,7 @@ function AdminVerificationReviewApiPage() {
   }
 
   return (
-    <AppShell title="관리자 입증 검토" subtitle="관계 입증 기록을 검토합니다." badge="이용 가능">
+    <AppShell title="관리자 입증 검토" subtitle="관계 입증 기록을 검토합니다.">
       <main className="domain-page target-api-page">
         <header className="domain-page__hero">
           <div>
@@ -5326,7 +5327,7 @@ function AdminReportsApiPage() {
   }
 
   return (
-    <AppShell title="관리자 신고" subtitle="사용자 신고를 검토하고 처리 상태를 변경할 수 있어요." badge="이용 가능">
+    <AppShell title="관리자 신고" subtitle="사용자 신고를 검토하고 처리 상태를 변경할 수 있어요.">
       <main className="domain-page target-api-page">
         <header className="domain-page__hero">
           <div>
@@ -5407,7 +5408,7 @@ function AdminAuditLogsApiPage() {
   }, [loadLogs])
 
   return (
-    <AppShell title="활동 기록" subtitle="서비스 활동과 요청 제한 기록을 확인합니다." badge="이용 가능">
+    <AppShell title="활동 기록" subtitle="서비스 활동과 요청 제한 기록을 확인합니다.">
       <main className="domain-page target-api-page">
         <header className="domain-page__hero">
           <div>
@@ -5529,7 +5530,7 @@ function AdminVoiceProfileReviewApiPage() {
   }
 
   return (
-    <AppShell title="관리자 음성 프로필" subtitle="음성 프로필 기록을 검토합니다." badge="이용 가능">
+    <AppShell title="관리자 음성 프로필" subtitle="음성 프로필 기록을 검토합니다.">
       <main className="domain-page target-api-page">
         <header className="domain-page__hero">
           <div>
@@ -6333,3 +6334,4 @@ export function AdminAuditLogsPage() {
 export function AdminVoiceProfileReviewPage() {
   return <AdminVoiceProfileReviewApiPage />
 }
+

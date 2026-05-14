@@ -1,193 +1,112 @@
-# API Integration
+# Remory Frontend API Integration Matrix
 
-이 문서는 Remory 프론트의 API 연동 규칙, 도메인별 endpoint map, 백엔드 기능 대비 프론트 구현 상태를 정리합니다.
-
-기준 자료:
-
-- `../backend/docs/*`
+기준 문서
+- `../backend/docs/02-backend-api.md`
+- `../backend/docs/03-frontend-integration.md`
 - `http://141.164.48.128:8000/openapi.json`
-- 현재 프론트 코드의 `src/services`, `src/types`, `src/pages`, `src/hooks`
 
-주의: 이 문서의 endpoint는 확인된 backend docs/OpenAPI 기준만 사용합니다. 문서에 없는 request body나 response body는 만들지 않습니다.
+검증 기준 상태 값
+- `connected`
+- `partially-connected`
+- `missing`
+- `incorrect`
+- `backend-not-supported`
+- `intentionally-disabled`
 
-## Base URL
+주의
+- 페이지 컴포넌트에서 직접 `fetch` 호출 금지(현재 `src/services/apiClient.ts`에서만 사용).
+- 서비스 계층에서만 API 호출.
+- 백엔드 문서에 없는 기능은 실제 기능처럼 노출하지 않음.
 
-REST:
+## 통합 표
 
-```ts
-import.meta.env.VITE_API_BASE_URL
-```
+| 도메인 | 기능명 | method | path | 프론트 service 함수명 | 사용 page | request type | response type | 연결 상태 | 수정 필요 여부 |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Auth | 회원가입 | POST | `/auth/register` | `authService.register` | `AuthPage` | `RegisterRequest` | `AuthResponse` | connected | N |
+| Auth | 로그인 | POST | `/auth/login` | `authService.login` | `AuthPage` | `LoginRequest` | `AuthResponse` | connected | N |
+| Auth | 내 정보 | GET | `/auth/me` | `authService.me` | `useAuth`, `HomePage`, `MyPage` | - | `UserResponse` | connected | N |
+| Auth | 토큰 재발급 | POST | `/auth/refresh-token` | `authService.refreshToken` | `useAuth` | `RefreshTokenRequest` | `TokenResponse` | connected | N |
+| Auth | 로그아웃 | POST | `/auth/logout` | `authService.logout` | `AppShell`, `MyPage` | `LogoutRequest` | `MessageResponse` | connected | N |
+| Target | 대상 목록 | GET | `/targets` | `targetService.listTargets` | `TargetListPage`, `HomePage` | `TargetListParams` | `PaginatedTargetResponse` | connected | N |
+| Target | 대상 생성 | POST | `/targets` | `targetService.createTarget` | `TargetCreatePage` | `TargetCreateRequest` | `TargetResponse` | connected | N |
+| Target | 대상 상세 | GET | `/targets/{target_id}` | `targetService.getTarget` | `TargetDetailPage` | - | `TargetDetailResponse` | connected | N |
+| Target | 대상 수정 | PUT | `/targets/{target_id}` | `targetService.updateTarget` | `TargetDetailPage` | `TargetUpdateRequest` | `TargetResponse` | connected | N |
+| Target | 대상 삭제 | DELETE | `/targets/{target_id}` | `targetService.deleteTarget` | `TargetDetailPage` | - | `204` | connected | N |
+| TargetMedia | 미디어 목록 | GET | `/targets/{target_id}/media` | `mediaService.listTargetMedia` | `TargetMediaPage` | - | `TargetMediaResponse[]` | connected | N |
+| TargetMedia | 미디어 업로드 | POST | `/targets/{target_id}/media` | `mediaService.uploadTargetMedia` | `TargetMediaPage` | `multipart(media_type,file)` | `MediaUploadResponse` | connected | N |
+| TargetMedia | 미디어 삭제 | DELETE | `/media/{media_id}` | `mediaService.deleteMedia` | `TargetMediaPage` | - | `MediaDeleteResponse` | connected | N |
+| ConsentLog | 동의 목록(전체) | GET | `/consents` | `consentService.listConsents` | `ConsentPage` | - | `ConsentResponse[]` | connected | N |
+| ConsentLog | 동의 목록(대상별) | GET | `/targets/{target_id}/consents` | `consentService.listTargetConsents` | `ConsentPage`, `HomePage` | - | `ConsentResponse[]` | connected | N |
+| ConsentLog | 동의 생성 | POST | `/consents` | `consentService.createConsent` | `ConsentPage` | `ConsentCreate` | `ConsentResponse` | connected | N |
+| ConsentLog | 동의 철회 | PATCH | `/consents/{consent_id}/revoke` | `consentService.revokeConsent` | `ConsentPage` | - | `ConsentRevokeResponse` | connected | N |
+| Verification | 입증 요청 목록 | GET | `/targets/{target_id}/verification-requests` | `verificationService.listTargetVerificationRequests` | `TargetVerificationPage`, `HomePage` | `VerificationListParams` | `PaginatedVerificationRequestResponse` | connected | N |
+| Verification | 입증 요청 상세 | GET | `/verification-requests/{request_id}` | `verificationService.getVerificationRequest` | `TargetVerificationPage` | - | `VerificationRequestDetailResponse` | connected | N |
+| Verification | 입증 요청 생성 | POST | `/targets/{target_id}/verification-requests` | `verificationService.createVerificationRequest` | `TargetVerificationPage` | `multipart(verification_type_param,applicant_note,file)` | `VerificationRequestResponse` | connected | N |
+| Persona | 페르소나 생성 | POST | `/targets/{target_id}/persona` | `personaService.createPersona` | `TargetDetailPage`, `PersonaListPage` | - | `PersonaDetailResponse` | connected | N |
+| Persona | 페르소나 상세 | GET | `/personas/{persona_id}` | `personaService.getPersona` | `PersonaDetailPage` | - | `PersonaDetailResponse` | connected | N |
+| Persona | 페르소나 상태 | GET | `/personas/{persona_id}/status` | `personaService.getPersonaStatus` | `PersonaDetailPage` | - | `PersonaStatusResponse` | connected | N |
+| PersonaVoiceProfile | 프로필 조회 | GET | `/personas/{persona_id}/voice-profile` | `voiceProfileService.getVoiceProfile` | `PersonaVoiceProfilePage` | - | `PersonaVoiceProfileResponse` | connected | N |
+| PersonaVoiceProfile | 프로필 생성 | POST | `/personas/{persona_id}/voice-profile` | `voiceProfileService.createVoiceProfile` | `PersonaVoiceProfilePage` | - | `PersonaVoiceProfileResponse` | connected | N |
+| PersonaVoiceProfile | 품질 평가 | POST | `/personas/{persona_id}/voice-profile/evaluate` | `voiceProfileService.evaluateVoiceProfile` | `PersonaVoiceProfilePage` | - | `PersonaVoiceProfileResponse` | connected | N |
+| PersonaVoiceProfile | 사용자 확정 | PATCH | `/personas/{persona_id}/voice-profile/user-confirm` | `voiceProfileService.confirmVoiceProfile` | `PersonaVoiceProfilePage` | `VoiceProfileReviewRequest` | `PersonaVoiceProfileResponse` | connected | N |
+| PersonaChat | 채팅 생성 | POST | `/personas/{persona_id}/chats` | `chatService.createPersonaChat` | `PersonaChatPage` | `PersonaChatCreateRequest` | `PersonaChatResponse` | connected | N |
+| PersonaChat | 채팅 목록 | GET | `/personas/{persona_id}/chats` | `chatService.listPersonaChats` | `PersonaChatPage` | - | `PersonaChatResponse[]` | connected | N |
+| PersonaMessage | 메시지 목록 | GET | `/chats/{chat_id}/messages` | `chatService.listChatMessages` | `PersonaChatPage` | - | `PersonaMessageResponse[]` | connected | N |
+| PersonaMessage | 텍스트 전송 | POST | `/chats/{chat_id}/messages` | `chatService.createChatMessage` | `PersonaChatPage` | `PersonaMessageCreateRequest` | `PersonaMessagePairResponse` | connected | N |
+| PersonaMessage | 오디오 전송 | POST | `/chats/{chat_id}/audio` | `chatService.createChatAudioMessage` | `PersonaChatPage` | `multipart(file,generate_audio)` | `PersonaMessagePairResponse` | connected | N |
+| VoiceCall WS | 세션 연결/전송 | WS | `/ws/personas/{persona_id}/voice?token=...` | `voiceSocketService`, `useVoiceCall` | `PersonaVoiceCallPage` | `start/audio_chunk/end_utterance/stop` | `session_started/.../session_ended` | connected | N |
+| AIInterview | 세션 생성 | POST | `/interviews` | `interviewService.createSession` | `InterviewListPage` | `AIInterviewSessionCreateRequest` | `AIInterviewSessionResponse` | connected | N |
+| AIInterview | 세션 상세 | GET | `/interviews/{session_id}` | `interviewService.getSession` | `InterviewSessionPage` | - | `AIInterviewSessionDetailResponse` | connected | N |
+| AIInterview | 질문 생성 | POST | `/interviews/{session_id}/questions` | `interviewService.createQuestion` | `InterviewSessionPage` | `AIInterviewQuestionCreateRequest?` | `AIInterviewQuestionResponse` | connected | N |
+| AIInterview | 답변 생성 | POST | `/interviews/{session_id}/answers` | `interviewService.createAnswer` | `InterviewSessionPage` | `AIInterviewAnswerCreateRequest` | `AIInterviewAnswerResponse` | connected | N |
+| PhotoMemory | 목록 | GET | `/photo-memories` | `photoMemoryService.listPhotoMemories` | `PhotoMemoryListPage` | - | `PhotoMemoryResponse[]` | connected | N |
+| PhotoMemory | 상세 | GET | `/photo-memories/{photo_memory_id}` | `photoMemoryService.getPhotoMemory` | `PhotoMemoryListPage` | - | `PhotoMemoryResponse` | connected | N |
+| PhotoMemory | 업로드 | POST | `/photo-memories` | `photoMemoryService.createPhotoMemory` | `PhotoMemoryUploadPage` | `multipart(title,description,taken_at,location,file)` | `PhotoMemoryResponse` | connected | N |
+| PhotoMemory | 삭제 | DELETE | `/photo-memories/{photo_memory_id}` | `photoMemoryService.deletePhotoMemory` | `PhotoMemoryListPage` | - | `PhotoMemoryDeleteResponse` | connected | N |
+| StoryBook | 목록 | GET | `/storybooks` | `storybookService.listStorybooks` | `StorybookListPage` | - | `StoryBookResponse[]` | connected | N |
+| StoryBook | 생성 | POST | `/storybooks` | `storybookService.createStorybook` | `StorybookCreatePage` | `StoryBookCreateRequest` | `StoryBookDetailResponse` | connected | N |
+| StoryBook | 상세 | GET | `/storybooks/{storybook_id}` | `storybookService.getStorybook` | `StorybookDetailPage` | - | `StoryBookDetailResponse` | connected | N |
+| StoryBook | 챕터 목록 | GET | `/storybooks/{storybook_id}/chapters` | `storybookService.listChapters` | `StorybookDetailPage` | - | `StoryChapterResponse[]` | connected | N |
+| StoryBook | 재생성 | POST | `/storybooks/{storybook_id}/regenerate` | `storybookService.regenerateStorybook` | `StorybookDetailPage` | - | `StoryBookDetailResponse` | connected | N |
+| ShareLink | 링크 생성 | POST | `/storybooks/{storybook_id}/share-links` | `shareLinkService.createShareLink` | `StorybookSharePage` | `ShareLinkCreateRequest?` | `ShareLinkResponse` | connected | N |
+| ShareLink | 링크 목록 | GET | `/storybooks/{storybook_id}/share-links` | `shareLinkService.listShareLinks` | `StorybookSharePage` | - | `ShareLinkResponse[]` | connected | N |
+| ShareLink | 공개 조회 | GET | `/share/{token}` | `shareLinkService.getPublicSharedStorybook` | `PublicSharePage` | - | `PublicSharedStoryBookResponse` | connected | N |
+| ShareLink | 링크 비활성화 | PATCH | `/share-links/{share_link_id}/disable` | `shareLinkService.disableShareLink` | `StorybookSharePage` | - | `ShareLinkDisableResponse` | connected | N |
+| MemoryGroup | 그룹 목록 | GET | `/groups` | `groupService.listGroups` | `MemoryGroupListPage` | - | `MemoryGroupResponse[]` | connected | N |
+| MemoryGroup | 그룹 생성 | POST | `/groups` | `groupService.createGroup` | `MemoryGroupListPage` | `MemoryGroupCreateRequest` | `MemoryGroupResponse` | connected | N |
+| MemoryGroup | 그룹 상세 | GET | `/groups/{group_id}` | `groupService.getGroup` | `MemoryGroupDetailPage` | - | `MemoryGroupDetailResponse` | connected | N |
+| GroupMember | 멤버 추가 | POST | `/groups/{group_id}/members` | `groupService.addGroupMember` | `MemoryGroupDetailPage` | `GroupMemberCreateRequest` | `GroupMemberResponse` | connected | N |
+| GroupMember | 멤버 목록 | GET | `/groups/{group_id}/members` | `groupService.listGroupMembers` | `MemoryGroupDetailPage` | - | `GroupMemberResponse[]` | connected | N |
+| GroupStoryBook | 그룹 공유 | POST | `/groups/{group_id}/storybooks/{storybook_id}` | `groupService.shareStorybookToGroup` | `MemoryGroupDetailPage` | - | `GroupStoryBookResponse` | connected | N |
+| GroupStoryBook | 그룹 스토리북 목록 | GET | `/groups/{group_id}/storybooks` | `groupService.listGroupStorybooks` | `MemoryGroupDetailPage` | - | `GroupStoryBookListItemResponse[]` | connected | N |
+| DeletionRequest | 요청 목록 | GET | `/deletion-requests` | `deletionService.listDeletionRequests` | `DeletionRequestPage` | - | `DeletionRequestResponse[]` | connected | N |
+| DeletionRequest | 요청 생성 | POST | `/deletion-requests` | `deletionService.createDeletionRequest` | `DeletionRequestPage` | `DeletionRequestCreateRequest` | `DeletionRequestResponse` | connected | N |
+| DeletionRequest | 요청 상세 | GET | `/deletion-requests/{request_id}` | `deletionService.getDeletionRequest` | `DeletionRequestPage` | - | `DeletionRequestResponse` | connected | N |
+| DeletionRequest | 요청 취소 | PATCH | `/deletion-requests/{request_id}/cancel` | `deletionService.cancelDeletionRequest` | `DeletionRequestPage` | - | `DeletionRequestResponse` | connected | N |
+| Report | 신고 생성 | POST | `/reports` | `reportService.createReport` | `ReportPage` | `CreateReportRequest` | `ReportResponse` | connected | N |
+| Report | 신고 목록 | GET | `/reports` | `reportService.listReports` | `ReportPage` | `page,size` | `PaginatedReportResponse` | connected | N |
+| Report | 신고 상세 | GET | `/reports/{report_id}` | `reportService.getReport` | `ReportPage` | - | `ReportResponse` | connected | N |
+| Admin Verification | 검수 목록/상세/상태변경 | GET/PATCH | `/admin/verification-requests*` | `adminService.listVerificationRequests` 등 | `AdminVerificationReviewPage` | 각 request type | `VerificationRequestAdminResponse` | connected | N |
+| Admin Report | 신고 목록/상세/처리 | GET/PATCH | `/admin/reports*` | `adminService.listReports` 등 | `AdminReportsPage` | `Record<string,unknown>` | `Record<string,unknown>` | partially-connected | Y (백엔드 스키마 비구체) |
+| Admin Audit | 감사 로그 | GET | `/admin/audit-logs` | `adminService.listAuditLogs` | `AdminAuditLogsPage` | query | `PaginatedResponse<AuditLogResponse>` | connected | N |
+| Admin Usage | 사용량 조회/수정 | GET/PATCH | `/admin/usage-limits`, `/admin/users/{id}/usage-limit`, `/admin/personas/{id}/usage-limit` | `adminService.listUsageLimits` 등 | `AdminDashboardPage` | `UpdateUsageLimitRequest` 등 | usage types | connected | N |
+| Admin RateLimit | 이벤트 조회 | GET | `/admin/rate-limit-events` | `adminService.listRateLimitEvents` | `AdminAuditLogsPage` | query | `PaginatedResponse<RateLimitEventResponse>` | connected | N |
+| Admin VoiceProfile | 검수 조회/처리 | GET/PATCH | `/admin/voice-profiles*` | `adminService.getVoiceProfile` 등 | `AdminVoiceProfileReviewPage` | `VoiceProfileReviewRequest` | `PersonaVoiceProfileResponse` | connected | N |
+| Admin Deletion | 삭제요청 운영 | GET/PATCH | `/admin/deletion-requests*` | `adminService.listDeletionRequests` 등 | Admin pages(연결 준비) | query | `DeletionRequestResponse` | connected | N |
+| Legacy UI | `targetApi.ts` / `authApi.ts` / `chatApi.ts` / `storybookApi.ts` | mixed | 기존 호환 wrapper | legacy service 함수 | `ChatPage` 등 구경로 | legacy types | legacy types | partially-connected | Y (신규 서비스 계층으로 점진 통합) |
+| StoryVoiceNarration | 별도 HTTP API | - | - | - | - | - | - | backend-not-supported | N |
+| Mock feature pages | 데모/예시 데이터 | - | - | `mockFeatureService` | `MockFeaturePage` | - | - | intentionally-disabled | N |
 
-기본값:
+## 이번 점검에서 반영한 수정
 
-```text
-/api/v1
-```
+- `authService.me` 파싱 보강: `role`/`ROLE` 및 중첩 응답(`data.user`)까지 허용.
+- `apiClient` 에러 메시지 사용자 친화형으로 통일, 백엔드 `detail` 키워드 매핑 추가.
+- 미디어/사진/채팅/음성 타입에 `file_api_url`, `image_api_url`, `audio_api_url` 반영.
+- `DomainPages` 미디어/오디오/이미지 렌더링에서 API URL 우선 사용.
+- `voiceSocketService` `audio_chunk.mime_type`을 문서 허용 타입으로 확장.
+- `adminService`에 문서 기준 삭제요청 운영 API(`/admin/deletion-requests*`) 추가.
 
-WebSocket:
+## 남은 리스크
 
-```ts
-import.meta.env.VITE_WS_BASE_URL
-```
-
-기본값:
-
-```text
-/api/v1
-```
-
-로컬 개발 예시:
-
-```env
-VITE_API_BASE_URL=http://141.164.48.128:8000/api/v1
-VITE_WS_BASE_URL=ws://141.164.48.128:8000/api/v1
-```
-
-## Auth와 Token 처리
-
-- access token: `localStorage.remory_access_token`
-- refresh token: 실제 응답에 있을 때만 `localStorage.remory_refresh_token`
-- Authorization header: `Authorization: Bearer <access_token>`
-- 401 응답 시 token을 제거하고 재로그인 flow로 이동할 수 있게 처리합니다.
-- WebSocket 인증은 query string `token=<accessToken>`을 사용합니다.
-
-## apiClient 규칙
-
-파일: `src/services/apiClient.ts`
-
-- 모든 REST 요청은 `apiClient` 또는 `apiRequest`를 통해 처리합니다.
-- page component에서 직접 `fetch`를 사용하지 않습니다.
-- `FormData` 요청은 `Content-Type`을 직접 지정하지 않습니다.
-- JSON 요청은 `Content-Type: application/json`을 붙입니다.
-- 204 응답은 `undefined`로 안전하게 처리합니다.
-- JSON이 아닌 응답도 text 또는 blob으로 안전하게 처리합니다.
-- 서버 error의 `detail`, `message`, FastAPI validation detail을 `ApiError`로 전달합니다.
-
-## 도메인별 API Map
-
-OpenAPI path는 `/api/v1` prefix를 포함해 확인되었습니다. 프론트 service에서는 `VITE_API_BASE_URL` 뒤에 domain path를 붙입니다.
-
-| 도메인 | 확인된 endpoint |
-| --- | --- |
-| Auth | `POST /auth/register`, `POST /auth/sign-up`, `POST /auth/login`, `POST /auth/logout`, `POST /auth/refresh-token`, `GET /auth/me` |
-| Target | `GET /targets`, `POST /targets`, `GET /targets/{target_id}`, `PUT /targets/{target_id}`, `DELETE /targets/{target_id}` |
-| TargetMedia | `GET /targets/{target_id}/media`, `POST /targets/{target_id}/media`, `GET /targets/{target_id}/media/{media_id}/file`, `DELETE /media/{media_id}` |
-| ConsentLog | `GET /consents`, `POST /consents`, `GET /targets/{target_id}/consents`, `PATCH /consents/{consent_id}/revoke` |
-| TargetVerificationRequest | `POST /targets/{target_id}/verification-requests`, `GET /targets/{target_id}/verification-requests`, `GET /verification-requests/{request_id}` |
-| Persona | `POST /targets/{target_id}/persona`, `GET /personas/{persona_id}`, `GET /personas/{persona_id}/status` |
-| PersonaVoiceProfile | `GET /personas/{persona_id}/voice-profile`, `POST /personas/{persona_id}/voice-profile`, `POST /personas/{persona_id}/voice-profile/evaluate`, `PATCH /personas/{persona_id}/voice-profile/user-confirm` |
-| PersonaChat | `GET /personas/{persona_id}/chats`, `POST /personas/{persona_id}/chats` |
-| PersonaMessage | `GET /chats/{chat_id}/messages`, `POST /chats/{chat_id}/messages`, `POST /chats/{chat_id}/audio`, `GET /chats/{chat_id}/messages/{message_id}/audio` |
-| Voice WebSocket | `WS /ws/personas/{persona_id}/voice?token={accessToken}` under `VITE_WS_BASE_URL` |
-| AIInterviewSession | `POST /interviews`, `GET /interviews/{session_id}`, `POST /interviews/{session_id}/questions`, `POST /interviews/{session_id}/answers` |
-| PhotoMemory | `GET /photo-memories`, `POST /photo-memories`, `GET /photo-memories/{photo_memory_id}`, `DELETE /photo-memories/{photo_memory_id}`, `GET /photo-memories/{photo_memory_id}/image` |
-| StoryBook / StoryChapter | `GET /storybooks`, `POST /storybooks`, `GET /storybooks/{storybook_id}`, `GET /storybooks/{storybook_id}/chapters`, `POST /storybooks/{storybook_id}/regenerate` |
-| ShareLink | `POST /storybooks/{storybook_id}/share-links`, `GET /storybooks/{storybook_id}/share-links`, `GET /share/{token}`, `PATCH /share-links/{share_link_id}/disable` |
-| MemoryGroup / GroupMember / GroupStoryBook | `GET /groups`, `POST /groups`, `GET /groups/{group_id}`, `GET /groups/{group_id}/members`, `POST /groups/{group_id}/members`, `GET /groups/{group_id}/storybooks`, `POST /groups/{group_id}/storybooks/{storybook_id}` |
-| DeletionRequest | `GET /deletion-requests`, `POST /deletion-requests`, `GET /deletion-requests/{request_id}`, `PATCH /deletion-requests/{request_id}/cancel` |
-| Report | `GET /reports`, `POST /reports`, `GET /reports/{report_id}` |
-| Admin Verification | `GET /admin/verification-requests`, `GET /admin/verification-requests/{request_id}`, `GET /admin/verification-requests/{request_id}/file`, approve/reject/need-more-info/revoke action endpoints |
-| Admin Report | `GET /admin/reports`, `GET /admin/reports/{report_id}`, reviewing/resolve/reject/action-taken action endpoints |
-| Admin Audit/Limit | `GET /admin/audit-logs`, `GET /admin/usage-limits`, `PATCH /admin/users/{user_id}/usage-limit`, `PATCH /admin/personas/{persona_id}/usage-limit`, `GET /admin/rate-limit-events` |
-| Admin VoiceProfile | `GET /admin/voice-profiles/{voice_profile_id}`, approve/reject/revoke action endpoints |
-| Admin DeletionRequest | `GET /admin/deletion-requests`, `GET /admin/deletion-requests/{request_id}`, approve-and-process/reject action endpoints |
-
-## Voice WebSocket Message
-
-Client messages, backend docs 기준:
-
-- `type: "start"`, `chat_id: number`
-- `type: "audio_chunk"`, `data: base64 audio chunk`, `mime_type: "audio/webm"`
-- `type: "end_utterance"`
-- `type: "stop"`
-
-Server messages, backend docs 기준:
-
-- `type: "session_started"`, `session_id: number`
-- `type: "partial_transcript"`, `text: string`
-- `type: "final_transcript"`, `text: string`
-- `type: "persona_text"`, `text: string`
-- `type: "persona_audio"`, `audio_url` 또는 `audio_file_path`
-- `type: "error"`, `message: string`
-- `type: "session_ended"`
-
-## 구현 상태 정의
-
-| status | 의미 |
-| --- | --- |
-| `connected` | type/service/page가 있고 실제 backend endpoint를 사용합니다. |
-| `partially-connected` | 실제 service 또는 page는 있으나 backend endpoint 제약, schema 불명확, 일부 flow 제한이 있습니다. |
-| `mock-only` | backend 기능은 있으나 현재 주 route가 mock skeleton만 제공합니다. 현재 demo 브랜치의 주요 메뉴에는 가능한 한 남기지 않습니다. |
-| `missing` | backend 기능은 있으나 프론트 type/service/page가 없습니다. |
-| `removed` | backend에 없어 제거했거나 기존 backend 도메인으로 통합한 프론트 기능입니다. |
-
-## 백엔드 기능 대비 프론트 구현 상태
-
-| 기능 | 상태 | 프론트 파일 |
-| --- | --- | --- |
-| Auth | `connected` | `authService.ts`, `useAuth.ts`, `AuthPage.tsx` |
-| RefreshToken | `connected` | `authService.ts`, token storage helpers |
-| User me | `connected` | `authService.ts`, `useAuth.ts`, `MyPage.tsx` |
-| Target | `connected` | `targetService.ts`, Target pages |
-| TargetMedia | `connected` | `mediaService.ts`, `TargetMediaPage` |
-| ConsentLog | `connected` | `consentService.ts`, `ConsentPage` |
-| TargetVerificationRequest | `connected` | `verificationService.ts`, `TargetVerificationPage` |
-| Persona | `partially-connected` | `personaService.ts`, Persona pages. 전역 list endpoint 없음. |
-| PersonaVoiceProfile | `connected` | `voiceProfileService.ts`, `PersonaVoiceProfilePage` |
-| PersonaChat | `connected` | `chatService.ts`, `PersonaChatPage` |
-| PersonaMessage | `connected` | `chatService.ts`, `PersonaChatPage` |
-| VoiceCall WebSocket | `connected` | `voiceSocketService.ts`, `useVoiceCall.ts`, `PersonaVoiceCallPage` |
-| AIInterviewSession | `partially-connected` | `interviewService.ts`, Interview pages. 전체 list endpoint 없음. |
-| PhotoMemory | `connected` | `photoMemoryService.ts`, PhotoMemory pages |
-| StoryBook | `connected` | `storybookService.ts`, Storybook pages |
-| StoryChapter | `connected` | `storybookService.ts`, Storybook detail |
-| ShareLink | `connected` | `shareLinkService.ts`, Share pages |
-| MemoryGroup | `connected` | `groupService.ts`, Group pages |
-| GroupMember | `connected` | `groupService.ts`, Group detail |
-| GroupStoryBook | `connected` | `groupService.ts`, Group detail |
-| DeletionRequest | `connected` | `deletionService.ts`, `DeletionRequestPage` |
-| Report | `connected` | `reportService.ts`, `ReportPage` |
-| AuditLog | `connected` | `adminService.ts`, `AdminAuditLogsPage` |
-| UsageLimit | `connected` | `adminService.ts`, `AdminDashboardPage` |
-| RateLimit admin | `connected` | `adminService.ts`, `AdminAuditLogsPage` |
-| Admin verification | `connected` | `adminService.ts`, `AdminVerificationReviewPage` |
-| Admin report | `partially-connected` | `adminService.ts`, `AdminReportsPage`. 일부 response schema는 generic object 렌더링. |
-| Admin voice profile | `connected` | `adminService.ts`, `AdminVoiceProfileReviewPage` |
-| Campaigns | `removed` | backend domain 없음. |
-| legacy ProfilePage | `removed` | My Account로 통합. |
-| legacy StorybookPage | `removed` | `/storybooks/*` route로 통합. |
-| 자동 setup 생성 flow | `removed` | Onboarding CTA로 대체. |
-| StoryVoiceNarration | `removed` | backend endpoint 없음. |
-
-## 백엔드에 없는 기능 제거 기준
-
-- OpenAPI와 `../backend/docs`에 없는 기능은 새 route/page/service로 만들지 않습니다.
-- 기존 프론트에만 있던 기능은 제거하거나 가장 가까운 backend 도메인으로 통합합니다.
-- 실행 가능한 버튼처럼 보이지만 backend API가 없으면 disabled 처리하고 사유를 표시합니다.
-- mock data를 실제 데이터처럼 localStorage에 저장하지 않습니다.
-- 회원가입 또는 최초 진입 시 Target, ConsentLog, VerificationRequest, Persona, StoryBook을 자동 생성하지 않습니다.
-
-## 서비스 파일별 역할
-
-| 파일 | 역할 |
-| --- | --- |
-| `apiClient.ts` | base URL, auth header, JSON/FormData 처리, 204/error 처리 |
-| `authService.ts`, `authApi.ts` | Auth, token, `/auth/me` |
-| `targetService.ts`, `targetApi.ts` | Target CRUD |
-| `mediaService.ts` | TargetMedia upload/list/delete |
-| `consentService.ts` | ConsentLog list/create/revoke |
-| `verificationService.ts` | TargetVerificationRequest submit/list/detail |
-| `personaService.ts` | Persona create/detail/status |
-| `voiceProfileService.ts` | PersonaVoiceProfile get/create/evaluate/confirm |
-| `chatService.ts`, `chatApi.ts` | PersonaChat, PersonaMessage |
-| `voiceSocketService.ts` | Voice WebSocket URL 생성과 connection |
-| `interviewService.ts` | AIInterviewSession |
-| `photoMemoryService.ts` | PhotoMemory |
-| `storybookService.ts`, `storybookApi.ts` | StoryBook, StoryChapter. `storybookApi`는 compatibility wrapper입니다. |
-| `shareLinkService.ts` | ShareLink와 public share |
-| `groupService.ts` | MemoryGroup, GroupMember, GroupStoryBook |
-| `deletionService.ts` | DeletionRequest |
-| `reportService.ts` | Report |
-| `adminService.ts` | Admin verification/report/audit/limit/rate/voice profile/deletion APIs |
-| `personaSession.ts` | 기존 backend persona id discovery/cache. 새 Target/Persona 자동 생성은 하지 않습니다. |
-| `mock/mockFeatureService.ts` | 개발용 mock skeleton data reader |
+- `/admin/reports*`는 백엔드 OpenAPI 스키마가 구체적이지 않아 프론트 타입이 `Record<string, unknown>` 기반이다.
+- `src/pages/DomainPages.tsx`에 legacy 흐름이 남아 있어, 도메인별 파일 분리 리팩터링이 필요하다(동작과는 분리 이슈).

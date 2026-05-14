@@ -125,7 +125,7 @@ function DeletionRequestPage() {
     try {
       const requestTargetId = targetType === 'ACCOUNT'
         ? (await authApi.me()).id
-        : trimmedTargetId
+        : Number(trimmedTargetId)
 
       await deletionApi.createDeletionRequest({
         target_type: targetType,

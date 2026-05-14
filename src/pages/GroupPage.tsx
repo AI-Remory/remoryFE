@@ -127,11 +127,23 @@ function GroupPage() {
   }
 
   const handleAddMember = async () => {
-    if (!selectedGroupId || !memberUserId.trim() || isSubmitting) {
+    if (isSubmitting) {
       return
     }
 
-    if (!isNumericId(memberUserId)) {
+    const trimmedMemberUserId = memberUserId.trim()
+
+    if (!selectedGroupId) {
+      setErrorMessage('그룹을 선택해주세요.')
+      return
+    }
+
+    if (!trimmedMemberUserId) {
+      setErrorMessage('추가할 사용자 ID를 입력해주세요.')
+      return
+    }
+
+    if (!isNumericId(trimmedMemberUserId)) {
       setErrorMessage('사용자 ID는 숫자로 입력해주세요.')
       return
     }
@@ -142,7 +154,7 @@ function GroupPage() {
 
     try {
       const member = await groupApi.addMember(selectedGroupId, {
-        user_id: memberUserId.trim(),
+        user_id: Number(trimmedMemberUserId),
         role: memberRole,
       })
 
@@ -244,7 +256,7 @@ function GroupPage() {
                   <option value="VIEWER">VIEWER</option>
                 </select>
               </label>
-              <button className="ops-page__button-secondary" type="button" onClick={handleAddMember} disabled={!selectedGroupId || !memberUserId.trim() || isSubmitting}>
+              <button className="ops-page__button-secondary" type="button" onClick={handleAddMember} disabled={!selectedGroupId || isSubmitting}>
                 <UserPlus size={17} /> 멤버 추가
               </button>
             </div>

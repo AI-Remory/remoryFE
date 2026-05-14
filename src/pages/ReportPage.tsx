@@ -78,7 +78,7 @@ function ReportPage() {
     try {
       await reportApi.createReport({
         target_type: targetType,
-        target_id: trimmedTargetId,
+        target_id: Number(trimmedTargetId),
         reason_type: reasonType,
         reason_detail: reasonDetail.trim() || null,
       })

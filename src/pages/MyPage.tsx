@@ -3,14 +3,15 @@ import { normalizeAssetUrl } from '../lib/mediaUrl'
 import { authApi } from '../services/authApi'
 import {
   ensureMomPersonaId,
-  getPersonaIdFromTarget,
   REMORY_CHAT_ID_KEY,
   REMORY_PERSONA_ID_KEY,
   REMORY_TARGET_ID_KEY,
+  resolveTargetPersonas,
+  targetMayHavePersona,
+  type ResolvedTargetPersona,
 } from '../services/personaSession'
 import { storybookApi } from '../services/storybookApi'
 import { targetApi } from '../services/targetApi'
-import type { Target } from '../types/api'
 import './MyPage.css'
 
 type IconName =
@@ -37,6 +38,7 @@ type MenuItem = {
 
 type MyPersona = {
   id: string
+  targetId?: string
   name: string
   description: string
   image: string
@@ -78,20 +80,15 @@ const wideMenuItems: MenuItem[] = [
   { id: 'admin', title: '관리자 대시보드', description: '검증 승인, 삭제 요청, 신고를 검수해요', icon: 'settings' },
 ]
 
-function mapTargetsToPersonas(targets: Target[]): MyPersona[] {
+function mapResolvedTargetsToPersonas(resolvedTargetPersonas: ResolvedTargetPersona[]): MyPersona[] {
   const personas: MyPersona[] = []
 
-  for (const target of targets) {
-    const personaId = getPersonaIdFromTarget(target)
-
-    if (!personaId) {
-      continue
-    }
-
+  for (const { target, personaId } of resolvedTargetPersonas) {
     const index = personas.length
 
     personas.push({
       id: String(target.id),
+      targetId: String(target.id),
       personaId,
       name: target.nickname ?? target.name ?? target.persona?.nickname ?? target.persona?.name ?? `페르소나 ${index + 1}`,
       description: target.description ?? target.target_type ?? target.relationship ?? target.persona?.description ?? '소중한 기억을 담고 있는 분',
@@ -223,8 +220,10 @@ function MyPage() {
   const [personaItems, setPersonaItems] = useState<MyPersona[]>([])
   const [isLoadingPersonas, setIsLoadingPersonas] = useState(true)
   const [hasLoadedRealTargets, setHasLoadedRealTargets] = useState(false)
+  const [personaLoadError, setPersonaLoadError] = useState('')
   const [storybookCount, setStorybookCount] = useState(12)
   const hasNoPersonas = hasLoadedRealTargets && personaItems.length === 0
+  const shouldShowPersonaEmpty = hasNoPersonas || Boolean(personaLoadError)
 
   useEffect(() => {
     let ignore = false
@@ -252,21 +251,34 @@ function MyPage() {
           if (!ignore) {
             clearStoredPersonaSession()
             setPersonaItems([])
+            setPersonaLoadError('')
           }
         } else if (!ignore) {
-          const nextPersonas = mapTargetsToPersonas(targets)
+          const resolvedTargetPersonas = await resolveTargetPersonas(targets)
+          const nextPersonas = mapResolvedTargetsToPersonas(resolvedTargetPersonas)
+          const hasPersonaCandidate = targets.some(targetMayHavePersona)
           setPersonaItems(nextPersonas)
+          setPersonaLoadError(
+            nextPersonas.length === 0 && hasPersonaCandidate
+              ? '페르소나 정보를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.'
+              : '',
+          )
 
           if (nextPersonas[0].personaId) {
             window.localStorage.setItem(REMORY_PERSONA_ID_KEY, nextPersonas[0].personaId)
+            if (nextPersonas[0].targetId) {
+              window.localStorage.setItem(REMORY_TARGET_ID_KEY, nextPersonas[0].targetId)
+            }
+          } else {
+            clearStoredPersonaSession()
           }
         }
       } catch {
         if (!ignore) {
           setHasLoadedRealTargets(false)
-          setPersonaItems(mockPersonas)
+          setPersonaItems([])
+          setPersonaLoadError('페르소나 정보를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.')
         }
-        // Keep mock persona cards only when targets cannot be loaded.
       } finally {
         if (!ignore) {
           setIsLoadingPersonas(false)
@@ -292,7 +304,7 @@ function MyPage() {
   }, [])
 
   const handleChatNavigation = async () => {
-    if (hasNoPersonas) {
+    if (!isLoadingPersonas && personaItems.length === 0) {
       window.location.href = '/setup'
       return
     }
@@ -386,10 +398,10 @@ function MyPage() {
             )}
           </div>
           {isLoadingPersonas && <p className="my-page__persona-loading">페르소나를 불러오는 중입니다.</p>}
-          {!isLoadingPersonas && hasNoPersonas ? (
+          {!isLoadingPersonas && shouldShowPersonaEmpty ? (
             <div className="my-page__persona-empty" role="status">
-              <strong>내 페르소나가 없습니다</strong>
-              <p>소중한 사람의 사진과 목소리를 등록해 페르소나를 만들어보세요.</p>
+              <strong>{personaLoadError ? '페르소나 정보를 불러오지 못했습니다' : '내 페르소나가 없습니다'}</strong>
+              <p>{personaLoadError || '소중한 사람의 사진과 목소리를 등록해 페르소나를 만들어보세요.'}</p>
             </div>
           ) : !isLoadingPersonas && (
             <div className="my-page__persona-list">
@@ -401,6 +413,9 @@ function MyPage() {
                   onClick={() => {
                     if (persona.personaId) {
                       window.localStorage.setItem(REMORY_PERSONA_ID_KEY, persona.personaId)
+                    }
+                    if (persona.targetId) {
+                      window.localStorage.setItem(REMORY_TARGET_ID_KEY, persona.targetId)
                     }
                   }}
                 >

@@ -9,7 +9,10 @@ import {
   REMORY_CHAT_ID_KEY,
   REMORY_PERSONA_ID_KEY,
   REMORY_TARGET_ID_KEY,
+  resolveTargetPersonas,
   storeActivePersonaSession,
+  targetMayHavePersona,
+  type ResolvedTargetPersona,
 } from '../services/personaSession'
 import { storybookApi } from '../services/storybookApi'
 import { targetApi } from '../services/targetApi'
@@ -56,16 +59,10 @@ const memoryCards = [
   },
 ]
 
-function mapTargetsToPersonas(targets: Target[]): HomePersona[] {
+function mapResolvedTargetsToPersonas(resolvedTargetPersonas: ResolvedTargetPersona[]): HomePersona[] {
   const personas: HomePersona[] = []
 
-  for (const target of targets) {
-    const personaId = getPersonaIdFromTarget(target)
-
-    if (!personaId) {
-      continue
-    }
-
+  for (const { target, personaId } of resolvedTargetPersonas) {
     const index = personas.length
 
     personas.push({
@@ -263,8 +260,11 @@ function HomePage() {
   const [isLoadingHomeData, setIsLoadingHomeData] = useState(true)
   const [hasLoadedRealTargets, setHasLoadedRealTargets] = useState(false)
   const [errorMessage, setErrorMessage] = useState('')
+  const [personaLoadError, setPersonaLoadError] = useState('')
   const activePersona = personaItems.find((persona) => persona.active)
+  const hasNoLoadedPersonas = !isLoadingHomeData && personaItems.length === 0
   const hasNoPersonas = hasLoadedRealTargets && personaItems.length === 0
+  const shouldShowPersonaEmpty = hasNoPersonas || Boolean(personaLoadError)
   const activePersonaName = activePersona?.name ?? '페르소나'
   const activePersonaSummary = activePersona?.summary
 
@@ -295,10 +295,14 @@ function HomePage() {
             clearStoredPersonaSession()
             setPersonaItems([])
             setErrorMessage('')
+            setPersonaLoadError('')
           }
         } else {
           const storedPersonaId = window.localStorage.getItem(REMORY_PERSONA_ID_KEY)
-          const targetPersonas = mapTargetsToPersonas(targets)
+          const resolvedTargetPersonas = await resolveTargetPersonas(targets)
+          const resolvedTargets = resolvedTargetPersonas.map(({ target }) => target)
+          const targetPersonas = mapResolvedTargetsToPersonas(resolvedTargetPersonas)
+          const hasPersonaCandidate = targets.some(targetMayHavePersona)
           let loadedPersonaDetail = false
           let stalePersonaId: string | null = null
 
@@ -308,8 +312,9 @@ function HomePage() {
               loadedPersonaDetail = true
 
               if (!ignore) {
-                setPersonaItems(mergePersonaDetailIntoItems(targetPersonas, personaDetail, targets))
+                setPersonaItems(mergePersonaDetailIntoItems(targetPersonas, personaDetail, resolvedTargets))
                 window.localStorage.setItem(REMORY_PERSONA_ID_KEY, String(personaDetail.id))
+                setPersonaLoadError('')
               }
             } catch (error) {
               if (!ignore && error instanceof ApiError && error.status === 404) {
@@ -328,6 +333,7 @@ function HomePage() {
 
           if (!ignore && !loadedPersonaDetail && fallbackPersonas.length > 0) {
             setPersonaItems(fallbackPersonas)
+            setPersonaLoadError('')
 
             if (fallbackPersonas[0].personaId) {
               storeActivePersonaSession(fallbackPersonas[0].personaId, fallbackPersonas[0].targetId)
@@ -336,14 +342,19 @@ function HomePage() {
 
           if (!ignore && !loadedPersonaDetail && fallbackPersonas.length === 0) {
             setPersonaItems([])
+            setPersonaLoadError(
+              hasPersonaCandidate
+                ? '페르소나 정보를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.'
+                : '',
+            )
           }
         }
       } catch {
         if (!ignore) {
           setHasLoadedRealTargets(false)
-          setPersonaItems(mockPersonas)
+          setPersonaItems([])
+          setPersonaLoadError('페르소나 정보를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.')
         }
-        // Keep mock persona cards only when targets cannot be loaded.
       } finally {
         if (!ignore) {
           setIsLoadingHomeData(false)
@@ -392,7 +403,7 @@ function HomePage() {
   const handleChatNavigation = async () => {
     setErrorMessage('')
 
-    if (hasNoPersonas) {
+    if (hasNoLoadedPersonas) {
       window.location.assign('/setup')
       return
     }
@@ -417,7 +428,7 @@ function HomePage() {
   }
 
   const handleMemoryCardClick = (cardId: string) => {
-    if (hasNoPersonas) {
+    if (hasNoLoadedPersonas) {
       setErrorMessage('먼저 페르소나를 만들어주세요.')
       window.location.assign('/setup')
       return
@@ -457,8 +468,8 @@ function HomePage() {
               AI 페르소나와 이야기를 이어가세요.
             </p>
             <button className="home-page__hero-button" type="button" onClick={handleChatNavigation}>
-              <HomePageIcon name={hasNoPersonas ? 'plus' : 'chat'} />
-              {hasNoPersonas ? '페르소나 만들기' : `${activePersonaName}와 대화하기`}
+              <HomePageIcon name={hasNoLoadedPersonas ? 'plus' : 'chat'} />
+              {hasNoLoadedPersonas ? '페르소나 만들기' : `${activePersonaName}와 대화하기`}
             </button>
           </div>
         </section>
@@ -475,11 +486,11 @@ function HomePage() {
 
           {isLoadingHomeData && <p className="home-page__persona-loading">페르소나를 불러오는 중입니다.</p>}
 
-          {!isLoadingHomeData && hasNoPersonas ? (
+          {!isLoadingHomeData && shouldShowPersonaEmpty ? (
             <div className="home-page__persona-empty" role="status">
-              <h3>아직 생성된 페르소나가 없습니다.</h3>
-              <p>소중한 사람의 사진과 목소리를 등록해 페르소나를 만들어보세요.</p>
-              <small>생성된 페르소나가 없습니다. 설정에서 페르소나를 만들어주세요.</small>
+              <h3>{personaLoadError ? '페르소나 정보를 불러오지 못했습니다.' : '아직 생성된 페르소나가 없습니다.'}</h3>
+              <p>{personaLoadError || '소중한 사람의 사진과 목소리를 등록해 페르소나를 만들어보세요.'}</p>
+              {!personaLoadError && <small>생성된 페르소나가 없습니다. 설정에서 페르소나를 만들어주세요.</small>}
               <button type="button" onClick={() => { window.location.href = '/setup' }}>
                 <HomePageIcon name="plus" />
                 페르소나 만들기

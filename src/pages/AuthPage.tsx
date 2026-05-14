@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { ApiError } from '../lib/apiClient'
 import { authApi } from '../services/authApi'
+import { resolveTargetPersonas } from '../services/personaSession'
 import { targetApi } from '../services/targetApi'
 import './AuthPage.css'
 
@@ -16,8 +17,9 @@ function getInitialAuthTab(): AuthTab {
 async function redirectAfterAuth() {
   try {
     const targets = await targetApi.listTargets()
+    const resolvedTargetPersonas = await resolveTargetPersonas(targets.items, 1)
 
-    if (targets.items.length === 0) {
+    if (targets.items.length === 0 || resolvedTargetPersonas.length === 0) {
       window.location.href = '/setup'
       return
     }

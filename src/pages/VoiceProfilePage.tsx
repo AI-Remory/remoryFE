@@ -92,6 +92,33 @@ function getVoiceProfileStatusMessage(status: string) {
   }
 }
 
+function getVoiceProfileErrorMessage(profile: VoiceProfile | null) {
+  const errorMessage = profile?.['error_message']
+
+  return typeof errorMessage === 'string' ? errorMessage.trim() : ''
+}
+
+function getEvaluateStatusMessage(profile: VoiceProfile) {
+  const status = normalizeStatus(profile.status)
+  const errorMessage = getVoiceProfileErrorMessage(profile)
+
+  switch (status) {
+    case 'READY':
+      return '음성 프로필 평가가 완료되었습니다. 이제 확인할 수 있어요.'
+    case 'FAILED':
+      return errorMessage
+        ? `음성 프로필 평가에 실패했습니다. 실패 사유: ${errorMessage}`
+        : '음성 프로필 평가에 실패했습니다.'
+    case 'NEEDS_MORE_SAMPLES':
+      return '음성 샘플이 부족합니다. 더 길고 선명한 음성 파일을 추가해주세요.'
+    case 'PENDING':
+    case 'PROCESSING':
+      return '음성 프로필 평가가 진행 중입니다. 잠시 후 다시 확인해주세요.'
+    default:
+      return '음성 프로필 평가 결과를 확인해주세요.'
+  }
+}
+
 function isVoiceMedia(media: TargetMedia) {
   return String(media.media_type ?? '').toLowerCase() === 'voice'
 }
@@ -454,7 +481,7 @@ function VoiceProfilePage() {
         action === 'create'
           ? '음성 프로필 생성이 요청됐어요.'
           : action === 'evaluate'
-            ? '음성 프로필 평가를 요청했어요.'
+            ? getEvaluateStatusMessage(nextProfile)
             : '사용자 확인을 저장했어요.',
       )
     } catch (error) {
@@ -523,6 +550,9 @@ function VoiceProfilePage() {
                   <CheckCircle2 size={17} /> 확인
                 </button>
               </div>
+              {selectedPersonaId && voiceProfileStatus !== 'READY' && (
+                <p className="ops-page__state-note">READY 상태가 된 후 확인할 수 있습니다.</p>
+              )}
             </div>
           </div>
 
@@ -566,6 +596,9 @@ function VoiceProfilePage() {
                 </div>
                 <p>검수 상태: {voiceProfile.review_status ?? '없음'}</p>
                 <p>{voiceProfile.review_note ?? '표시할 메모가 없습니다.'}</p>
+                {getVoiceProfileErrorMessage(voiceProfile) && (
+                  <p className="ops-page__state-note">실패 사유: {getVoiceProfileErrorMessage(voiceProfile)}</p>
+                )}
                 {voiceProfileStatusMessage && <p className="ops-page__state-note">{voiceProfileStatusMessage}</p>}
               </article>
             ) : (

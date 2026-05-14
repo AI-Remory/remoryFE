@@ -292,6 +292,9 @@ function AdminPage() {
                   <RefreshCw size={16} /> 철회
                 </button>
               </div>
+              {voiceProfileStatus === 'FAILED' && (
+                <p className="ops-page__state-note">FAILED 상태는 승인할 수 없습니다. 백엔드 평가 오류 또는 음성 샘플 문제를 확인해주세요.</p>
+              )}
               {voiceProfileStatus !== 'READY' && (
                 <p className="ops-page__state-note">READY 상태에서만 승인할 수 있습니다.</p>
               )}

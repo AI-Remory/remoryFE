@@ -1,14 +1,15 @@
-import { useEffect, useState } from 'react'
-import { ArrowLeft, CheckCircle2, Mic, RefreshCw, Sparkles } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
+import { ArrowLeft, CheckCircle2, Mic, RefreshCw, Sparkles, Upload } from 'lucide-react'
 import { ApiError } from '../lib/apiClient'
 import { getPersonaIdFromTarget, REMORY_PERSONA_ID_KEY } from '../services/personaSession'
 import { personaApi } from '../services/personaApi'
 import { targetApi } from '../services/targetApi'
-import type { ApiId, Persona, Target, VoiceProfile } from '../types/api'
+import type { ApiId, Persona, Target, TargetMedia, VoiceProfile } from '../types/api'
 import './OperationsPage.css'
 
 type PersonaOption = {
   personaId: string
+  targetId?: string
   name: string
   loadedDetail: boolean
 }
@@ -30,6 +31,9 @@ const personaLoadErrorMessage = '페르소나 정보를 불러오지 못했습�
 const voiceProfileLoadErrorMessage = '음성 프로필 정보를 불러오지 못했습니다.'
 const voiceProfileActionErrorMessage = '음성 프로필 요청을 완료하지 못했습니다.'
 const noPersonaGuideMessage = '아직 생성된 페르소나가 없습니다. 먼저 페르소나 설정을 완료해주세요.'
+const missingTargetMessage = '선택된 페르소나의 대상 정보를 찾을 수 없습니다.'
+const missingVoiceFileMessage = '업로드할 음성 파일을 선택해주세요.'
+const uploadSuccessMessage = '음성 샘플을 추가했어요. 다시 생성/평가해주세요.'
 
 function toStorageId(value: ApiId | null | undefined) {
   return value === null || value === undefined ? null : String(value)
@@ -51,6 +55,14 @@ function getStoredPersonaId() {
   return window.localStorage.getItem(REMORY_PERSONA_ID_KEY)?.trim() || null
 }
 
+function getApiErrorMessage(error: unknown, fallback: string) {
+  return error instanceof ApiError ? error.message || fallback : fallback
+}
+
+function getPersonaTargetId(persona?: Persona | null, target?: Target) {
+  return toStorageId(persona?.target_id ?? target?.id ?? target?.persona?.target_id)
+}
+
 function getPersonaDisplayName(persona?: Persona | null, target?: Target) {
   return (
     persona?.persona_name ??
@@ -68,19 +80,26 @@ function getPersonaDisplayName(persona?: Persona | null, target?: Target) {
 function getVoiceProfileStatusMessage(status: string) {
   switch (status) {
     case 'PENDING':
-      return '먼저 평가를 진행해주세요.'
+      return '아직 평가 전 상태입니다. 평가 버튼을 눌러 READY 상태로 만들어주세요.'
     case 'FAILED':
-      return '음성 프로필 생성/평가에 실패했습니다. 음성 샘플을 추가한 뒤 다시 생성해주세요.'
+      return '음성 프로필 생성/평가에 실패했습니다. 더 길고 선명한 음성 파일을 추가한 뒤 다시 생성/평가해주세요.'
     case 'NEEDS_MORE_SAMPLES':
-      return '음성 샘플이 부족합니다. 더 긴 음성 파일을 추가해주세요.'
+      return '음성 샘플이 부족합니다. 10초 이상 또렷한 음성 파일을 추가해주세요.'
+    case 'READY':
+      return '음성 프로필이 준비되었습니다. 확인 후 실시간 음성 대화를 사용할 수 있어요.'
     default:
       return ''
   }
 }
 
+function isVoiceMedia(media: TargetMedia) {
+  return String(media.media_type ?? '').toLowerCase() === 'voice'
+}
+
 function createPersonaOption(personaId: string, target?: Target, persona?: Persona | null, loadedDetail = false): PersonaOption {
   return {
     personaId,
+    targetId: getPersonaTargetId(persona, target) ?? undefined,
     name: getPersonaDisplayName(persona, target),
     loadedDetail,
   }
@@ -174,8 +193,24 @@ function mergePersonaOptions(options: PersonaOption[]) {
   options.forEach((option) => {
     const current = merged.get(option.personaId)
 
-    if (!current || (!current.loadedDetail && option.loadedDetail)) {
+    if (!current) {
       merged.set(option.personaId, option)
+      return
+    }
+
+    if (!current.loadedDetail && option.loadedDetail) {
+      merged.set(option.personaId, {
+        ...option,
+        targetId: option.targetId ?? current.targetId,
+      })
+      return
+    }
+
+    if (!current.targetId && option.targetId) {
+      merged.set(option.personaId, {
+        ...current,
+        targetId: option.targetId,
+      })
     }
   })
 
@@ -183,20 +218,39 @@ function mergePersonaOptions(options: PersonaOption[]) {
 }
 
 function VoiceProfilePage() {
+  const fileInputRef = useRef<HTMLInputElement | null>(null)
   const [personaOptions, setPersonaOptions] = useState<PersonaOption[]>([])
   const [selectedPersonaId, setSelectedPersonaId] = useState('')
   const [voiceProfile, setVoiceProfile] = useState<VoiceProfile | null>(null)
+  const [voiceSampleFile, setVoiceSampleFile] = useState<File | null>(null)
+  const [voiceSampleCount, setVoiceSampleCount] = useState<number | null>(null)
   const [reviewNote, setReviewNote] = useState('')
   const [isLoading, setIsLoading] = useState(true)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isUploadingVoiceSample, setIsUploadingVoiceSample] = useState(false)
   const [personaLoadFailed, setPersonaLoadFailed] = useState(false)
   const [statusMessage, setStatusMessage] = useState('')
   const [errorMessage, setErrorMessage] = useState('')
 
+  const selectedPersona = personaOptions.find((persona) => persona.personaId === selectedPersonaId)
+  const selectedTargetId = selectedPersona?.targetId ?? null
   const voiceProfileStatus = normalizeStatus(voiceProfile?.status)
   const voiceProfileStatusMessage = getVoiceProfileStatusMessage(voiceProfileStatus)
-  const canConfirmVoiceProfile = Boolean(selectedPersonaId && voiceProfileStatus === 'READY' && !isSubmitting)
+  const isVoiceActionBusy = isSubmitting || isUploadingVoiceSample
+  const canCreateVoiceProfile = Boolean(selectedPersonaId && !isVoiceActionBusy)
+  const canEvaluateVoiceProfile = Boolean(voiceProfile && !isVoiceActionBusy)
+  const canConfirmVoiceProfile = Boolean(selectedPersonaId && voiceProfileStatus === 'READY' && !isVoiceActionBusy)
   const hasNoPersonas = !isLoading && !personaLoadFailed && personaOptions.length === 0
+
+  const refreshVoiceSampleCount = async (targetId: string) => {
+    try {
+      const mediaItems = await targetApi.listTargetMedia(targetId)
+
+      setVoiceSampleCount(mediaItems.filter(isVoiceMedia).length)
+    } catch {
+      setVoiceSampleCount(null)
+    }
+  }
 
   useEffect(() => {
     let ignore = false
@@ -290,7 +344,7 @@ function VoiceProfilePage() {
             }
 
             if (!(error instanceof ApiError && error.status === 404)) {
-              setErrorMessage(voiceProfileLoadErrorMessage)
+              setErrorMessage(getApiErrorMessage(error, voiceProfileLoadErrorMessage))
             }
           }
         })
@@ -302,16 +356,81 @@ function VoiceProfilePage() {
     }
   }, [selectedPersonaId])
 
+  useEffect(() => {
+    let ignore = false
+    const timeoutId = window.setTimeout(() => {
+      if (!selectedTargetId) {
+        if (!ignore) {
+          setVoiceSampleCount(null)
+        }
+
+        return
+      }
+
+      void refreshVoiceSampleCount(selectedTargetId)
+    }, 0)
+
+    return () => {
+      ignore = true
+      window.clearTimeout(timeoutId)
+    }
+  }, [selectedTargetId])
+
+  const clearSelectedVoiceSample = () => {
+    setVoiceSampleFile(null)
+
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ''
+    }
+  }
+
   const handlePersonaChange = (personaId: string) => {
     setSelectedPersonaId(personaId)
+    clearSelectedVoiceSample()
 
     if (personaId) {
       window.localStorage.setItem(REMORY_PERSONA_ID_KEY, personaId)
     }
   }
 
+  const handleVoiceSampleFileChange = (file: File | null) => {
+    setVoiceSampleFile(file)
+  }
+
+  const handleVoiceSampleUpload = async () => {
+    setStatusMessage('')
+    setErrorMessage('')
+
+    if (!selectedTargetId) {
+      setErrorMessage(missingTargetMessage)
+      return
+    }
+
+    if (!voiceSampleFile) {
+      setErrorMessage(missingVoiceFileMessage)
+      return
+    }
+
+    setIsUploadingVoiceSample(true)
+
+    try {
+      await targetApi.uploadTargetMedia(selectedTargetId, 'voice', voiceSampleFile)
+      setStatusMessage(uploadSuccessMessage)
+      clearSelectedVoiceSample()
+      await refreshVoiceSampleCount(selectedTargetId)
+    } catch (error) {
+      setErrorMessage(getApiErrorMessage(error, '음성 샘플 업로드에 실패했습니다.'))
+    } finally {
+      setIsUploadingVoiceSample(false)
+    }
+  }
+
   const runVoiceAction = async (action: 'create' | 'evaluate' | 'confirm') => {
-    if (!selectedPersonaId || isSubmitting) {
+    if (!selectedPersonaId || isVoiceActionBusy) {
+      return
+    }
+
+    if (action === 'evaluate' && !voiceProfile) {
       return
     }
 
@@ -339,12 +458,7 @@ function VoiceProfilePage() {
             : '사용자 확인을 저장했어요.',
       )
     } catch (error) {
-      if (action === 'evaluate' && error instanceof ApiError) {
-        setErrorMessage(error.message || voiceProfileActionErrorMessage)
-        return
-      }
-
-      setErrorMessage(voiceProfileActionErrorMessage)
+      setErrorMessage(getApiErrorMessage(error, voiceProfileActionErrorMessage))
     } finally {
       setIsSubmitting(false)
     }
@@ -399,16 +513,46 @@ function VoiceProfilePage() {
                 <textarea rows={3} value={reviewNote} onChange={(event) => setReviewNote(event.currentTarget.value)} />
               </label>
               <div className="ops-page__button-row">
-                <button className="ops-page__button" type="button" onClick={() => runVoiceAction('create')} disabled={!selectedPersonaId || isSubmitting}>
+                <button className="ops-page__button" type="button" onClick={() => runVoiceAction('create')} disabled={!canCreateVoiceProfile}>
                   <Mic size={17} /> 생성
                 </button>
-                <button className="ops-page__button-secondary" type="button" onClick={() => runVoiceAction('evaluate')} disabled={!selectedPersonaId || isSubmitting}>
+                <button className="ops-page__button-secondary" type="button" onClick={() => runVoiceAction('evaluate')} disabled={!canEvaluateVoiceProfile}>
                   <RefreshCw size={17} /> 평가
                 </button>
                 <button className="ops-page__button-secondary" type="button" onClick={() => runVoiceAction('confirm')} disabled={!canConfirmVoiceProfile}>
                   <CheckCircle2 size={17} /> 확인
                 </button>
               </div>
+            </div>
+          </div>
+
+          <div className="ops-page__panel">
+            <h2>음성 샘플 추가</h2>
+            <div className="ops-page__form">
+              <label>
+                음성 파일
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="audio/*"
+                  onChange={(event) => handleVoiceSampleFileChange(event.currentTarget.files?.[0] ?? null)}
+                  disabled={isUploadingVoiceSample}
+                />
+              </label>
+              <p className="ops-page__helper">
+                선택된 파일: {voiceSampleFile?.name ?? '없음'}
+              </p>
+              <p className="ops-page__helper">
+                등록된 음성 샘플: {selectedTargetId ? `${voiceSampleCount ?? 0}개` : '대상 정보 없음'}
+              </p>
+              <button
+                className="ops-page__button-secondary"
+                type="button"
+                onClick={handleVoiceSampleUpload}
+                disabled={isUploadingVoiceSample || isSubmitting}
+              >
+                <Upload size={17} /> 음성 샘플 업로드
+              </button>
             </div>
           </div>
 

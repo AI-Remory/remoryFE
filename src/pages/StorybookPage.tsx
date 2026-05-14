@@ -831,7 +831,7 @@ function StorybookPage() {
             <button className="storybook-page__icon-button" type="button" aria-label="스토리북 공유" onClick={handleOpenSharePanel}>
               <StorybookIcon name="share" />
             </button>
-            <button className="storybook-page__icon-button" type="button" aria-label="스토리북 메뉴 열기" onClick={() => console.log('open storybook menu')}>
+            <button className="storybook-page__icon-button" type="button" aria-label="스토리북 메뉴 열기" onClick={() => window.alert('스토리북 메뉴는 준비 중입니다.')}>
               <StorybookIcon name="more" />
             </button>
           </div>
@@ -932,14 +932,14 @@ function StorybookPage() {
           </section>
         )}
 
-        <section className="storybook-page__section">
+        <section className="storybook-page__section storybook-page__section--photos">
           <div className="storybook-page__section-header">
             <h2>기억 속 사진</h2>
             <div className="storybook-page__section-actions">
               <button type="button" onClick={() => setIsPhotoFormOpen((current) => !current)}>
                 사진 기억 추가
               </button>
-              <button type="button" onClick={() => console.log('view all photos')}>
+              <button type="button" onClick={() => window.alert('전체 사진 보기는 준비 중입니다.')}>
                 전체보기 <StorybookIcon name="chevron" />
               </button>
             </div>
@@ -1044,7 +1044,7 @@ function StorybookPage() {
           )}
         </section>
 
-        <section className="storybook-page__section">
+        <section className="storybook-page__section storybook-page__section--chapters">
           <div className="storybook-page__section-header">
             <div>
               <h2>스토리 챕터</h2>
@@ -1052,7 +1052,7 @@ function StorybookPage() {
                 전체 {visibleChapterItems.length}개 챕터
               </p>
             </div>
-            <button type="button" onClick={() => console.log('reorder chapters')}>
+            <button type="button" onClick={() => window.alert('챕터 순서 변경은 준비 중입니다.')}>
               순서 변경 <StorybookIcon name="reorder" />
             </button>
           </div>

@@ -9,6 +9,10 @@ function getErrorMessage(error: unknown, fallback: string) {
   return error instanceof ApiError || error instanceof Error ? error.message : fallback
 }
 
+function isForbiddenError(error: unknown) {
+  return error instanceof ApiError && error.status === 403
+}
+
 function AdminPage() {
   const [verificationRequests, setVerificationRequests] = useState<VerificationRequest[]>([])
   const [deletionRequests, setDeletionRequests] = useState<DeletionRequest[]>([])
@@ -24,16 +28,19 @@ function AdminPage() {
 
     try {
       const [nextVerificationRequests, nextDeletionRequests, nextReports] = await Promise.all([
-        adminApi.listVerificationRequests({ status: 'PENDING' }).catch(() => []),
-        adminApi.listDeletionRequests().catch(() => []),
-        adminApi.listReports({ status: 'PENDING' }).catch(() => []),
+        adminApi.listVerificationRequests({ status: 'PENDING' }),
+        adminApi.listDeletionRequests(),
+        adminApi.listReports({ status: 'PENDING' }),
       ])
 
       setVerificationRequests(nextVerificationRequests)
       setDeletionRequests(nextDeletionRequests)
       setReports(nextReports)
     } catch (error) {
-      setErrorMessage(getErrorMessage(error, '관리자 데이터를 불러오지 못했습니다.'))
+      setVerificationRequests([])
+      setDeletionRequests([])
+      setReports([])
+      setErrorMessage(isForbiddenError(error) ? '관리자 권한이 필요합니다.' : getErrorMessage(error, '관리자 데이터를 불러오지 못했습니다.'))
     } finally {
       setIsLoading(false)
     }

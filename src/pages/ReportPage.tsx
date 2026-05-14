@@ -9,11 +9,34 @@ function getErrorMessage(error: unknown, fallback: string) {
   return error instanceof ApiError || error instanceof Error ? error.message : fallback
 }
 
+const reportTargetOptions = [
+  { value: 'STORYBOOK', label: '스토리북' },
+  { value: 'PERSONA', label: '페르소나' },
+  { value: 'PERSONA_CHAT', label: '페르소나 채팅' },
+  { value: 'PERSONA_MESSAGE', label: '페르소나 메시지' },
+  { value: 'SHARE_LINK', label: '공유 링크' },
+  { value: 'TARGET', label: '대상' },
+  { value: 'USER', label: '사용자' },
+] as const
+
+const reportReasonOptions = [
+  { value: 'HARMFUL_CONTENT', label: '부적절한 콘텐츠' },
+  { value: 'PRIVACY_VIOLATION', label: '개인정보 침해' },
+  { value: 'UNAUTHORIZED_VOICE_USE', label: '무단 음성 사용' },
+  { value: 'IMPERSONATION', label: '사칭' },
+  { value: 'COPYRIGHT_OR_RIGHTS', label: '저작권/권리 침해' },
+  { value: 'SPAM', label: '스팸' },
+  { value: 'OTHER', label: '기타' },
+] as const
+
+type ReportTargetType = (typeof reportTargetOptions)[number]['value']
+type ReportReasonType = (typeof reportReasonOptions)[number]['value']
+
 function ReportPage() {
   const [reports, setReports] = useState<Report[]>([])
-  const [targetType, setTargetType] = useState('storybook')
+  const [targetType, setTargetType] = useState<ReportTargetType>('STORYBOOK')
   const [targetId, setTargetId] = useState('')
-  const [reasonType, setReasonType] = useState('inappropriate_content')
+  const [reasonType, setReasonType] = useState<ReportReasonType>('HARMFUL_CONTENT')
   const [reasonDetail, setReasonDetail] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [statusMessage, setStatusMessage] = useState('')
@@ -83,11 +106,10 @@ function ReportPage() {
             <h2>신고 접수</h2>
             <label>
               대상 유형
-              <select value={targetType} onChange={(event) => setTargetType(event.currentTarget.value)}>
-                <option value="storybook">StoryBook</option>
-                <option value="persona">Persona</option>
-                <option value="group">Group</option>
-                <option value="chat">Chat</option>
+              <select value={targetType} onChange={(event) => setTargetType(event.currentTarget.value as ReportTargetType)}>
+                {reportTargetOptions.map((option) => (
+                  <option value={option.value} key={option.value}>{option.label}</option>
+                ))}
               </select>
             </label>
             <label>
@@ -96,11 +118,10 @@ function ReportPage() {
             </label>
             <label>
               사유 유형
-              <select value={reasonType} onChange={(event) => setReasonType(event.currentTarget.value)}>
-                <option value="inappropriate_content">부적절한 콘텐츠</option>
-                <option value="privacy">개인정보</option>
-                <option value="abuse">악용</option>
-                <option value="other">기타</option>
+              <select value={reasonType} onChange={(event) => setReasonType(event.currentTarget.value as ReportReasonType)}>
+                {reportReasonOptions.map((option) => (
+                  <option value={option.value} key={option.value}>{option.label}</option>
+                ))}
               </select>
             </label>
             <label>

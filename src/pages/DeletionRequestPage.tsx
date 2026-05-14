@@ -11,11 +11,25 @@ function getErrorMessage(error: unknown, fallback: string) {
   return error instanceof ApiError || error instanceof Error ? error.message : fallback
 }
 
+const deletionTargetOptions = [
+  { value: 'TARGET', label: 'Target' },
+  { value: 'STORYBOOK', label: 'StoryBook' },
+  { value: 'PHOTO_MEMORY', label: 'Photo Memory' },
+  { value: 'PERSONA', label: 'Persona' },
+  { value: 'ACCOUNT', label: 'Account' },
+  { value: 'TARGET_MEDIA', label: 'Target Media' },
+  { value: 'SHARE_LINK', label: 'Share Link' },
+  { value: 'MEMORY_GROUP', label: 'Memory Group' },
+  { value: 'VOICE_PROFILE', label: 'Voice Profile' },
+] as const
+
+type DeletionTargetType = (typeof deletionTargetOptions)[number]['value']
+
 function DeletionRequestPage() {
   const [requests, setRequests] = useState<DeletionRequest[]>([])
   const [targets, setTargets] = useState<Target[]>([])
   const [storybooks, setStorybooks] = useState<StoryBook[]>([])
-  const [targetType, setTargetType] = useState('target')
+  const [targetType, setTargetType] = useState<DeletionTargetType>('TARGET')
   const [targetId, setTargetId] = useState('')
   const [reason, setReason] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -118,24 +132,22 @@ function DeletionRequestPage() {
             <label>
               대상 유형
               <select value={targetType} onChange={(event) => {
-                setTargetType(event.currentTarget.value)
+                setTargetType(event.currentTarget.value as DeletionTargetType)
                 setTargetId('')
               }}>
-                <option value="target">Target</option>
-                <option value="storybook">StoryBook</option>
-                <option value="photo_memory">Photo Memory</option>
-                <option value="persona">Persona</option>
-                <option value="account">Account</option>
+                {deletionTargetOptions.map((option) => (
+                  <option value={option.value} key={option.value}>{option.label}</option>
+                ))}
               </select>
             </label>
             <label>
               대상 ID
               <select value={targetId} onChange={(event) => setTargetId(event.currentTarget.value)}>
                 <option value="">직접 지정 없음</option>
-                {targetType === 'target' && targets.map((target) => (
+                {targetType === 'TARGET' && targets.map((target) => (
                   <option value={String(target.id)} key={String(target.id)}>{target.name ?? `Target #${target.id}`}</option>
                 ))}
-                {targetType === 'storybook' && storybooks.map((storybook) => (
+                {targetType === 'STORYBOOK' && storybooks.map((storybook) => (
                   <option value={String(storybook.id)} key={String(storybook.id)}>{storybook.title}</option>
                 ))}
               </select>

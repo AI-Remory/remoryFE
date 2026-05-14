@@ -1274,4 +1274,10 @@
     min-height: 62px;
     font-size: 19px;
   }
+
+  .storybook-page__bottom-nav {
+    left: 0;
+    max-width: none;
+    transform: none;
+  }
 }

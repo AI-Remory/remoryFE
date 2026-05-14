@@ -13,7 +13,9 @@
   display: flex;
   justify-content: center;
   width: 100%;
+  min-height: 100svh;
   min-height: 100dvh;
+  overflow-x: hidden;
   overflow-y: auto;
   background:
     radial-gradient(circle at top left, rgba(255, 235, 212, 0.72), transparent 32%),
@@ -26,6 +28,7 @@
 .my-page__container {
   width: 100%;
   max-width: 480px;
+  min-height: 100svh;
   min-height: 100dvh;
   padding: 30px 14px 108px;
 }
@@ -663,7 +666,150 @@
   filter: contrast(1.02);
 }
 
-@media (max-width: 430px) {
+@media (min-width: 768px) and (max-width: 899px) {
+  .my-page__container {
+    max-width: 680px;
+    padding: 34px 32px 112px;
+  }
+}
+
+@media (min-width: 900px) {
+  .my-page {
+    display: block;
+    min-height: 100vh;
+    background:
+      linear-gradient(90deg, #fff7ed 0%, #fffaf4 52%, #fffdf9 52%, #fff5eb 100%);
+  }
+
+  .my-page__container {
+    display: grid;
+    grid-template-columns: minmax(430px, 0.94fr) minmax(390px, 1fr);
+    grid-template-areas:
+      "header header"
+      "profile personas"
+      "profile menu"
+      "banner wide";
+    align-content: start;
+    column-gap: clamp(36px, 5.5vw, 92px);
+    row-gap: 22px;
+    width: 100%;
+    max-width: none;
+    min-height: 100vh;
+    padding: 42px clamp(48px, 8vw, 150px) 118px;
+    background:
+      radial-gradient(circle at 18% 20%, rgba(255, 229, 205, 0.56), transparent 28%),
+      radial-gradient(circle at 84% 20%, rgba(255, 238, 222, 0.68), transparent 28%),
+      linear-gradient(90deg, rgba(255, 248, 239, 0.97) 0%, rgba(255, 252, 247, 0.98) 56%, rgba(255, 246, 235, 0.94) 100%);
+  }
+
+  .my-page__header {
+    grid-area: header;
+    justify-self: center;
+    width: min(100%, 1180px);
+    padding: 0 0 8px;
+  }
+
+  .my-page__header h1 {
+    font-size: 42px;
+    letter-spacing: 0;
+  }
+
+  .my-page__header p {
+    letter-spacing: 0;
+  }
+
+  .my-page__profile-card {
+    grid-area: profile;
+    align-self: start;
+    padding: 28px;
+  }
+
+  .my-page__profile-top {
+    align-items: flex-start;
+  }
+
+  .my-page__profile-copy h2,
+  .my-page__profile-copy p,
+  .my-page__profile-link,
+  .my-page__stats span,
+  .my-page__stats strong,
+  .my-page__section-heading h2,
+  .my-page__section-heading button,
+  .my-page__persona-empty strong,
+  .my-page__persona-empty p,
+  .my-page__persona-card strong,
+  .my-page__persona-card small,
+  .my-page__create-persona,
+  .my-page__menu-text strong,
+  .my-page__menu-text small,
+  .my-page__monthly-banner h2,
+  .my-page__monthly-banner p,
+  .my-page__monthly-banner button {
+    letter-spacing: 0;
+  }
+
+  .my-page__persona-section {
+    grid-area: personas;
+    align-self: start;
+    margin-top: 0;
+    padding: 22px;
+  }
+
+  .my-page__persona-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .my-page__menu-grid {
+    grid-area: menu;
+    align-self: start;
+    margin-top: 0;
+  }
+
+  .my-page__wide-menu {
+    grid-area: wide;
+    align-self: start;
+    margin-top: 0;
+  }
+
+  .my-page__monthly-banner {
+    grid-area: banner;
+    align-self: start;
+    min-height: 132px;
+    margin-top: 0;
+    padding: 24px 210px 24px 24px;
+  }
+
+  .my-page__banner-image {
+    width: 240px;
+    height: 112px;
+  }
+
+  .my-page__bottom-nav {
+    left: 0;
+    grid-template-columns: repeat(4, 112px);
+    justify-content: center;
+    column-gap: 36px;
+    max-width: none;
+    height: 82px;
+    transform: none;
+  }
+}
+
+@media (min-width: 1280px) {
+  .my-page__container {
+    grid-template-columns: minmax(500px, 0.95fr) minmax(480px, 1.05fr);
+  }
+}
+
+@media (min-width: 900px) and (max-height: 760px) {
+  .my-page__container {
+    row-gap: 18px;
+    padding-top: 28px;
+    padding-bottom: 104px;
+  }
+}
+
+@media (max-width: 520px) {
   .my-page__container {
     padding-right: 12px;
     padding-left: 12px;
@@ -697,11 +843,21 @@
   }
 
   .my-page__stats {
-    gap: 7px;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0;
   }
 
   .my-page__stats div {
-    gap: 5px;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+    text-align: center;
+  }
+
+  .my-page__stats svg {
+    width: 25px;
+    height: 25px;
   }
 
   .my-page__stats span {
@@ -715,6 +871,17 @@
   .my-page__persona-list {
     grid-template-columns: 1fr;
     gap: 8px;
+  }
+
+  .my-page__section-heading {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+  }
+
+  .my-page__section-heading button {
+    font-size: 13px;
+    white-space: nowrap;
   }
 
   .my-page__persona-card {
@@ -770,5 +937,11 @@
   .my-page__banner-image {
     right: -18px;
     width: 170px;
+  }
+
+  .my-page__bottom-nav {
+    left: 0;
+    max-width: none;
+    transform: none;
   }
 }

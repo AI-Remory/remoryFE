@@ -2,7 +2,9 @@
   display: flex;
   justify-content: center;
   width: 100%;
+  min-height: 100svh;
   min-height: 100dvh;
+  overflow-x: hidden;
   background:
     radial-gradient(circle at top left, rgba(255, 235, 212, 0.66), transparent 32%),
     linear-gradient(180deg, #fff8ef 0%, #fffdf9 50%, #fff5eb 100%);
@@ -12,6 +14,7 @@
 .ops-page__container {
   width: 100%;
   max-width: 760px;
+  min-height: 100svh;
   min-height: 100dvh;
   padding: 28px 18px 72px;
 }
@@ -253,6 +256,67 @@
 
 .ops-page__error {
   color: #a43b2f;
+}
+
+@media (min-width: 900px) {
+  .ops-page {
+    display: block;
+    min-height: 100vh;
+    background:
+      linear-gradient(90deg, #fff7ed 0%, #fffaf4 50%, #fffdf9 50%, #fff5eb 100%);
+  }
+
+  .ops-page__container {
+    width: min(100%, 1280px);
+    max-width: none;
+    min-height: 100vh;
+    margin: 0 auto;
+    padding: 48px clamp(40px, 5vw, 72px) 84px;
+  }
+
+  .ops-page__header {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: end;
+    margin-bottom: 28px;
+  }
+
+  .ops-page__back,
+  .ops-page__eyebrow {
+    grid-column: 1 / -1;
+  }
+
+  .ops-page__header h1 {
+    max-width: 780px;
+    font-size: 58px;
+  }
+
+  .ops-page__header p,
+  .ops-page__header .ops-page__warning {
+    max-width: 760px;
+  }
+
+  .ops-page__grid {
+    grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+    gap: 18px;
+  }
+
+  .ops-page__panel {
+    padding: 22px;
+  }
+
+  .ops-page__list {
+    gap: 12px;
+  }
+
+  .ops-page__item {
+    padding: 16px;
+  }
+}
+
+@media (min-width: 1440px) {
+  .ops-page__container {
+    width: min(100%, 1440px);
+  }
 }
 
 @media (max-width: 680px) {

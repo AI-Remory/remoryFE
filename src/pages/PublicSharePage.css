@@ -2,7 +2,9 @@
   display: flex;
   justify-content: center;
   width: 100%;
+  min-height: 100svh;
   min-height: 100dvh;
+  overflow-x: hidden;
   background: linear-gradient(180deg, #fff8ef 0%, #fffdf9 48%, #fff7ed 100%);
   color: #33231d;
 }
@@ -113,6 +115,60 @@
   cursor: pointer;
   font-size: 16px;
   font-weight: 850;
+}
+
+@media (min-width: 900px) {
+  .public-share-page {
+    display: block;
+    min-height: 100vh;
+    background:
+      linear-gradient(90deg, #fff7ed 0%, #fffaf4 52%, #fffdf9 52%, #fff5eb 100%);
+  }
+
+  .public-share-page__container {
+    width: 100%;
+    max-width: none;
+    min-height: 100vh;
+    padding: 56px clamp(56px, 8vw, 150px) 76px;
+    background:
+      radial-gradient(circle at 16% 20%, rgba(255, 229, 205, 0.56), transparent 28%),
+      radial-gradient(circle at 82% 20%, rgba(255, 238, 222, 0.68), transparent 28%),
+      linear-gradient(90deg, rgba(255, 248, 239, 0.97) 0%, rgba(255, 252, 247, 0.98) 56%, rgba(255, 246, 235, 0.94) 100%);
+  }
+
+  .public-share-page__header {
+    width: min(100%, 1180px);
+    margin: 0 auto;
+  }
+
+  .public-share-page__header h1,
+  .public-share-page__empty h1 {
+    font-size: 60px;
+  }
+
+  .public-share-page__chapters {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    width: min(100%, 1180px);
+    margin: 32px auto 0;
+  }
+
+  .public-share-page__chapter {
+    padding: 28px;
+  }
+
+  .public-share-page__chapter h2 {
+    font-size: 32px;
+  }
+
+  .public-share-page__empty {
+    width: min(100%, 820px);
+    min-height: calc(100vh - 132px);
+    margin: 0 auto;
+  }
+
+  .public-share-page__home-button {
+    margin-left: calc((100% - min(100%, 1180px)) / 2);
+  }
 }
 
 @media (max-width: 520px) {

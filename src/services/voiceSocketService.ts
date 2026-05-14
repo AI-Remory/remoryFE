@@ -9,7 +9,7 @@ export function createVoiceSocket(personaId: number) {
   const accessToken = getAccessToken()
 
   if (!accessToken) {
-    throw new Error('Access token is required for voice WebSocket connection.')
+    throw new Error('로그인이 필요해요. 다시 로그인한 뒤 시도해 주세요.')
   }
 
   return new WebSocket(buildVoiceSocketUrl(personaId, accessToken))
@@ -17,7 +17,7 @@ export function createVoiceSocket(personaId: number) {
 
 export function sendVoiceSocketMessage(socket: WebSocket | null, message: VoiceClientMessage) {
   if (!socket || socket.readyState !== WebSocket.OPEN) {
-    throw new Error('Voice WebSocket is not connected.')
+    throw new Error('음성 대화 연결이 준비되지 않았어요.')
   }
 
   socket.send(JSON.stringify(message))
@@ -56,7 +56,7 @@ export function blobToBase64(blob: Blob) {
 
     reader.addEventListener('load', () => {
       if (typeof reader.result !== 'string') {
-        reject(new Error('Failed to read audio chunk.'))
+        reject(new Error('음성 파일을 읽지 못했어요.'))
         return
       }
 
@@ -65,7 +65,7 @@ export function blobToBase64(blob: Blob) {
     })
 
     reader.addEventListener('error', () => {
-      reject(new Error('Failed to read audio chunk.'))
+      reject(new Error('음성 파일을 읽지 못했어요.'))
     })
 
     reader.readAsDataURL(blob)

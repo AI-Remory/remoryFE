@@ -12,25 +12,25 @@ const onboardingActions: OnboardingAction[] = [
     title: '대상 추가하기',
     description: '기억을 남길 사람의 이름과 관계를 먼저 등록해 주세요.',
     href: '/targets/new',
-    status: '먼저 해 주세요',
+    status: '먼저 해요',
   },
   {
     title: '관계 입증 요청하기',
     description: '안전한 이용을 위해 필요한 자료를 직접 제출할 수 있어요.',
-    href: '/verification',
-    status: '직접 진행',
+    href: '/compliance/verification',
+    status: '지금 가능',
   },
   {
     title: '동의 관리하기',
     description: '사진, 음성, 페르소나, 공유에 필요한 동의 상태를 확인해요.',
-    href: '/consents',
-    status: '준비 중인 기능',
+    href: '/compliance/consent',
+    status: '지금 가능',
   },
   {
     title: '사진·음성 올리기',
     description: '사진이나 음성을 올리면 더 자연스러운 페르소나를 만들 수 있어요.',
-    href: '/target-media',
-    status: '직접 업로드',
+    href: '/targets/media',
+    status: '지금 가능',
   },
 ]
 

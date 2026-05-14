@@ -12,7 +12,7 @@ export const navItems: NavItem[] = [
   { href: '/compliance', label: '입증과 동의', group: '신뢰와 안전' },
   { href: '/personas', label: '페르소나', group: '작업 공간' },
   { href: '/conversations', label: '대화', group: '작업 공간', mobile: true },
-  { href: '/voice-call', label: '음성 통화', group: '작업 공간' },
+  { href: '/voice-call', label: '음성 대화', group: '작업 공간' },
   { href: '/memories', label: '기억 자료', group: '생성', mobile: true },
   { href: '/storybooks', label: '스토리북', group: '보관함' },
   { href: '/sharing', label: '공유', group: '보관함' },

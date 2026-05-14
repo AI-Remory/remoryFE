@@ -51,10 +51,6 @@ function MyPage() {
 
           <dl className="account-page__details">
             <div>
-              <dt>사용자 번호</dt>
-              <dd>{user?.id ?? '정보 없음'}</dd>
-            </div>
-            <div>
               <dt>이메일</dt>
               <dd>{user?.email ?? '정보 없음'}</dd>
             </div>

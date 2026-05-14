@@ -144,12 +144,12 @@ export function useVoiceCall() {
   const connect = useCallback(
     ({ personaId, chatId }: ConnectOptions) => {
       if (!Number.isInteger(personaId) || personaId <= 0) {
-        setErrorMessage('persona_id must be a positive integer.')
+        setErrorMessage('페르소나를 먼저 선택해 주세요.')
         return
       }
 
       if (!Number.isInteger(chatId) || chatId <= 0) {
-        setErrorMessage('chat_id must be a positive integer.')
+        setErrorMessage('대화를 먼저 선택해 주세요.')
         return
       }
 
@@ -172,7 +172,7 @@ export function useVoiceCall() {
             sendVoiceStart(socket, chatId)
             setStatus('connected')
           } catch (error) {
-            setErrorMessage(error instanceof Error ? error.message : 'Failed to start voice session.')
+            setErrorMessage(error instanceof Error ? error.message : '음성 대화를 시작하지 못했어요.')
             setStatus('disconnected')
           }
         })
@@ -181,12 +181,12 @@ export function useVoiceCall() {
           try {
             handleServerMessage(JSON.parse(event.data) as VoiceServerMessage)
           } catch {
-            setErrorMessage('Failed to parse voice server message.')
+            setErrorMessage('응답을 처리하지 못했어요. 다시 시도해 주세요.')
           }
         })
 
         socket.addEventListener('error', () => {
-          setErrorMessage('Voice WebSocket connection failed.')
+          setErrorMessage('음성 대화 연결에 실패했어요.')
           setStatus('disconnected')
         })
 
@@ -201,7 +201,7 @@ export function useVoiceCall() {
           }
         })
       } catch (error) {
-        setErrorMessage(error instanceof Error ? error.message : 'Voice WebSocket connection failed.')
+        setErrorMessage(error instanceof Error ? error.message : '음성 대화 연결에 실패했어요.')
         setStatus('disconnected')
       }
     },
@@ -210,12 +210,12 @@ export function useVoiceCall() {
 
   const startRecording = useCallback(async () => {
     if (!socketRef.current || socketRef.current.readyState !== WebSocket.OPEN) {
-      setErrorMessage('Voice WebSocket is not connected.')
+      setErrorMessage('음성 대화 연결이 아직 준비되지 않았어요.')
       return
     }
 
     if (!navigator.mediaDevices?.getUserMedia) {
-      setErrorMessage('This browser does not support microphone recording.')
+      setErrorMessage('이 브라우저에서는 마이크 녹음을 사용할 수 없어요.')
       return
     }
 
@@ -228,7 +228,7 @@ export function useVoiceCall() {
 
       if (!mimeType) {
         stream.getTracks().forEach((track) => track.stop())
-        setErrorMessage('This browser does not support audio/webm recording.')
+        setErrorMessage('이 브라우저에서는 음성 녹음을 지원하지 않아요.')
         setStatus('connected')
         return
       }
@@ -248,7 +248,7 @@ export function useVoiceCall() {
             sendVoiceAudioChunk(socketRef.current, data)
           })
           .catch((error: unknown) => {
-            setErrorMessage(error instanceof Error ? error.message : 'Failed to send audio chunk.')
+            setErrorMessage(error instanceof Error ? error.message : '음성 전송 중 문제가 발생했어요.')
           })
       })
 
@@ -261,9 +261,9 @@ export function useVoiceCall() {
     } catch (error) {
       if (error instanceof DOMException && (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError')) {
         setIsMicPermissionDenied(true)
-        setErrorMessage('Microphone permission was denied.')
+        setErrorMessage('마이크 권한이 필요해요.')
       } else {
-        setErrorMessage(error instanceof Error ? error.message : 'Failed to start microphone recording.')
+        setErrorMessage(error instanceof Error ? error.message : '녹음을 시작하지 못했어요.')
       }
 
       cleanupMedia()
@@ -277,7 +277,7 @@ export function useVoiceCall() {
       sendVoiceEndUtterance(socketRef.current)
       setStatus('processing')
     } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : 'Failed to end utterance.')
+      setErrorMessage(error instanceof Error ? error.message : '발화를 마치지 못했어요.')
     }
   }, [cleanupMedia, setStatus])
 
@@ -289,7 +289,7 @@ export function useVoiceCall() {
         sendVoiceStop(socketRef.current)
       }
     } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : 'Failed to stop voice session.')
+      setErrorMessage(error instanceof Error ? error.message : '음성 대화를 종료하지 못했어요.')
     } finally {
       cleanupMedia()
       closeSocket()

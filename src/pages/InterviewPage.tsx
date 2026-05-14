@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { ApiError } from '../lib/apiClient'
 import { interviewApi } from '../services/interviewApi'
 import { REMORY_TARGET_ID_KEY } from '../services/personaSession'
+import { storybookApi } from '../services/storybookApi'
 import { targetApi } from '../services/targetApi'
 import type { AIInterviewAnswer, AIInterviewQuestion, AIInterviewSessionDetail, ApiId, Target } from '../types/api'
 import './InterviewPage.css'
@@ -57,6 +58,7 @@ function InterviewPage() {
   const [isStarting, setIsStarting] = useState(false)
   const [isCreatingQuestion, setIsCreatingQuestion] = useState(false)
   const [isSavingAnswer, setIsSavingAnswer] = useState(false)
+  const [isCreatingStorybook, setIsCreatingStorybook] = useState(false)
   const [statusMessage, setStatusMessage] = useState('')
   const [errorMessage, setErrorMessage] = useState('')
 
@@ -216,6 +218,32 @@ function InterviewPage() {
     }
   }
 
+  const handleCreateStorybook = async () => {
+    if (!session || isCreatingStorybook) {
+      return
+    }
+
+    setErrorMessage('')
+    setStatusMessage('')
+    setIsCreatingStorybook(true)
+
+    try {
+      const storybook = await storybookApi.createStorybook({
+        title: `${target?.nickname ?? target?.name ?? '기억'} 인터뷰 스토리북`,
+        interview_session_id: session.id,
+        photo_memory_id: null,
+        visibility: 'PRIVATE',
+      })
+
+      setStatusMessage('인터뷰 스토리북을 만들었어요.')
+      window.location.assign(`/storybook/${storybook.id}`)
+    } catch (error) {
+      setErrorMessage(getApiErrorMessage(error, '인터뷰 스토리북을 만들지 못했습니다.'))
+    } finally {
+      setIsCreatingStorybook(false)
+    }
+  }
+
   return (
     <main className="interview-page">
       <section className="interview-page__container" aria-label="AI 인터뷰">
@@ -302,8 +330,11 @@ function InterviewPage() {
         )}
 
         <section className="interview-page__note">
-          <strong>스토리북 만들기는 추후 연결됩니다.</strong>
-          <p>인터뷰 완료 후 이 세션은 스토리북 생성에 사용할 수 있어요.</p>
+          <strong>인터뷰를 스토리북으로 만들기</strong>
+          <p>저장한 질문과 답변을 바탕으로 인터뷰 스토리북을 생성합니다.</p>
+          <button type="button" onClick={handleCreateStorybook} disabled={!session || isCreatingStorybook}>
+            {isCreatingStorybook ? '스토리북 생성 중...' : '이 인터뷰로 스토리북 만들기'}
+          </button>
         </section>
       </section>
     </main>

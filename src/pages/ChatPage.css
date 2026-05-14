@@ -319,6 +319,7 @@
 }
 
 .chat-page__storybook-button,
+.chat-page__audio-upload-button,
 .chat-page__voice-notice-button {
   display: flex;
   align-items: center;
@@ -338,11 +339,23 @@
 }
 
 .chat-page__storybook-button svg,
+.chat-page__audio-upload-button svg,
 .chat-page__voice-notice-button svg {
   width: 29px;
   height: 29px;
 }
 
+.chat-page__file-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.chat-page__audio-upload-button,
 .chat-page__voice-notice-button {
   height: 54px;
   margin-top: 10px;
@@ -351,6 +364,72 @@
   box-shadow: none;
   color: #6f4f3e;
   font-size: 18px;
+}
+
+.chat-page__audio-upload-button {
+  border-color: #d9cfe8;
+  background: #fbf8ff;
+  color: #655076;
+}
+
+.chat-page__voice-panel {
+  display: grid;
+  gap: 10px;
+  margin-top: 12px;
+  padding: 14px;
+  border: 1px solid #eedfd5;
+  border-radius: 18px;
+  background: rgba(255, 253, 249, 0.82);
+}
+
+.chat-page__voice-panel-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.chat-page__voice-panel-heading strong {
+  color: var(--chat-text);
+  font-size: 15px;
+  font-weight: 850;
+}
+
+.chat-page__voice-panel-heading button {
+  min-height: 34px;
+  padding: 0 12px;
+  border: 1px solid #dfbba7;
+  border-radius: 999px;
+  background: #fff8f1;
+  color: #8d4c36;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 850;
+}
+
+.chat-page__voice-log {
+  display: grid;
+  gap: 7px;
+}
+
+.chat-page__voice-log-line {
+  margin: 0;
+  color: var(--chat-soft);
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.5;
+}
+
+.chat-page__voice-log-line--user {
+  color: #7c4b2b;
+}
+
+.chat-page__voice-log-line--persona {
+  color: #385f4b;
+}
+
+.chat-page__voice-log-line--error {
+  color: #a43b2f;
 }
 
 .chat-page__composer {
@@ -472,6 +551,11 @@
 .chat-page input:focus-visible {
   outline: 2px solid var(--chat-orange);
   outline-offset: 3px;
+}
+
+.chat-page button:disabled {
+  cursor: not-allowed;
+  opacity: 0.64;
 }
 
 .chat-page button:hover {

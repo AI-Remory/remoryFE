@@ -220,7 +220,7 @@
 
 .interview-page__note {
   display: grid;
-  gap: 7px;
+  gap: 10px;
   margin-top: 22px;
   padding: 17px;
   background: #fff5eb;
@@ -229,6 +229,21 @@
 .interview-page__note strong {
   color: #2f1f19;
   font-size: 16px;
+}
+
+.interview-page__note button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 48px;
+  margin-top: 4px;
+  border: 0;
+  border-radius: 14px;
+  background: #6b3027;
+  color: #fff;
+  cursor: pointer;
+  font-size: 15px;
+  font-weight: 850;
 }
 
 @media (max-width: 420px) {

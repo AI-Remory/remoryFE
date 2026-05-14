@@ -60,16 +60,16 @@ const mockPersonas: MyPersona[] = [
 
 const menuItems: MenuItem[] = [
   { id: 'edit-profile', title: '내 정보 수정', description: '프로필과 기본 정보를 관리해요', icon: 'editUser' },
-  { id: 'subscription', title: '구독 / 이용권', description: '이용 중인 플랜과 결제 정보를 확인해요', icon: 'card' },
-  { id: 'voice-records', title: '음성 기록 관리', description: '인터뷰 음성 파일을 확인하고 관리해요', icon: 'mic' },
+  { id: 'voice-profile', title: '음성 프로필', description: '페르소나 목소리 생성과 검수를 관리해요', icon: 'mic' },
+  { id: 'groups', title: '그룹 공유', description: '가족 그룹과 공유 스토리북을 관리해요', icon: 'people' },
   { id: 'storybook-archive', title: '스토리북 보관함', description: '완성된 스토리북을 확인하고 관리해요', icon: 'book' },
-  { id: 'notifications', title: '알림 설정', description: '앱 알림과 이메일 수신을 설정해요', icon: 'bell' },
-  { id: 'app-settings', title: '앱 설정', description: '언어, 테마 등 앱 환경을 설정해요', icon: 'settings' },
+  { id: 'deletion', title: '삭제 요청', description: '내 데이터 삭제 요청을 제출해요', icon: 'shield' },
+  { id: 'report', title: '신고', description: '문제 리소스를 신고하고 상태를 확인해요', icon: 'headset' },
 ]
 
 const wideMenuItems: MenuItem[] = [
   { id: 'privacy-security', title: '개인정보 및 보안', description: '개인정보 관리와 보안 설정을 확인해요', icon: 'shield' },
-  { id: 'support', title: '고객센터', description: '문의하기, 자주 묻는 질문을 확인해요', icon: 'headset' },
+  { id: 'admin', title: '관리자 대시보드', description: '검증 승인, 삭제 요청, 신고를 검수해요', icon: 'settings' },
 ]
 
 function mapTargetsToPersonas(targets: Target[]): MyPersona[] {
@@ -254,6 +254,21 @@ function MyPage() {
     }
   }
 
+  const handleMenuNavigation = (itemId: string) => {
+    const routeByItem: Record<string, string> = {
+      'edit-profile': '/profile',
+      'voice-profile': '/voice-profile',
+      groups: '/groups',
+      'storybook-archive': '/storybook',
+      deletion: '/deletion',
+      report: '/report',
+      'privacy-security': '/deletion',
+      admin: '/admin',
+    }
+
+    window.location.assign(routeByItem[itemId] ?? '/my')
+  }
+
   return (
     <main className="my-page">
       <section className="my-page__container" aria-label="Remory my page">
@@ -347,7 +362,7 @@ function MyPage() {
 
         <section className="my-page__menu-grid" aria-label="설정 메뉴">
           {menuItems.map((item) => (
-            <button className="my-page__menu-card" type="button" key={item.id} onClick={() => console.log('menu click', item.id)}>
+            <button className="my-page__menu-card" type="button" key={item.id} onClick={() => handleMenuNavigation(item.id)}>
               <span className={`my-page__menu-icon my-page__menu-icon--${item.icon}`} aria-hidden="true">
                 <AppIcon name={item.icon} />
               </span>
@@ -362,7 +377,7 @@ function MyPage() {
 
         <section className="my-page__wide-menu" aria-label="지원 및 보안 메뉴">
           {wideMenuItems.map((item) => (
-            <button className="my-page__wide-card" type="button" key={item.id} onClick={() => console.log('menu click', item.id)}>
+            <button className="my-page__wide-card" type="button" key={item.id} onClick={() => handleMenuNavigation(item.id)}>
               <span className={`my-page__menu-icon my-page__menu-icon--${item.icon}`} aria-hidden="true">
                 <AppIcon name={item.icon} />
               </span>

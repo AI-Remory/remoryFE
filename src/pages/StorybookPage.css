@@ -817,6 +817,12 @@
   height: 30px;
 }
 
+.storybook-page__primary-button:disabled,
+.storybook-page__secondary-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.64;
+}
+
 .storybook-page__bottom-nav {
   position: fixed;
   left: 50%;

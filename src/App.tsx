@@ -1,15 +1,20 @@
 import AuthPage from './pages/AuthPage'
 import CampaignsPage from './pages/CampaignsPage'
 import ChatPage from './pages/ChatPage'
+import AdminPage from './pages/AdminPage'
+import DeletionRequestPage from './pages/DeletionRequestPage'
+import GroupPage from './pages/GroupPage'
 import HomePage from './pages/HomePage'
 import InterviewPage from './pages/InterviewPage'
 import LandingPage from './pages/LandingPage'
 import MyPage from './pages/MyPage'
 import ProfilePage from './pages/ProfilePage'
 import PublicSharePage from './pages/PublicSharePage'
+import ReportPage from './pages/ReportPage'
 import SetupPage from './pages/SetupPage'
 import StorybookDetailPage from './pages/StorybookDetailPage'
 import StorybookPage from './pages/StorybookPage'
+import VoiceProfilePage from './pages/VoiceProfilePage'
 import './App.css'
 
 function App() {
@@ -17,6 +22,26 @@ function App() {
 
   if (pathname.startsWith('/campaigns')) {
     return <CampaignsPage />
+  }
+
+  if (pathname.startsWith('/admin')) {
+    return <AdminPage />
+  }
+
+  if (pathname.startsWith('/groups')) {
+    return <GroupPage />
+  }
+
+  if (pathname.startsWith('/deletion')) {
+    return <DeletionRequestPage />
+  }
+
+  if (pathname.startsWith('/report')) {
+    return <ReportPage />
+  }
+
+  if (pathname.startsWith('/voice-profile')) {
+    return <VoiceProfilePage />
   }
 
   if (pathname.startsWith('/profile')) {

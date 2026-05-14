@@ -20,4 +20,11 @@ export const chatApi = {
       content,
     })
   },
+
+  sendAudioMessage(chatId: ApiId, file: File) {
+    const formData = new FormData()
+    formData.append('file', file)
+
+    return apiClient.post<SendMessageResponse>(`/chats/${chatId}/audio`, formData)
+  },
 }

@@ -1,10 +1,11 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState, type ChangeEvent } from 'react'
 import { ApiError } from '../lib/apiClient'
 import { normalizeAssetUrl } from '../lib/mediaUrl'
 import { fetchProtectedFileObjectUrl, revokeObjectUrl } from '../lib/protectedFile'
 import { chatApi } from '../services/chatApi'
 import { personaApi } from '../services/personaApi'
 import { ensureMomPersonaId, REMORY_CHAT_ID_KEY, REMORY_PERSONA_ID_KEY } from '../services/personaSession'
+import { buildRealtimeVoiceUrl, type RealtimeVoiceMessage } from '../services/realtimeVoiceApi'
 import { targetApi } from '../services/targetApi'
 import type { ApiId, ChatMessage as ApiChatMessage, Persona, Target } from '../types/api'
 import './ChatPage.css'
@@ -24,6 +25,12 @@ type ChatPersona = {
   subtitle: string
   description: string
   image: string
+}
+
+type VoiceLog = {
+  id: string
+  text: string
+  tone: 'info' | 'user' | 'persona' | 'error'
 }
 
 type IconName = 'back' | 'history' | 'chevron' | 'sparkle' | 'book' | 'leaf' | 'mic' | 'send' | 'home' | 'chat' | 'my'
@@ -226,6 +233,38 @@ function getChatErrorMessage(error: unknown, fallbackMessage: string) {
   return fallbackMessage
 }
 
+function getVoiceLog(message: RealtimeVoiceMessage): Omit<VoiceLog, 'id'> {
+  switch (message.type) {
+    case 'session_started':
+      return { text: '실시간 음성 세션이 시작됐어요.', tone: 'info' }
+    case 'final_transcript':
+      return { text: `나: ${message.text ?? ''}`, tone: 'user' }
+    case 'persona_text':
+      return { text: `${defaultPersona.name}: ${message.text ?? ''}`, tone: 'persona' }
+    case 'persona_audio':
+      return { text: 'AI 음성 응답이 생성됐어요.', tone: 'persona' }
+    case 'session_ended':
+      return { text: '실시간 음성 세션이 종료됐어요.', tone: 'info' }
+    case 'error':
+      return { text: message.message ?? '실시간 음성 처리 중 오류가 발생했습니다.', tone: 'error' }
+    default:
+      return { text: `수신: ${message.type}`, tone: 'info' }
+  }
+}
+
+function blobToBase64(blob: Blob) {
+  return new Promise<string>((resolve, reject) => {
+    const reader = new FileReader()
+
+    reader.onload = () => {
+      const result = String(reader.result ?? '')
+      resolve(result.includes(',') ? result.split(',')[1] : result)
+    }
+    reader.onerror = () => reject(reader.error)
+    reader.readAsDataURL(blob)
+  })
+}
+
 function ChatIcon({ name }: { name: IconName }) {
   switch (name) {
     case 'back':
@@ -305,11 +344,20 @@ function ChatIcon({ name }: { name: IconName }) {
 function ChatPage() {
   const [messages, setMessages] = useState<ChatMessage[]>(initialMessages)
   const [input, setInput] = useState('')
+  const [personaId, setPersonaId] = useState<ApiId | null>(null)
   const [chatId, setChatId] = useState<ApiId | null>(null)
   const [persona, setPersona] = useState<ChatPersona>(defaultPersona)
   const [isSending, setIsSending] = useState(false)
+  const [isSendingAudio, setIsSendingAudio] = useState(false)
   const [isPreparingChat, setIsPreparingChat] = useState(false)
+  const [isVoiceSessionActive, setIsVoiceSessionActive] = useState(false)
+  const [isVoiceRecording, setIsVoiceRecording] = useState(false)
+  const [voiceLogs, setVoiceLogs] = useState<VoiceLog[]>([])
   const [errorMessage, setErrorMessage] = useState('')
+  const audioFileInputRef = useRef<HTMLInputElement | null>(null)
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null)
+  const mediaStreamRef = useRef<MediaStream | null>(null)
+  const voiceSocketRef = useRef<WebSocket | null>(null)
   const isChatUnavailable = !chatId && Boolean(errorMessage)
   const shouldShowSetupAction =
     errorMessage.includes('다시 설정') ||
@@ -334,6 +382,10 @@ function ChatPage() {
           return targetPersonaId !== undefined && targetPersonaId !== null && String(targetPersonaId) === personaId
         })
         const nextPersona = mapPersonaToChatPersona(personaDetail, currentTarget)
+
+        if (!ignore) {
+          setPersonaId(personaId)
+        }
 
         if (!ignore && (personaDetail || currentTarget)) {
           setPersona(nextPersona)
@@ -385,6 +437,14 @@ function ChatPage() {
     }
   }, [])
 
+  useEffect(() => {
+    return () => {
+      mediaRecorderRef.current?.stop()
+      mediaStreamRef.current?.getTracks().forEach((track) => track.stop())
+      voiceSocketRef.current?.close()
+    }
+  }, [])
+
   const handleSend = async () => {
     const text = input.trim()
 
@@ -414,6 +474,139 @@ function ChatPage() {
     } finally {
       setIsSending(false)
     }
+  }
+
+  const handleAudioFileChange = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.currentTarget.files?.[0] ?? null
+    event.currentTarget.value = ''
+
+    if (!file || isSendingAudio) {
+      return
+    }
+
+    if (!chatId) {
+      setErrorMessage('채팅방을 준비하지 못했습니다. 잠시 후 다시 시도해주세요.')
+      return
+    }
+
+    setErrorMessage('')
+    setIsSendingAudio(true)
+
+    try {
+      const response = await chatApi.sendAudioMessage(chatId, file)
+
+      setMessages((current) => [
+        ...current,
+        mapApiMessage(response.user_message),
+        mapApiMessage(response.persona_message),
+      ])
+    } catch (error) {
+      setErrorMessage(getChatErrorMessage(error, '오디오 메시지를 보내지 못했습니다.'))
+    } finally {
+      setIsSendingAudio(false)
+    }
+  }
+
+  const appendVoiceLog = (log: Omit<VoiceLog, 'id'>) => {
+    setVoiceLogs((current) => [
+      ...current.slice(-7),
+      {
+        ...log,
+        id: `${Date.now()}-${current.length}`,
+      },
+    ])
+  }
+
+  const cleanupVoiceSession = () => {
+    mediaRecorderRef.current = null
+    mediaStreamRef.current?.getTracks().forEach((track) => track.stop())
+    mediaStreamRef.current = null
+    voiceSocketRef.current = null
+    setIsVoiceRecording(false)
+    setIsVoiceSessionActive(false)
+  }
+
+  const handleStartVoiceSession = async () => {
+    if (isVoiceSessionActive || isVoiceRecording) {
+      return
+    }
+
+    if (!personaId) {
+      setErrorMessage('페르소나를 준비한 뒤 실시간 음성 대화를 시작할 수 있어요.')
+      return
+    }
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      const socket = new WebSocket(buildRealtimeVoiceUrl(personaId))
+
+      mediaStreamRef.current = stream
+      voiceSocketRef.current = socket
+      setVoiceLogs([])
+      setIsVoiceSessionActive(true)
+      setErrorMessage('')
+
+      socket.onopen = () => {
+        socket.send(JSON.stringify({ type: 'start', chat_id: chatId ?? undefined }))
+
+        const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
+          ? 'audio/webm;codecs=opus'
+          : 'audio/webm'
+        const recorder = new MediaRecorder(stream, { mimeType })
+
+        recorder.ondataavailable = async (recordEvent) => {
+          if (!recordEvent.data.size || socket.readyState !== WebSocket.OPEN) {
+            return
+          }
+
+          const data = await blobToBase64(recordEvent.data)
+          socket.send(JSON.stringify({ type: 'audio_chunk', mime_type: mimeType, data }))
+        }
+
+        recorder.start(1000)
+        mediaRecorderRef.current = recorder
+        setIsVoiceRecording(true)
+      }
+
+      socket.onmessage = (messageEvent) => {
+        try {
+          appendVoiceLog(getVoiceLog(JSON.parse(messageEvent.data) as RealtimeVoiceMessage))
+        } catch {
+          appendVoiceLog({ text: '실시간 음성 응답을 해석하지 못했습니다.', tone: 'error' })
+        }
+      }
+
+      socket.onerror = () => {
+        appendVoiceLog({ text: '실시간 음성 WebSocket 연결에 실패했습니다.', tone: 'error' })
+      }
+
+      socket.onclose = () => {
+        cleanupVoiceSession()
+      }
+    } catch (error) {
+      cleanupVoiceSession()
+      setErrorMessage(error instanceof Error ? error.message : '마이크 권한을 확인해주세요.')
+    }
+  }
+
+  const handleEndUtterance = () => {
+    if (voiceSocketRef.current?.readyState === WebSocket.OPEN) {
+      voiceSocketRef.current.send(JSON.stringify({ type: 'end_utterance' }))
+      appendVoiceLog({ text: '말한 내용을 전송했어요.', tone: 'info' })
+    }
+  }
+
+  const handleStopVoiceSession = () => {
+    if (mediaRecorderRef.current?.state === 'recording') {
+      mediaRecorderRef.current.stop()
+    }
+
+    if (voiceSocketRef.current?.readyState === WebSocket.OPEN) {
+      voiceSocketRef.current.send(JSON.stringify({ type: 'stop' }))
+    }
+
+    voiceSocketRef.current?.close()
+    cleanupVoiceSession()
   }
 
   const handleStorybookNavigation = () => {
@@ -498,14 +691,56 @@ function ChatPage() {
             스토리북으로 만들기
           </button>
 
+          <input
+            ref={audioFileInputRef}
+            className="chat-page__file-input"
+            type="file"
+            accept="audio/*"
+            aria-label="오디오 메시지 파일 선택"
+            onChange={handleAudioFileChange}
+          />
+
+          <button
+            className="chat-page__audio-upload-button"
+            type="button"
+            disabled={isSendingAudio || isPreparingChat || isChatUnavailable}
+            onClick={() => audioFileInputRef.current?.click()}
+          >
+            <ChatIcon name="mic" />
+            {isSendingAudio ? '오디오 전송 중...' : '오디오 메시지 보내기'}
+          </button>
+
           <button
             className="chat-page__voice-notice-button"
             type="button"
-            onClick={() => setErrorMessage('음성 대화는 WSS 프록시 설정 후 사용할 수 있어요.')}
+            disabled={isPreparingChat || isChatUnavailable}
+            onClick={isVoiceSessionActive ? handleStopVoiceSession : handleStartVoiceSession}
           >
             <ChatIcon name="mic" />
-            음성 대화
+            {isVoiceSessionActive ? '실시간 음성 종료' : '실시간 음성 시작'}
           </button>
+
+          {(isVoiceSessionActive || voiceLogs.length > 0) && (
+            <section className="chat-page__voice-panel" aria-label="실시간 음성 대화 상태">
+              <div className="chat-page__voice-panel-heading">
+                <strong>{isVoiceRecording ? '마이크 연결 중' : '음성 세션'}</strong>
+                <button type="button" onClick={handleEndUtterance} disabled={!isVoiceSessionActive}>
+                  말 끝내기
+                </button>
+              </div>
+              <div className="chat-page__voice-log">
+                {voiceLogs.length > 0 ? (
+                  voiceLogs.map((log) => (
+                    <p className={`chat-page__voice-log-line chat-page__voice-log-line--${log.tone}`} key={log.id}>
+                      {log.text}
+                    </p>
+                  ))
+                ) : (
+                  <p className="chat-page__voice-log-line">말을 마친 뒤 말 끝내기를 눌러주세요.</p>
+                )}
+              </div>
+            </section>
+          )}
 
           <div className="chat-page__composer">
             <button className="chat-page__leaf-button" type="button" aria-label="기억 소재 선택">

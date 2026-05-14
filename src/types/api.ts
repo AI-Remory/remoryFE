@@ -39,7 +39,9 @@ export type PersonaStatus = 'PENDING' | 'READY' | 'FAILED' | string
 export type VoiceProfile = {
   id?: ApiId
   persona_id?: ApiId
-  status?: PersonaStatus
+  status?: PersonaStatus | string
+  review_status?: string | null
+  review_note?: string | null
   audio_url?: string | null
   audio_path?: string | null
   file_path?: string | null
@@ -357,6 +359,79 @@ export type VerificationRequest = {
   reason?: string | null
   reviewer_note?: string | null
   file_path?: string | null
+  created_at?: string
+  updated_at?: string
+}
+
+export type MemoryGroup = {
+  id: ApiId
+  owner_id?: ApiId
+  name: string
+  description?: string | null
+  created_at?: string
+  updated_at?: string
+}
+
+export type MemoryGroupDetail = MemoryGroup & {
+  members?: GroupMember[]
+  storybooks?: GroupStoryBookListItem[]
+}
+
+export type GroupMember = {
+  id: ApiId
+  group_id?: ApiId
+  user_id?: ApiId
+  role?: 'OWNER' | 'MEMBER' | 'VIEWER' | string
+  created_at?: string
+  updated_at?: string
+}
+
+export type GroupStoryBookListItem = {
+  id: ApiId
+  group_id?: ApiId
+  storybook_id?: ApiId
+  storybook?: StoryBook | null
+  title?: string | null
+  created_at?: string
+  updated_at?: string
+}
+
+export type DeletionStatus =
+  | 'PENDING'
+  | 'PROCESSING'
+  | 'COMPLETED'
+  | 'FAILED'
+  | 'REJECTED'
+  | 'CANCELLED'
+  | string
+
+export type DeletionRequest = {
+  id: ApiId
+  user_id?: ApiId
+  target_type: string
+  target_id?: ApiId | null
+  reason?: string | null
+  status?: DeletionStatus
+  created_at?: string
+  updated_at?: string
+}
+
+export type ReportStatus =
+  | 'PENDING'
+  | 'REVIEWING'
+  | 'RESOLVED'
+  | 'REJECTED'
+  | 'ACTION_TAKEN'
+  | string
+
+export type Report = {
+  id: ApiId
+  reporter_id?: ApiId
+  target_type: string
+  target_id: ApiId
+  reason_type: string
+  reason_detail?: string | null
+  status?: ReportStatus
   created_at?: string
   updated_at?: string
 }

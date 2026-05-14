@@ -109,6 +109,7 @@ function StorybookDetailPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [errorMessage, setErrorMessage] = useState('')
   const [isSharePanelOpen, setIsSharePanelOpen] = useState(false)
+  const [isRegenerating, setIsRegenerating] = useState(false)
   const [shareLinks, setShareLinks] = useState<ShareLink[]>([])
   const [isLoadingShareLinks, setIsLoadingShareLinks] = useState(false)
   const [isCreatingShareLink, setIsCreatingShareLink] = useState(false)
@@ -206,6 +207,31 @@ function StorybookDetailPage() {
       setShareErrorMessage(getShareErrorMessage(error, '공유 링크를 불러오지 못했습니다.'))
     } finally {
       setIsLoadingShareLinks(false)
+    }
+  }
+
+  const handleRegenerateStorybook = async () => {
+    if (!storybookId || isRegenerating) {
+      return
+    }
+
+    setErrorMessage('')
+    setIsRegenerating(true)
+
+    try {
+      const regenerated = await storybookApi.regenerateStorybook(storybookId)
+      const nextChapters = regenerated.chapters?.length
+        ? regenerated.chapters
+        : await storybookApi.listChapters(regenerated.id)
+
+      setStorybook(regenerated)
+      setChapters(sortChapters(nextChapters))
+      setShareStatusMessage('스토리북을 다시 생성했어요.')
+      setShareErrorMessage('')
+    } catch (error) {
+      setErrorMessage(getApiErrorMessage(error))
+    } finally {
+      setIsRegenerating(false)
     }
   }
 
@@ -319,9 +345,14 @@ function StorybookDetailPage() {
             <button type="button" onClick={() => window.history.back()}>
               뒤로가기
             </button>
-            <button type="button" onClick={handleOpenSharePanel} disabled={!storybookId || !storybook}>
-              공유하기
-            </button>
+            <span className="storybook-detail-page__header-action-group">
+              <button type="button" onClick={handleRegenerateStorybook} disabled={!storybookId || !storybook || isRegenerating}>
+                {isRegenerating ? '재생성 중...' : '재생성'}
+              </button>
+              <button type="button" onClick={handleOpenSharePanel} disabled={!storybookId || !storybook}>
+                공유하기
+              </button>
+            </span>
           </div>
           <span>StoryBook</span>
           <h1>{storybook?.title ?? '스토리북'}</h1>

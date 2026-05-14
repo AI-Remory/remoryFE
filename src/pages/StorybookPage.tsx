@@ -346,6 +346,7 @@ function StorybookPage() {
   const [photoUploadFile, setPhotoUploadFile] = useState<File | null>(null)
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false)
   const [isCreatingStorybook, setIsCreatingStorybook] = useState(false)
+  const [isRegeneratingStorybook, setIsRegeneratingStorybook] = useState(false)
   const [isSharePanelOpen, setIsSharePanelOpen] = useState(false)
   const [shareLinks, setShareLinks] = useState<ShareLink[]>([])
   const [isLoadingShareLinks, setIsLoadingShareLinks] = useState(false)
@@ -651,6 +652,35 @@ function StorybookPage() {
       setErrorMessage(getApiErrorMessage(error, '스토리북을 만들지 못했습니다.'))
     } finally {
       setIsCreatingStorybook(false)
+    }
+  }
+
+  const handleRegenerateStorybook = async () => {
+    if (!currentStorybook || isRegeneratingStorybook) {
+      setErrorMessage('재생성할 스토리북이 없습니다.')
+      return
+    }
+
+    setErrorMessage('')
+    setStatusMessage('')
+    setIsRegeneratingStorybook(true)
+
+    try {
+      const regenerated = await storybookApi.regenerateStorybook(currentStorybook.id)
+      const nextChapters = regenerated.chapters?.length
+        ? regenerated.chapters
+        : await storybookApi.listChapters(regenerated.id)
+      const mappedChapters = mapStoryChapters(nextChapters)
+
+      setCurrentStorybook(regenerated)
+      setChapterItems(mappedChapters)
+      setSelectedChapterId(mappedChapters[0]?.id ?? '')
+      await loadStorybooks(regenerated.id).catch(() => undefined)
+      setStatusMessage('선택한 스토리북을 다시 생성했어요.')
+    } catch (error) {
+      setErrorMessage(getApiErrorMessage(error, '스토리북을 재생성하지 못했습니다.'))
+    } finally {
+      setIsRegeneratingStorybook(false)
     }
   }
 
@@ -1082,6 +1112,10 @@ function StorybookPage() {
           <button className="storybook-page__secondary-button" type="button" onClick={() => handleOpenStorybookDetail()}>
             <StorybookIcon name="book" />
             스토리북 보기
+          </button>
+          <button className="storybook-page__secondary-button" type="button" onClick={handleRegenerateStorybook} disabled={!currentStorybook || isRegeneratingStorybook}>
+            <StorybookIcon name="sparkle" />
+            {isRegeneratingStorybook ? '재생성 중...' : '재생성'}
           </button>
         </section>
 

@@ -32,4 +32,8 @@ export const storybookApi = {
   createStorybook(payload: CreateStorybookPayload) {
     return apiClient.post<StoryBook>('/storybooks', payload)
   },
+
+  regenerateStorybook(storybookId: ApiId) {
+    return apiClient.post<StoryBookDetail>(`/storybooks/${storybookId}/regenerate`)
+  },
 }

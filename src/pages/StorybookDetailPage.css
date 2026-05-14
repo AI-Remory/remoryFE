@@ -27,6 +27,13 @@
   gap: 12px;
 }
 
+.storybook-detail-page__header-action-group {
+  display: inline-flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
 .storybook-detail-page__header button {
   width: fit-content;
   min-height: 36px;
@@ -39,7 +46,7 @@
   font-weight: 800;
 }
 
-.storybook-detail-page__header button:last-child {
+.storybook-detail-page__header-action-group button:last-child {
   border-color: #6b3027;
   background: #6b3027;
   color: #fff;

@@ -1,56 +1,214 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { ArrowLeft, CheckCircle2, Mic, RefreshCw, Sparkles } from 'lucide-react'
 import { ApiError } from '../lib/apiClient'
+import { getPersonaIdFromTarget, REMORY_PERSONA_ID_KEY } from '../services/personaSession'
 import { personaApi } from '../services/personaApi'
 import { targetApi } from '../services/targetApi'
-import type { Target, VoiceProfile } from '../types/api'
+import type { ApiId, Persona, Target, VoiceProfile } from '../types/api'
 import './OperationsPage.css'
 
-function getErrorMessage(error: unknown, fallback: string) {
-  return error instanceof ApiError ? error.message : fallback
+type PersonaOption = {
+  personaId: string
+  name: string
+  loadedDetail: boolean
+}
+
+type PersonaOptionsResult = {
+  options: PersonaOption[]
+  hasUnresolvedPersona: boolean
+}
+
+const personaLoadErrorMessage = '페르소나 정보를 불러오지 못했습니다.'
+const voiceProfileLoadErrorMessage = '음성 프로필 정보를 불러오지 못했습니다.'
+const voiceProfileActionErrorMessage = '음성 프로필 요청을 완료하지 못했습니다.'
+const noPersonaGuideMessage = '아직 생성된 페르소나가 없습니다. 먼저 페르소나 설정을 완료해주세요.'
+
+function toStorageId(value: ApiId | null | undefined) {
+  return value === null || value === undefined ? null : String(value)
 }
 
 function getPersonaId(target: Target) {
-  return target.persona_id ?? target.persona?.id ?? null
+  return getPersonaIdFromTarget(target)
+}
+
+function targetMayHavePersona(target: Target) {
+  return Boolean(getPersonaId(target) || target.persona || target.has_persona)
+}
+
+function getStoredPersonaId() {
+  return window.localStorage.getItem(REMORY_PERSONA_ID_KEY)?.trim() || null
+}
+
+function getPersonaDisplayName(persona?: Persona | null, target?: Target) {
+  return (
+    persona?.persona_name ??
+    persona?.name ??
+    persona?.nickname ??
+    target?.persona?.persona_name ??
+    target?.persona?.name ??
+    target?.persona?.nickname ??
+    target?.name ??
+    target?.nickname ??
+    '페르소나'
+  )
+}
+
+function createPersonaOption(personaId: string, target?: Target, persona?: Persona | null, loadedDetail = false): PersonaOption {
+  return {
+    personaId,
+    name: getPersonaDisplayName(persona, target),
+    loadedDetail,
+  }
+}
+
+async function createPersonaOptionFromDetail(personaId: string, target?: Target) {
+  const persona = await personaApi.getPersona(personaId)
+  const resolvedPersonaId = toStorageId(persona.id) ?? personaId
+
+  return createPersonaOption(resolvedPersonaId, target, persona, true)
+}
+
+async function resolveTargetWithPersonaId(target: Target) {
+  const personaId = getPersonaId(target)
+
+  if (personaId) {
+    return { target, personaId }
+  }
+
+  if (!target.has_persona) {
+    return null
+  }
+
+  try {
+    const detailedTarget = await targetApi.getTarget(target.id)
+    const detailedPersonaId = getPersonaId(detailedTarget)
+
+    return detailedPersonaId ? { target: detailedTarget, personaId: detailedPersonaId } : null
+  } catch {
+    return null
+  }
+}
+
+async function createPersonaOptionFromTarget(target: Target) {
+  const resolved = await resolveTargetWithPersonaId(target)
+
+  if (!resolved) {
+    return null
+  }
+
+  try {
+    return await createPersonaOptionFromDetail(resolved.personaId, resolved.target)
+  } catch {
+    return createPersonaOption(resolved.personaId, resolved.target, resolved.target.persona, false)
+  }
+}
+
+async function createPersonaOptionsFromTargets(targets: Target[]) {
+  const options: PersonaOption[] = []
+  const seenPersonaIds = new Set<string>()
+  let hasUnresolvedPersona = false
+
+  for (const target of targets) {
+    const option = await createPersonaOptionFromTarget(target)
+
+    if (!option) {
+      if (targetMayHavePersona(target)) {
+        hasUnresolvedPersona = true
+      }
+
+      continue
+    }
+
+    if (seenPersonaIds.has(option.personaId)) {
+      continue
+    }
+
+    seenPersonaIds.add(option.personaId)
+    options.push(option)
+  }
+
+  return { options, hasUnresolvedPersona }
+}
+
+function mergePersonaOptions(options: PersonaOption[]) {
+  const merged = new Map<string, PersonaOption>()
+
+  options.forEach((option) => {
+    const current = merged.get(option.personaId)
+
+    if (!current || (!current.loadedDetail && option.loadedDetail)) {
+      merged.set(option.personaId, option)
+    }
+  })
+
+  return Array.from(merged.values())
 }
 
 function VoiceProfilePage() {
-  const [targets, setTargets] = useState<Target[]>([])
+  const [personaOptions, setPersonaOptions] = useState<PersonaOption[]>([])
   const [selectedPersonaId, setSelectedPersonaId] = useState('')
   const [voiceProfile, setVoiceProfile] = useState<VoiceProfile | null>(null)
   const [reviewNote, setReviewNote] = useState('')
   const [isLoading, setIsLoading] = useState(true)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [personaLoadFailed, setPersonaLoadFailed] = useState(false)
   const [statusMessage, setStatusMessage] = useState('')
   const [errorMessage, setErrorMessage] = useState('')
 
-  const personaTargets = useMemo(() => targets.filter((target) => getPersonaId(target)), [targets])
+  const hasNoPersonas = !isLoading && !personaLoadFailed && personaOptions.length === 0
 
   useEffect(() => {
     let ignore = false
 
-    async function loadTargets() {
+    async function loadPersonas() {
+      setErrorMessage('')
+      setPersonaLoadFailed(false)
+
+      const storedPersonaId = getStoredPersonaId()
+      let storedPersonaOption: PersonaOption | null = null
+
+      if (storedPersonaId) {
+        try {
+          storedPersonaOption = await createPersonaOptionFromDetail(storedPersonaId)
+        } catch {
+          window.localStorage.removeItem(REMORY_PERSONA_ID_KEY)
+        }
+      }
+
+      let targetPersonaResult: PersonaOptionsResult = { options: [], hasUnresolvedPersona: false }
+      let targetLoadFailed = false
+
       try {
         const response = await targetApi.listTargets()
-        const nextTargets = response.items
-        const firstPersonaId = nextTargets.map(getPersonaId).find(Boolean)
+        targetPersonaResult = await createPersonaOptionsFromTargets(response.items)
+      } catch {
+        targetLoadFailed = true
+      }
 
-        if (!ignore) {
-          setTargets(nextTargets)
-          setSelectedPersonaId(firstPersonaId ? String(firstPersonaId) : '')
+      const nextOptions = mergePersonaOptions(
+        storedPersonaOption ? [storedPersonaOption, ...targetPersonaResult.options] : targetPersonaResult.options,
+      )
+      const selectedOption = storedPersonaOption ?? nextOptions[0] ?? null
+      const nextPersonaLoadFailed = (targetLoadFailed || targetPersonaResult.hasUnresolvedPersona) && nextOptions.length === 0
+
+      if (!ignore) {
+        setPersonaOptions(nextOptions)
+        setSelectedPersonaId(selectedOption?.personaId ?? '')
+        setPersonaLoadFailed(nextPersonaLoadFailed)
+
+        if (selectedOption) {
+          window.localStorage.setItem(REMORY_PERSONA_ID_KEY, selectedOption.personaId)
         }
-      } catch (error) {
-        if (!ignore) {
-          setErrorMessage(getErrorMessage(error, '페르소나 목록을 불러오지 못했습니다.'))
+
+        if (nextPersonaLoadFailed) {
+          setErrorMessage(personaLoadErrorMessage)
         }
-      } finally {
-        if (!ignore) {
-          setIsLoading(false)
-        }
+
+        setIsLoading(false)
       }
     }
 
-    loadTargets()
+    loadPersonas()
 
     return () => {
       ignore = true
@@ -77,7 +235,7 @@ function VoiceProfilePage() {
             setVoiceProfile(null)
 
             if (!(error instanceof ApiError && error.status === 404)) {
-              setErrorMessage(getErrorMessage(error, '음성 프로필을 불러오지 못했습니다.'))
+              setErrorMessage(voiceProfileLoadErrorMessage)
             }
           }
         })
@@ -88,6 +246,14 @@ function VoiceProfilePage() {
       window.clearTimeout(timeoutId)
     }
   }, [selectedPersonaId])
+
+  const handlePersonaChange = (personaId: string) => {
+    setSelectedPersonaId(personaId)
+
+    if (personaId) {
+      window.localStorage.setItem(REMORY_PERSONA_ID_KEY, personaId)
+    }
+  }
 
   const runVoiceAction = async (action: 'create' | 'evaluate' | 'confirm') => {
     if (!selectedPersonaId || isSubmitting) {
@@ -108,13 +274,13 @@ function VoiceProfilePage() {
       setVoiceProfile(nextProfile)
       setStatusMessage(
         action === 'create'
-          ? '음성 프로필 생성을 요청했어요.'
+          ? '음성 프로필 생성이 요청됐어요.'
           : action === 'evaluate'
             ? '음성 프로필 평가를 요청했어요.'
             : '사용자 확인을 저장했어요.',
       )
-    } catch (error) {
-      setErrorMessage(getErrorMessage(error, '음성 프로필 요청에 실패했습니다.'))
+    } catch {
+      setErrorMessage(voiceProfileActionErrorMessage)
     } finally {
       setIsSubmitting(false)
     }
@@ -141,19 +307,29 @@ function VoiceProfilePage() {
             <div className="ops-page__form">
               <label>
                 페르소나
-                <select value={selectedPersonaId} onChange={(event) => setSelectedPersonaId(event.currentTarget.value)} disabled={isLoading}>
-                  <option value="">페르소나 없음</option>
-                  {personaTargets.map((target) => {
-                    const personaId = getPersonaId(target)
-
-                    return (
-                      <option value={String(personaId)} key={String(target.id)}>
-                        {target.nickname ?? target.name ?? `Target ${target.id}`}
-                      </option>
-                    )
-                  })}
+                <select
+                  value={selectedPersonaId}
+                  onChange={(event) => handlePersonaChange(event.currentTarget.value)}
+                  disabled={isLoading || personaOptions.length === 0}
+                >
+                  {isLoading && <option value="">페르소나를 불러오는 중입니다</option>}
+                  {hasNoPersonas && <option value="">페르소나 없음</option>}
+                  {personaLoadFailed && <option value="">페르소나 정보를 불러오지 못했습니다</option>}
+                  {personaOptions.map((persona) => (
+                    <option value={persona.personaId} key={persona.personaId}>
+                      {persona.name}
+                    </option>
+                  ))}
                 </select>
               </label>
+              {hasNoPersonas && (
+                <div className="ops-page__state-note" role="status">
+                  <p>{noPersonaGuideMessage}</p>
+                  <button className="ops-page__button-secondary" type="button" onClick={() => window.location.assign('/setup')}>
+                    페르소나 설정하기
+                  </button>
+                </div>
+              )}
               <label>
                 확인 메모
                 <textarea rows={3} value={reviewNote} onChange={(event) => setReviewNote(event.currentTarget.value)} />

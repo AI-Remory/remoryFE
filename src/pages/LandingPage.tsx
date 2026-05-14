@@ -2,24 +2,19 @@ import './LandingPage.css'
 
 function LandingPage() {
   const handleStartMemory = () => {
-    console.log('start memory')
+    window.location.href = '/auth?tab=login'
   }
 
   const handleContinueWithGoogle = () => {
-    console.log('continue with google')
-  }
-
-  const handleEmailLogin = () => {
-    console.log('email login')
-    window.location.href = '/auth'
+    window.location.href = '/auth?tab=login'
   }
 
   const handleExplore = () => {
-    console.log('explore without account')
+    window.location.href = '/home'
   }
 
   const handleOpenInfo = () => {
-    console.log('open info')
+    window.alert('서비스 안내는 준비 중입니다.')
   }
 
   return (
@@ -80,10 +75,6 @@ function LandingPage() {
               G
             </span>
             Google로 계속하기
-          </button>
-          <button className="remory-onboarding-secondary" type="button" onClick={handleEmailLogin}>
-            <span className="remory-onboarding-mail" aria-hidden="true" />
-            이메일 로그인
           </button>
           <button className="remory-onboarding-text-button" type="button" onClick={handleExplore}>
             계정 없이 둘러보기

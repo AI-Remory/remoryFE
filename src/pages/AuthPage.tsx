@@ -6,6 +6,13 @@ import './AuthPage.css'
 
 type AuthTab = 'signup' | 'login'
 
+function getInitialAuthTab(): AuthTab {
+  const params = new URLSearchParams(window.location.search)
+  const tab = params.get('tab') ?? params.get('mode')
+
+  return tab === 'login' ? 'login' : 'signup'
+}
+
 async function redirectAfterAuth() {
   try {
     const targets = await targetApi.listTargets()
@@ -77,7 +84,7 @@ function EyeIcon() {
 }
 
 function AuthPage() {
-  const [activeTab, setActiveTab] = useState<AuthTab>('signup')
+  const [activeTab, setActiveTab] = useState<AuthTab>(getInitialAuthTab)
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')

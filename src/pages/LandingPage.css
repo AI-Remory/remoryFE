@@ -7,6 +7,9 @@
   --peach: #ef9c7f;
   --gray-text: #6f6a67;
 
+  display: flex;
+  justify-content: center;
+  min-height: 100svh;
   min-height: 100dvh;
   overflow-y: auto;
   background:
@@ -22,9 +25,10 @@
   flex-direction: column;
   align-items: center;
   width: min(100%, 430px);
+  min-height: 100svh;
   min-height: 100dvh;
   margin: 0 auto;
-  padding: clamp(24px, 4dvh, 42px) 24px 24px;
+  padding: clamp(24px, 4dvh, 42px) 24px max(24px, env(safe-area-inset-bottom));
   overflow-x: hidden;
   background:
     radial-gradient(circle at 50% 27%, rgba(239, 156, 127, 0.12), transparent 34%),
@@ -123,13 +127,13 @@
   display: flex;
   width: 100%;
   justify-content: center;
-  margin-top: 24px;
-  margin-bottom: 28px;
+  margin-top: clamp(18px, 3dvh, 24px);
+  margin-bottom: clamp(22px, 3dvh, 28px);
 }
 
 .remory-hero-image {
   display: block;
-  width: min(100%, 390px);
+  width: min(100%, 390px, 47dvh);
   height: auto;
   object-fit: contain;
 }
@@ -241,8 +245,7 @@
   transform: translateY(-1px);
 }
 
-.remory-onboarding-google,
-.remory-onboarding-mail {
+.remory-onboarding-google {
   grid-column: 1;
   justify-self: center;
 }
@@ -259,36 +262,6 @@
   font-size: 15px;
   font-weight: 850;
   line-height: 1;
-}
-
-.remory-onboarding-mail {
-  position: relative;
-  width: 24px;
-  height: 18px;
-  border: 2px solid rgba(75, 36, 31, 0.72);
-  border-radius: 3px;
-}
-
-.remory-onboarding-mail::before,
-.remory-onboarding-mail::after {
-  content: '';
-  position: absolute;
-  top: 4px;
-  width: 13px;
-  height: 2px;
-  background: rgba(75, 36, 31, 0.72);
-}
-
-.remory-onboarding-mail::before {
-  left: 0;
-  transform: rotate(36deg);
-  transform-origin: left center;
-}
-
-.remory-onboarding-mail::after {
-  right: 0;
-  transform: rotate(-36deg);
-  transform-origin: right center;
 }
 
 .remory-onboarding-text-button {
@@ -318,9 +291,13 @@
 }
 
 @media (max-width: 420px) {
+  .remory-onboarding-screen {
+    padding-inline: 20px;
+  }
+
   .remory-hero-image-wrap {
-    margin-top: 18px;
-    margin-bottom: 22px;
+    margin-top: 16px;
+    margin-bottom: 20px;
   }
 
   .remory-hero-image {
@@ -345,11 +322,55 @@
   }
 
   .remory-hero-image {
-    width: min(100%, 330px);
+    width: min(100%, 330px, 43dvh);
+  }
+
+  .remory-onboarding-title {
+    font-size: clamp(26px, 6vw, 36px);
+  }
+
+  .remory-onboarding-subtitle {
+    font-size: clamp(14px, 3vw, 16px);
   }
 
   .remory-onboarding-pager {
     margin-block: 16px;
+  }
+
+  .remory-onboarding-actions {
+    gap: 10px;
+  }
+
+  .remory-onboarding-primary {
+    min-height: 58px;
+  }
+
+  .remory-onboarding-secondary {
+    min-height: 54px;
+  }
+}
+
+@media (max-height: 640px) {
+  .remory-onboarding-screen {
+    padding-top: 16px;
+  }
+
+  .remory-hero-image-wrap {
+    margin-top: 10px;
+    margin-bottom: 14px;
+  }
+
+  .remory-hero-image {
+    width: min(100%, 280px, 40dvh);
+  }
+
+  .remory-onboarding-pager {
+    margin-block: 12px;
+  }
+
+  .remory-onboarding-primary,
+  .remory-onboarding-secondary {
+    min-height: 50px;
   }
 }
 

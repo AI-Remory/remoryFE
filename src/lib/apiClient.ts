@@ -135,6 +135,10 @@ function getDetailMessage(detail: ApiErrorDetail) {
 }
 
 function getStatusMessage(status: number, detail: ApiErrorDetail) {
+  if (detail !== null) {
+    return getDetailMessage(detail)
+  }
+
   if (status === 401) {
     return '로그인이 필요합니다. 다시 로그인해주세요.'
   }

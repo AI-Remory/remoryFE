@@ -5,6 +5,70 @@ import { adminApi } from '../services/adminApi'
 import type { DeletionRequest, Report, VerificationRequest } from '../types/api'
 import './OperationsPage.css'
 
+const actionableVerificationStatuses = new Set(['PENDING', 'NEED_MORE_INFO'])
+const actionableReportStatuses = new Set(['PENDING', 'REVIEWING'])
+
+function normalizeStatus(status: string | undefined) {
+  return (status ?? 'PENDING').toUpperCase()
+}
+
+function canProcessDeletionRequest(request: DeletionRequest) {
+  return normalizeStatus(request.status) === 'PENDING'
+}
+
+function getDeletionStatusMessage(status: string | undefined) {
+  switch (normalizeStatus(status)) {
+    case 'COMPLETED':
+      return '이미 처리 완료된 삭제 요청입니다.'
+    case 'REJECTED':
+      return '이미 거절된 삭제 요청입니다.'
+    case 'FAILED':
+      return '처리 중 실패한 삭제 요청입니다.'
+    case 'CANCELLED':
+      return '사용자가 취소한 삭제 요청입니다.'
+    case 'PROCESSING':
+      return '처리 중인 삭제 요청입니다.'
+    default:
+      return '현재 상태에서는 처리할 수 없습니다.'
+  }
+}
+
+function canProcessVerificationRequest(request: VerificationRequest) {
+  return actionableVerificationStatuses.has(normalizeStatus(request.status))
+}
+
+function getVerificationStatusMessage(status: string | undefined) {
+  switch (normalizeStatus(status)) {
+    case 'APPROVED':
+      return '이미 승인된 검증 요청입니다.'
+    case 'REJECTED':
+      return '이미 거절된 검증 요청입니다.'
+    case 'EXPIRED':
+      return '만료된 검증 요청입니다.'
+    case 'REVOKED':
+      return '철회된 검증 요청입니다.'
+    default:
+      return '현재 상태에서는 처리할 수 없습니다.'
+  }
+}
+
+function canProcessReport(report: Report) {
+  return actionableReportStatuses.has(normalizeStatus(report.status))
+}
+
+function getReportStatusMessage(status: string | undefined) {
+  switch (normalizeStatus(status)) {
+    case 'RESOLVED':
+      return '이미 해결된 신고입니다.'
+    case 'REJECTED':
+      return '이미 거절된 신고입니다.'
+    case 'ACTION_TAKEN':
+      return '조치 완료된 신고입니다.'
+    default:
+      return '현재 상태에서는 처리할 수 없습니다.'
+  }
+}
+
 function getErrorMessage(error: unknown, fallback: string) {
   return error instanceof ApiError ? error.message : fallback
 }
@@ -107,26 +171,30 @@ function AdminPage() {
                   </div>
                   <small>Target #{request.target_id ?? '-'}</small>
                   <p>{request.applicant_note ?? '신청 메모 없음'}</p>
-                  <div className="ops-page__button-row">
-                    <button type="button" onClick={() => runAdminAction(
-                      () => adminApi.approveVerificationRequest(request.id, reviewNote),
-                      '검증 요청을 승인했어요.',
-                    )}>
-                      <CheckCircle2 size={16} /> 승인
-                    </button>
-                    <button type="button" onClick={() => runAdminAction(
-                      () => adminApi.needMoreInfoVerificationRequest(request.id, reviewNote || '추가 정보가 필요합니다.'),
-                      '추가 정보 요청을 보냈어요.',
-                    )}>
-                      <RefreshCw size={16} /> 추가 정보
-                    </button>
-                    <button type="button" onClick={() => runAdminAction(
-                      () => adminApi.rejectVerificationRequest(request.id, reviewNote || '검증 요건을 충족하지 못했습니다.'),
-                      '검증 요청을 거절했어요.',
-                    )}>
-                      <XCircle size={16} /> 거절
-                    </button>
-                  </div>
+                  {canProcessVerificationRequest(request) ? (
+                    <div className="ops-page__button-row">
+                      <button type="button" onClick={() => runAdminAction(
+                        () => adminApi.approveVerificationRequest(request.id, reviewNote),
+                        '검증 요청을 승인했어요.',
+                      )}>
+                        <CheckCircle2 size={16} /> 승인
+                      </button>
+                      <button type="button" onClick={() => runAdminAction(
+                        () => adminApi.needMoreInfoVerificationRequest(request.id, reviewNote || '추가 정보가 필요합니다.'),
+                        '추가 정보 요청을 보냈어요.',
+                      )}>
+                        <RefreshCw size={16} /> 추가 정보
+                      </button>
+                      <button type="button" onClick={() => runAdminAction(
+                        () => adminApi.rejectVerificationRequest(request.id, reviewNote || '검증 요건을 충족하지 못했습니다.'),
+                        '검증 요청을 거절했어요.',
+                      )}>
+                        <XCircle size={16} /> 거절
+                      </button>
+                    </div>
+                  ) : (
+                    <p className="ops-page__state-note">{getVerificationStatusMessage(request.status)}</p>
+                  )}
                 </article>
               )) : <p className="ops-page__empty">대기 중인 검증 요청이 없습니다.</p>}
             </div>
@@ -142,20 +210,24 @@ function AdminPage() {
                     <span className="ops-page__badge">{request.status ?? 'PENDING'}</span>
                   </div>
                   <p>{request.reason ?? '사유 없음'}</p>
-                  <div className="ops-page__button-row">
-                    <button type="button" onClick={() => runAdminAction(
-                      () => adminApi.approveAndProcessDeletionRequest(request.id),
-                      '삭제 요청을 처리했어요.',
-                    )}>
-                      <Trash2 size={16} /> 처리
-                    </button>
-                    <button type="button" onClick={() => runAdminAction(
-                      () => adminApi.rejectDeletionRequest(request.id),
-                      '삭제 요청을 거절했어요.',
-                    )}>
-                      <XCircle size={16} /> 거절
-                    </button>
-                  </div>
+                  {canProcessDeletionRequest(request) ? (
+                    <div className="ops-page__button-row">
+                      <button type="button" onClick={() => runAdminAction(
+                        () => adminApi.approveAndProcessDeletionRequest(request.id),
+                        '삭제 요청을 처리했어요.',
+                      )}>
+                        <Trash2 size={16} /> 처리
+                      </button>
+                      <button type="button" onClick={() => runAdminAction(
+                        () => adminApi.rejectDeletionRequest(request.id),
+                        '삭제 요청을 거절했어요.',
+                      )}>
+                        <XCircle size={16} /> 거절
+                      </button>
+                    </div>
+                  ) : (
+                    <p className="ops-page__state-note">{getDeletionStatusMessage(request.status)}</p>
+                  )}
                 </article>
               )) : <p className="ops-page__empty">삭제 요청이 없습니다.</p>}
             </div>
@@ -172,26 +244,30 @@ function AdminPage() {
                   </div>
                   <small>{report.reason_type}</small>
                   <p>{report.reason_detail ?? '상세 사유 없음'}</p>
-                  <div className="ops-page__button-row">
-                    <button type="button" onClick={() => runAdminAction(
-                      () => adminApi.updateReportStatus(report.id, 'reviewing'),
-                      '신고를 검토 중으로 변경했어요.',
-                    )}>
-                      <Flag size={16} /> 검토
-                    </button>
-                    <button type="button" onClick={() => runAdminAction(
-                      () => adminApi.updateReportStatus(report.id, 'resolve'),
-                      '신고를 해결 처리했어요.',
-                    )}>
-                      <CheckCircle2 size={16} /> 해결
-                    </button>
-                    <button type="button" onClick={() => runAdminAction(
-                      () => adminApi.updateReportStatus(report.id, 'reject'),
-                      '신고를 거절했어요.',
-                    )}>
-                      <XCircle size={16} /> 거절
-                    </button>
-                  </div>
+                  {canProcessReport(report) ? (
+                    <div className="ops-page__button-row">
+                      <button type="button" onClick={() => runAdminAction(
+                        () => adminApi.updateReportStatus(report.id, 'reviewing'),
+                        '신고를 검토 중으로 변경했어요.',
+                      )}>
+                        <Flag size={16} /> 검토
+                      </button>
+                      <button type="button" onClick={() => runAdminAction(
+                        () => adminApi.updateReportStatus(report.id, 'resolve'),
+                        '신고를 해결 처리했어요.',
+                      )}>
+                        <CheckCircle2 size={16} /> 해결
+                      </button>
+                      <button type="button" onClick={() => runAdminAction(
+                        () => adminApi.updateReportStatus(report.id, 'reject'),
+                        '신고를 거절했어요.',
+                      )}>
+                        <XCircle size={16} /> 거절
+                      </button>
+                    </div>
+                  ) : (
+                    <p className="ops-page__state-note">{getReportStatusMessage(report.status)}</p>
+                  )}
                 </article>
               )) : <p className="ops-page__empty">대기 중인 신고가 없습니다.</p>}
             </div>

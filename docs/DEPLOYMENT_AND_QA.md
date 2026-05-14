@@ -193,3 +193,43 @@ npm run preview
 - README merge conflict marker 없음 확인
 - 코드 내 배포 backend IP 하드코딩 없음 확인
 - 디자인 token과 주요 화면이 현대적인 Remory 톤으로 정리됨
+
+## 2026-05-14 API QA 실행 결과
+
+기준 문서
+- `../backend/docs/02-backend-api.md`
+- `../backend/docs/03-frontend-integration.md`
+- `docs/API_INTEGRATION.md`
+- `http://141.164.48.128:8000/openapi.json`
+
+실행 결과 요약
+- [x] `npm run build` 통과
+- [x] `npm run lint` 통과
+- [x] `/api/v1` prefix 중복 없음 (`src/services/apiClient.ts` 기본값만 사용)
+- [x] `apiClient` Authorization Bearer header 자동 부착
+- [x] FormData 요청에 Content-Type 수동 지정 없음
+- [x] JSON 요청에 Content-Type `application/json` 자동 지정
+- [x] `204` 응답 안전 처리
+- [x] `ApiError.detail` 기반 사용자 메시지 처리
+- [x] `/auth/me` 응답 파싱(`role/ROLE`, `user`, `data.user`) 보강
+- [x] ADMIN role guard 적용(`String(user.role).toUpperCase() === 'ADMIN'`)
+- [x] 일반 보호 페이지는 로그인 여부만 검사, ADMIN 검사는 admin route에서만 수행
+- [x] VoiceCall WebSocket 메시지 포맷 정합성 확인(`start/audio_chunk/end_utterance/stop`)
+- [x] 파일/오디오 경로를 재생 URL로 변환(`toPlayableFileUrl`)
+
+실 API 스모크 검증(백엔드 대상)
+- [x] 회원가입 성공 (`POST /auth/register`)
+- [x] `/auth/me` 성공, `role` 수신 확인
+- [x] Target 생성 성공 (`POST /targets`)
+- [x] Consent 저장 성공 (`POST /consents`)
+- [x] Verification 요청 성공 (`POST /targets/{id}/verification-requests`, multipart)
+- [x] TargetMedia 업로드 정책 검증
+  - 동의 없음: `403 photo_upload_consent consent is required`
+  - 동의 후: `201` 업로드 성공
+
+제한/미완료 항목
+- [ ] Admin 승인 이후 단계(관리자 계정 필요):
+  - Verification admin approve
+  - Persona 생성 성공 gate 이후 플로우
+  - Admin pages 전체 액션
+- [ ] 브라우저 UI E2E 수동 검증(현재 문서는 API 스모크 + 정적 검증 중심)

@@ -2,7 +2,7 @@ export const ACCESS_TOKEN_KEY = 'remory_access_token'
 export const REFRESH_TOKEN_KEY = 'remory_refresh_token'
 
 const DEFAULT_API_BASE_URL = '/api/v1'
-const DEFAULT_WS_BASE_URL = '/api/v1'
+const DEFAULT_WS_BASE_URL = '/api/v1/ws'
 
 type ApiErrorDetailItem = string | { msg?: string; message?: string; loc?: unknown }
 export type ApiErrorDetail = ApiErrorDetailItem | ApiErrorDetailItem[] | Record<string, unknown> | null

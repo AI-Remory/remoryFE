@@ -162,8 +162,8 @@ const reportReasonTypeOptions: ReportReasonType[] = [
   'SPAM',
   'OTHER',
 ]
-type AdminApiConnectionStatus = 'connected' | 'partially-connected' | 'backend-pending'
-const ADMIN_USAGE_API_STATUS: AdminApiConnectionStatus = 'backend-pending'
+type AdminApiConnectionStatus = 'connected' | 'partially-connected'
+const ADMIN_USAGE_API_STATUS: AdminApiConnectionStatus = 'partially-connected'
 
 function getAdminReportActionLabel(action: AdminReportAction) {
   switch (action) {
@@ -5030,16 +5030,11 @@ function AdminDashboardApiPage() {
     setIsLoading(true)
     setErrorMessage(null)
 
-    const usagePromise =
-      ADMIN_USAGE_API_STATUS === 'backend-pending'
-        ? Promise.resolve<{ total: number }>({ total: 0 })
-        : adminService.listUsageLimits({ page: 1, size: 5 })
-
     const [verificationsResult, reportsResult, auditLogsResult, usageLimitsResult, rateLimitEventsResult] = await Promise.allSettled([
       adminService.listVerificationRequests({ page: 1, size: 5 }),
       adminService.listReports({ page: 1, size: 5 }),
       adminService.listAuditLogs({ page: 1, size: 5 }),
-      usagePromise,
+      adminService.listUsageLimits({ page: 1, size: 5 }),
       adminService.listRateLimitEvents({ page: 1, size: 5 }),
     ])
 
@@ -5067,8 +5062,6 @@ function AdminDashboardApiPage() {
 
     if (usageLimitsResult.status === 'rejected') {
       issues.push(getUsageLimitErrorMessage(usageLimitsResult.reason))
-    } else if (ADMIN_USAGE_API_STATUS === 'backend-pending') {
-      issues.push('이용 한도 기능은 서버 설정이 아직 준비되지 않았어요.')
     }
 
     if (rateLimitEventsResult.status === 'rejected') {
@@ -5673,15 +5666,8 @@ function AdminUsageLimitPanel() {
   const [notice, setNotice] = useState<string | null>(null)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [technicalDetail, setTechnicalDetail] = useState<string | null>(null)
-  const isBackendPending = ADMIN_USAGE_API_STATUS === 'backend-pending'
 
   const loadUsageLimits = useCallback(async () => {
-    if (isBackendPending) {
-      setErrorMessage('서버 설정이 아직 준비되지 않았어요.')
-      setTechnicalDetail(null)
-      return
-    }
-
     setIsLoading(true)
     setNotice(null)
 
@@ -5696,14 +5682,9 @@ function AdminUsageLimitPanel() {
     } finally {
       setIsLoading(false)
     }
-  }, [isBackendPending])
+  }, [])
 
   async function updateUserLimit() {
-    if (isBackendPending) {
-      setErrorMessage('서버 설정이 아직 준비되지 않았어요.')
-      return
-    }
-
     const id = Number(userId)
 
     if (!Number.isInteger(id) || id <= 0) {
@@ -5727,11 +5708,6 @@ function AdminUsageLimitPanel() {
   }
 
   async function updatePersonaLimit() {
-    if (isBackendPending) {
-      setErrorMessage('서버 설정이 아직 준비되지 않았어요.')
-      return
-    }
-
     const id = Number(personaId)
 
     if (!Number.isInteger(id) || id <= 0) {
@@ -5753,39 +5729,28 @@ function AdminUsageLimitPanel() {
   }
 
   useEffect(() => {
-    if (isBackendPending) {
-      return
-    }
-
     const timerId = window.setTimeout(() => {
       void loadUsageLimits()
     }, 0)
 
     return () => window.clearTimeout(timerId)
-  }, [isBackendPending, loadUsageLimits])
+  }, [loadUsageLimits])
 
   return (
     <section className="target-detail-card">
       <h2>사용량 제한</h2>
       <p className="target-form__helper">연결 상태: {ADMIN_USAGE_API_STATUS}</p>
 
-      {isBackendPending && (
-        <TargetStateMessage
-          title="준비 중인 기능"
-          message="서버 설정이 아직 준비되지 않았어요. 마이그레이션 적용 후 다시 확인해 주세요."
-        />
-      )}
-
       <form className="target-form target-media-target-form" onSubmit={(event) => { event.preventDefault(); void updateUserLimit() }}>
-        <div className="target-form__field"><label htmlFor="usage-user-id">사용자 번호</label><input disabled={isBackendPending} id="usage-user-id" onChange={(event) => setUserId(event.target.value)} type="number" value={userId} /></div>
-        <div className="target-form__field"><label htmlFor="usage-persona-id">페르소나 번호</label><input disabled={isBackendPending} id="usage-persona-id" onChange={(event) => setPersonaId(event.target.value)} type="number" value={personaId} /></div>
-        <div className="target-form__field"><label htmlFor="usage-voice-limit">음성 생성 한도</label><input disabled={isBackendPending} id="usage-voice-limit" onChange={(event) => setVoiceLimit(event.target.value)} type="number" value={voiceLimit} /></div>
-        <div className="target-form__field"><label htmlFor="usage-stt-limit">음성 인식 한도</label><input disabled={isBackendPending} id="usage-stt-limit" onChange={(event) => setSttLimit(event.target.value)} type="number" value={sttLimit} /></div>
-        <div className="target-form__field"><label htmlFor="usage-call-limit">음성 대화 시간 한도(초)</label><input disabled={isBackendPending} id="usage-call-limit" onChange={(event) => setCallLimit(event.target.value)} type="number" value={callLimit} /></div>
+        <div className="target-form__field"><label htmlFor="usage-user-id">사용자 번호</label><input id="usage-user-id" onChange={(event) => setUserId(event.target.value)} type="number" value={userId} /></div>
+        <div className="target-form__field"><label htmlFor="usage-persona-id">페르소나 번호</label><input id="usage-persona-id" onChange={(event) => setPersonaId(event.target.value)} type="number" value={personaId} /></div>
+        <div className="target-form__field"><label htmlFor="usage-voice-limit">음성 생성 한도</label><input id="usage-voice-limit" onChange={(event) => setVoiceLimit(event.target.value)} type="number" value={voiceLimit} /></div>
+        <div className="target-form__field"><label htmlFor="usage-stt-limit">음성 인식 한도</label><input id="usage-stt-limit" onChange={(event) => setSttLimit(event.target.value)} type="number" value={sttLimit} /></div>
+        <div className="target-form__field"><label htmlFor="usage-call-limit">음성 대화 시간 한도(초)</label><input id="usage-call-limit" onChange={(event) => setCallLimit(event.target.value)} type="number" value={callLimit} /></div>
         <div className="target-form__actions">
-          <button disabled={isBackendPending || isLoading} type="submit">사용자 제한 수정</button>
-          <button disabled={isBackendPending || isLoading} onClick={() => void updatePersonaLimit()} type="button">페르소나 제한 수정</button>
-          <button disabled={isBackendPending || isLoading} onClick={() => void loadUsageLimits()} type="button">{isLoading ? '불러오는 중...' : '새로고침'}</button>
+          <button disabled={isLoading} type="submit">사용자 제한 수정</button>
+          <button disabled={isLoading} onClick={() => void updatePersonaLimit()} type="button">페르소나 제한 수정</button>
+          <button disabled={isLoading} onClick={() => void loadUsageLimits()} type="button">{isLoading ? '불러오는 중...' : '새로고침'}</button>
         </div>
       </form>
       {notice && <p className="target-form__notice">{notice}</p>}
@@ -5796,7 +5761,7 @@ function AdminUsageLimitPanel() {
           <pre>{technicalDetail}</pre>
         </details>
       )}
-      {!isBackendPending && !isLoading && usageLimits.length === 0 && (
+      {!isLoading && usageLimits.length === 0 && (
         <TargetStateMessage title="이용 한도 데이터가 없어요" message="현재 등록된 이용 한도 데이터가 없어요." />
       )}
       <section className="target-card-grid" aria-label="사용량 제한">

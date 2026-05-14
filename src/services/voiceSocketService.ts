@@ -2,7 +2,8 @@ import { getAccessToken, WS_BASE_URL } from './apiClient'
 import type { VoiceClientMessage } from '../types/voice'
 
 function buildVoiceSocketUrl(personaId: number, token: string) {
-  return `${WS_BASE_URL}/ws/personas/${personaId}/voice?token=${encodeURIComponent(token)}`
+  const basePath = /\/ws$/i.test(WS_BASE_URL) ? '/personas' : '/ws/personas'
+  return `${WS_BASE_URL}${basePath}/${personaId}/voice?token=${encodeURIComponent(token)}`
 }
 
 export function createVoiceSocket(personaId: number) {

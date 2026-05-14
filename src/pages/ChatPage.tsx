@@ -218,8 +218,14 @@ function ProtectedAudio({ path }: { path: string }) {
   return <audio className="chat-page__audio" src={src} controls />
 }
 
-function isBackendPersonaId(personaId: string) {
-  return /^\d+$/.test(personaId)
+function isStoredApiId(value: string | null): value is string {
+  return value !== null && value.trim().length > 0
+}
+
+function getRequestedPersonaId() {
+  const requestedPersonaId = new URLSearchParams(window.location.search).get('personaId')?.trim()
+
+  return requestedPersonaId || null
 }
 
 function getChatErrorMessage(error: unknown, fallbackMessage: string) {
@@ -395,6 +401,17 @@ function ChatPage() {
       window.localStorage.removeItem(MOCK_CHAT_MESSAGES_KEY)
 
       try {
+        const requestedPersonaId = getRequestedPersonaId()
+        const storedPersonaId = window.localStorage.getItem(REMORY_PERSONA_ID_KEY)
+
+        if (requestedPersonaId) {
+          if (storedPersonaId !== requestedPersonaId) {
+            window.localStorage.removeItem(REMORY_CHAT_ID_KEY)
+          }
+
+          window.localStorage.setItem(REMORY_PERSONA_ID_KEY, requestedPersonaId)
+        }
+
         const personaId = await ensureMomPersonaId()
         await getReadyPersonaStatus(personaId)
         const personaDetail = await personaApi.getPersona(personaId).catch(() => null)
@@ -418,7 +435,7 @@ function ChatPage() {
         try {
           const chats = await chatApi.listChats(personaId)
           const storedChatId = window.localStorage.getItem(REMORY_CHAT_ID_KEY)
-          const storedChat = storedChatId && isBackendPersonaId(storedChatId)
+          const storedChat = isStoredApiId(storedChatId)
             ? chats.find((item) => String(item.id) === storedChatId)
             : undefined
 

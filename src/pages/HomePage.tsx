@@ -3,7 +3,13 @@ import { ApiError } from '../lib/apiClient'
 import { normalizeAssetUrl } from '../lib/mediaUrl'
 import { authApi } from '../services/authApi'
 import { personaApi } from '../services/personaApi'
-import { ensureMomPersonaId, REMORY_CHAT_ID_KEY, REMORY_PERSONA_ID_KEY } from '../services/personaSession'
+import {
+  ensureMomPersonaId,
+  getPersonaIdFromTarget,
+  REMORY_CHAT_ID_KEY,
+  REMORY_PERSONA_ID_KEY,
+  storeActivePersonaSession,
+} from '../services/personaSession'
 import { storybookApi } from '../services/storybookApi'
 import { targetApi } from '../services/targetApi'
 import type { Persona, Target } from '../types/api'
@@ -13,6 +19,7 @@ type IconName = 'bell' | 'chat' | 'check' | 'plus' | 'sparkle' | 'info' | 'mic' 
 
 type HomePersona = {
   id: string
+  targetId?: string
   personaId?: string
   name: string
   image: string
@@ -54,6 +61,7 @@ function mapTargetsToPersonas(targets: Target[]): HomePersona[] {
 
     return {
       id: String(target.id),
+      targetId: String(target.id),
       personaId: personaId === undefined || personaId === null ? undefined : String(personaId),
       name: target.nickname ?? target.name ?? target.persona?.nickname ?? target.persona?.name ?? `페르소나 ${index + 1}`,
       summary: target.persona?.personality_summary ?? target.persona?.memory_summary ?? target.description ?? undefined,
@@ -98,6 +106,7 @@ function mapPersonaDetailToHomePersona(persona: Persona, targets: Target[], fall
 
   return {
     id: target ? String(target.id) : personaId,
+    targetId: target ? String(target.id) : undefined,
     personaId,
     name: getPersonaDisplayName(persona, target?.nickname ?? target?.name ?? `페르소나 ${fallbackIndex + 1}`),
     summary: persona.personality_summary ?? persona.memory_summary ?? persona.description ?? target?.description ?? undefined,
@@ -122,8 +131,25 @@ function mergePersonaDetailIntoItems(items: HomePersona[], persona: Persona, tar
 
   return nextItems.slice(0, 3).map((item) => ({
     ...item,
-    active: item.personaId === detailItem.personaId,
+    active: item.personaId === detailItem.personaId || item.id === detailItem.id,
   }))
+}
+
+async function resolveHomePersonaId(persona: HomePersona | undefined) {
+  if (persona?.personaId) {
+    return persona.personaId
+  }
+
+  if (!persona?.targetId) {
+    return null
+  }
+
+  const target = await targetApi.getTarget(persona.targetId)
+  return getPersonaIdFromTarget(target)
+}
+
+function getChatPath(personaId: string) {
+  return `/chat?personaId=${encodeURIComponent(personaId)}`
 }
 
 function HomePageIcon({ name }: { name: IconName }) {
@@ -268,7 +294,7 @@ function HomePage() {
           setPersonaItems(fallbackPersonas)
 
           if (fallbackPersonas[0].personaId) {
-            window.localStorage.setItem(REMORY_PERSONA_ID_KEY, fallbackPersonas[0].personaId)
+            storeActivePersonaSession(fallbackPersonas[0].personaId, fallbackPersonas[0].targetId)
           }
         }
       } catch {
@@ -285,27 +311,52 @@ function HomePage() {
     }
   }, [])
 
-  const handlePersonaClick = (personaId: string) => {
-    window.localStorage.setItem(REMORY_PERSONA_ID_KEY, personaId)
+  const activatePersonaItem = (selectedPersona: HomePersona, personaId: string) => {
     setPersonaItems((current) =>
-      current.map((persona) => ({
-        ...persona,
-        active: persona.personaId === personaId,
+      current.map((item) => ({
+        ...item,
+        personaId: item.id === selectedPersona.id ? personaId : item.personaId,
+        active: item.id === selectedPersona.id || item.personaId === personaId,
       })),
     )
+  }
+
+  const handlePersonaClick = async (persona: HomePersona) => {
+    setErrorMessage('')
+
+    try {
+      const personaId = await resolveHomePersonaId(persona)
+
+      if (!personaId) {
+        setErrorMessage('선택한 페르소나 정보를 찾지 못했습니다. 잠시 후 다시 시도해주세요.')
+        return
+      }
+
+      storeActivePersonaSession(personaId, persona.targetId)
+      activatePersonaItem(persona, personaId)
+      window.location.assign(getChatPath(personaId))
+    } catch (error) {
+      setErrorMessage(error instanceof ApiError ? error.message : '선택한 페르소나 정보를 불러오지 못했습니다. 다시 시도해주세요.')
+    }
   }
 
   const handleChatNavigation = async () => {
     setErrorMessage('')
 
     try {
-      const storedPersonaId = window.localStorage.getItem(REMORY_PERSONA_ID_KEY)
+      let personaId = await resolveHomePersonaId(activePersona)
 
-      if (!storedPersonaId) {
-        await ensureMomPersonaId()
+      if (!personaId) {
+        personaId = await ensureMomPersonaId()
+      } else {
+        storeActivePersonaSession(personaId, activePersona?.targetId)
       }
 
-      window.location.href = '/chat'
+      if (activePersona) {
+        activatePersonaItem(activePersona, personaId)
+      }
+
+      window.location.assign(getChatPath(personaId))
     } catch (error) {
       setErrorMessage(error instanceof ApiError ? error.message : '설정에서 검증 승인 후 페르소나를 만들어주세요.')
     }
@@ -366,11 +417,7 @@ function HomePage() {
                 className={`home-page__persona-item${persona.active ? ' is-active' : ''}`}
                 type="button"
                 key={persona.id}
-                onClick={() => {
-                  if (persona.personaId) {
-                    handlePersonaClick(persona.personaId)
-                  }
-                }}
+                onClick={() => void handlePersonaClick(persona)}
               >
                 <span className="home-page__persona-avatar">
                   <img src={persona.image} alt={`${persona.name} 페르소나`} />

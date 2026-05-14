@@ -5,16 +5,35 @@ export const REMORY_TARGET_ID_KEY = 'remory_target_id'
 export const REMORY_PERSONA_ID_KEY = 'remory_persona_id'
 export const REMORY_CHAT_ID_KEY = 'remory_chat_id'
 
-function isBackendId(value: string | null): value is string {
-  return value !== null && /^\d+$/.test(value)
+function isStoredId(value: string | null): value is string {
+  return value !== null && value.trim().length > 0
 }
 
 function toStorageId(value: ApiId | null | undefined) {
   return value === null || value === undefined ? null : String(value)
 }
 
-function getPersonaIdFromTarget(target: Target) {
+export function getPersonaIdFromTarget(target: Target) {
   return toStorageId(target.persona_id ?? target.persona?.id)
+}
+
+export function storeActivePersonaSession(personaId: string, targetId?: ApiId | null) {
+  const nextPersonaId = personaId.trim()
+  const previousPersonaId = window.localStorage.getItem(REMORY_PERSONA_ID_KEY)
+
+  if (!nextPersonaId) {
+    return
+  }
+
+  if (previousPersonaId && previousPersonaId !== nextPersonaId) {
+    window.localStorage.removeItem(REMORY_CHAT_ID_KEY)
+  }
+
+  if (targetId !== undefined && targetId !== null) {
+    window.localStorage.setItem(REMORY_TARGET_ID_KEY, String(targetId))
+  }
+
+  window.localStorage.setItem(REMORY_PERSONA_ID_KEY, nextPersonaId)
 }
 
 function findTargetWithPersona(targets: Target[]) {
@@ -24,8 +43,8 @@ function findTargetWithPersona(targets: Target[]) {
 export async function ensureMomPersonaId(): Promise<string> {
   const storedPersonaId = window.localStorage.getItem(REMORY_PERSONA_ID_KEY)
 
-  if (isBackendId(storedPersonaId)) {
-    return storedPersonaId
+  if (isStoredId(storedPersonaId)) {
+    return storedPersonaId.trim()
   }
 
   if (storedPersonaId) {
@@ -40,8 +59,7 @@ export async function ensureMomPersonaId(): Promise<string> {
     throw new Error('설정에서 검증 승인 후 페르소나를 만들어주세요.')
   }
 
-  window.localStorage.setItem(REMORY_TARGET_ID_KEY, String(target.id))
-  window.localStorage.setItem(REMORY_PERSONA_ID_KEY, personaId)
+  storeActivePersonaSession(personaId, target.id)
 
   return personaId
 }

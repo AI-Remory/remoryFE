@@ -13,11 +13,19 @@ type PersonaOption = {
   loadedDetail: boolean
 }
 
+type PersonaResolveResult = {
+  option: PersonaOption | null
+  forbidden: boolean
+  unresolved: boolean
+}
+
 type PersonaOptionsResult = {
   options: PersonaOption[]
+  hasForbiddenPersona: boolean
   hasUnresolvedPersona: boolean
 }
 
+const personaOwnerErrorMessage = '현재 계정이 이 페르소나의 소유자가 아닙니다. 페르소나를 만든 사용자 계정으로 로그인해주세요.'
 const personaLoadErrorMessage = '페르소나 정보를 불러오지 못했습니다.'
 const voiceProfileLoadErrorMessage = '음성 프로필 정보를 불러오지 못했습니다.'
 const voiceProfileActionErrorMessage = '음성 프로필 요청을 완료하지 못했습니다.'
@@ -25,6 +33,10 @@ const noPersonaGuideMessage = '아직 생성된 페르소나가 없습니다. �
 
 function toStorageId(value: ApiId | null | undefined) {
   return value === null || value === undefined ? null : String(value)
+}
+
+function normalizeStatus(status: string | null | undefined) {
+  return (status ?? '').toUpperCase()
 }
 
 function getPersonaId(target: Target) {
@@ -51,6 +63,19 @@ function getPersonaDisplayName(persona?: Persona | null, target?: Target) {
     target?.nickname ??
     '페르소나'
   )
+}
+
+function getVoiceProfileStatusMessage(status: string) {
+  switch (status) {
+    case 'PENDING':
+      return '먼저 평가를 진행해주세요.'
+    case 'FAILED':
+      return '음성 프로필 생성/평가에 실패했습니다. 음성 샘플을 추가한 뒤 다시 생성해주세요.'
+    case 'NEEDS_MORE_SAMPLES':
+      return '음성 샘플이 부족합니다. 더 긴 음성 파일을 추가해주세요.'
+    default:
+      return ''
+  }
 }
 
 function createPersonaOption(personaId: string, target?: Target, persona?: Persona | null, loadedDetail = false): PersonaOption {
@@ -89,45 +114,58 @@ async function resolveTargetWithPersonaId(target: Target) {
   }
 }
 
-async function createPersonaOptionFromTarget(target: Target) {
+async function createPersonaOptionFromTarget(target: Target): Promise<PersonaResolveResult> {
   const resolved = await resolveTargetWithPersonaId(target)
 
   if (!resolved) {
-    return null
+    return { option: null, forbidden: false, unresolved: targetMayHavePersona(target) }
   }
 
   try {
-    return await createPersonaOptionFromDetail(resolved.personaId, resolved.target)
-  } catch {
-    return createPersonaOption(resolved.personaId, resolved.target, resolved.target.persona, false)
+    return {
+      option: await createPersonaOptionFromDetail(resolved.personaId, resolved.target),
+      forbidden: false,
+      unresolved: false,
+    }
+  } catch (error) {
+    const fallbackOption = resolved.target.persona
+      ? createPersonaOption(resolved.personaId, resolved.target, resolved.target.persona, false)
+      : null
+
+    return {
+      option: fallbackOption,
+      forbidden: error instanceof ApiError && error.status === 403,
+      unresolved: !fallbackOption,
+    }
   }
 }
 
-async function createPersonaOptionsFromTargets(targets: Target[]) {
+async function createPersonaOptionsFromTargets(targets: Target[]): Promise<PersonaOptionsResult> {
   const options: PersonaOption[] = []
   const seenPersonaIds = new Set<string>()
+  let hasForbiddenPersona = false
   let hasUnresolvedPersona = false
 
   for (const target of targets) {
-    const option = await createPersonaOptionFromTarget(target)
+    const result = await createPersonaOptionFromTarget(target)
 
-    if (!option) {
-      if (targetMayHavePersona(target)) {
-        hasUnresolvedPersona = true
-      }
+    if (result.forbidden) {
+      hasForbiddenPersona = true
+    }
 
+    if (result.unresolved) {
+      hasUnresolvedPersona = true
+    }
+
+    if (!result.option || seenPersonaIds.has(result.option.personaId)) {
       continue
     }
 
-    if (seenPersonaIds.has(option.personaId)) {
-      continue
-    }
-
-    seenPersonaIds.add(option.personaId)
-    options.push(option)
+    seenPersonaIds.add(result.option.personaId)
+    options.push(result.option)
   }
 
-  return { options, hasUnresolvedPersona }
+  return { options, hasForbiddenPersona, hasUnresolvedPersona }
 }
 
 function mergePersonaOptions(options: PersonaOption[]) {
@@ -155,6 +193,9 @@ function VoiceProfilePage() {
   const [statusMessage, setStatusMessage] = useState('')
   const [errorMessage, setErrorMessage] = useState('')
 
+  const voiceProfileStatus = normalizeStatus(voiceProfile?.status)
+  const voiceProfileStatusMessage = getVoiceProfileStatusMessage(voiceProfileStatus)
+  const canConfirmVoiceProfile = Boolean(selectedPersonaId && voiceProfileStatus === 'READY' && !isSubmitting)
   const hasNoPersonas = !isLoading && !personaLoadFailed && personaOptions.length === 0
 
   useEffect(() => {
@@ -166,16 +207,22 @@ function VoiceProfilePage() {
 
       const storedPersonaId = getStoredPersonaId()
       let storedPersonaOption: PersonaOption | null = null
+      let hasForbiddenPersona = false
 
       if (storedPersonaId) {
         try {
           storedPersonaOption = await createPersonaOptionFromDetail(storedPersonaId)
-        } catch {
+        } catch (error) {
+          hasForbiddenPersona = error instanceof ApiError && error.status === 403
           window.localStorage.removeItem(REMORY_PERSONA_ID_KEY)
         }
       }
 
-      let targetPersonaResult: PersonaOptionsResult = { options: [], hasUnresolvedPersona: false }
+      let targetPersonaResult: PersonaOptionsResult = {
+        options: [],
+        hasForbiddenPersona: false,
+        hasUnresolvedPersona: false,
+      }
       let targetLoadFailed = false
 
       try {
@@ -190,6 +237,7 @@ function VoiceProfilePage() {
       )
       const selectedOption = storedPersonaOption ?? nextOptions[0] ?? null
       const nextPersonaLoadFailed = (targetLoadFailed || targetPersonaResult.hasUnresolvedPersona) && nextOptions.length === 0
+      const nextHasForbiddenPersona = hasForbiddenPersona || targetPersonaResult.hasForbiddenPersona
 
       if (!ignore) {
         setPersonaOptions(nextOptions)
@@ -200,7 +248,9 @@ function VoiceProfilePage() {
           window.localStorage.setItem(REMORY_PERSONA_ID_KEY, selectedOption.personaId)
         }
 
-        if (nextPersonaLoadFailed) {
+        if (nextHasForbiddenPersona) {
+          setErrorMessage(personaOwnerErrorMessage)
+        } else if (nextPersonaLoadFailed) {
           setErrorMessage(personaLoadErrorMessage)
         }
 
@@ -234,6 +284,11 @@ function VoiceProfilePage() {
           if (!ignore) {
             setVoiceProfile(null)
 
+            if (error instanceof ApiError && error.status === 403) {
+              setErrorMessage(personaOwnerErrorMessage)
+              return
+            }
+
             if (!(error instanceof ApiError && error.status === 404)) {
               setErrorMessage(voiceProfileLoadErrorMessage)
             }
@@ -260,6 +315,10 @@ function VoiceProfilePage() {
       return
     }
 
+    if (action === 'confirm' && !canConfirmVoiceProfile) {
+      return
+    }
+
     setIsSubmitting(true)
     setStatusMessage('')
     setErrorMessage('')
@@ -279,7 +338,12 @@ function VoiceProfilePage() {
             ? '음성 프로필 평가를 요청했어요.'
             : '사용자 확인을 저장했어요.',
       )
-    } catch {
+    } catch (error) {
+      if (action === 'evaluate' && error instanceof ApiError) {
+        setErrorMessage(error.message || voiceProfileActionErrorMessage)
+        return
+      }
+
       setErrorMessage(voiceProfileActionErrorMessage)
     } finally {
       setIsSubmitting(false)
@@ -341,7 +405,7 @@ function VoiceProfilePage() {
                 <button className="ops-page__button-secondary" type="button" onClick={() => runVoiceAction('evaluate')} disabled={!selectedPersonaId || isSubmitting}>
                   <RefreshCw size={17} /> 평가
                 </button>
-                <button className="ops-page__button-secondary" type="button" onClick={() => runVoiceAction('confirm')} disabled={!selectedPersonaId || isSubmitting}>
+                <button className="ops-page__button-secondary" type="button" onClick={() => runVoiceAction('confirm')} disabled={!canConfirmVoiceProfile}>
                   <CheckCircle2 size={17} /> 확인
                 </button>
               </div>
@@ -358,6 +422,7 @@ function VoiceProfilePage() {
                 </div>
                 <p>검수 상태: {voiceProfile.review_status ?? '없음'}</p>
                 <p>{voiceProfile.review_note ?? '표시할 메모가 없습니다.'}</p>
+                {voiceProfileStatusMessage && <p className="ops-page__state-note">{voiceProfileStatusMessage}</p>}
               </article>
             ) : (
               <p className="ops-page__empty">

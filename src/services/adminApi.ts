@@ -78,6 +78,10 @@ export const adminApi = {
     return apiClient.patch<Report>(`/admin/reports/${reportId}/${action}`, {})
   },
 
+  getVoiceProfile(voiceProfileId: ApiId) {
+    return apiClient.get<VoiceProfile>(`/admin/voice-profiles/${voiceProfileId}`)
+  },
+
   approveVoiceProfile(voiceProfileId: ApiId, review_note?: string) {
     return apiClient.patch<VoiceProfile>(`/admin/voice-profiles/${voiceProfileId}/approve`, {
       review_note: review_note?.trim() || null,
@@ -86,6 +90,12 @@ export const adminApi = {
 
   rejectVoiceProfile(voiceProfileId: ApiId, review_note?: string) {
     return apiClient.patch<VoiceProfile>(`/admin/voice-profiles/${voiceProfileId}/reject`, {
+      review_note: review_note?.trim() || null,
+    })
+  },
+
+  revokeVoiceProfile(voiceProfileId: ApiId, review_note?: string) {
+    return apiClient.patch<VoiceProfile>(`/admin/voice-profiles/${voiceProfileId}/revoke`, {
       review_note: review_note?.trim() || null,
     })
   },

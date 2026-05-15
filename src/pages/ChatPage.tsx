@@ -64,14 +64,14 @@ function mapPersonaToChatPersona(persona: Persona | null, target: Target | undef
     subtitle:
       getKoreanSafeText(persona?.speaking_style) ??
       relationshipLabel ??
-      `${name}의 기억을 바탕으로 대화해요.`,
+      `${name}의 말투와 추억을 담아 따뜻하게 대화해요.`,
     description:
       getKoreanSafeText(persona?.personality_summary) ??
       getKoreanSafeText(persona?.memory_summary) ??
       getKoreanSafeText(persona?.description) ??
       getKoreanSafeText(target?.persona?.description) ??
       getKoreanSafeText(target?.description) ??
-      `${name}의 기억과 이야기를 한국어로 이어가고 있어요.`,
+      '가족과 함께한 추억과 사랑을 담아 다정하게 이야기를 이어가요.',
     image: normalizeAssetUrl(
       persona?.image_url ??
         persona?.image_path ??

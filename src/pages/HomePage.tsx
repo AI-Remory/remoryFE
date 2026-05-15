@@ -269,7 +269,9 @@ function HomePage() {
   const hasNoPersonas = hasLoadedRealTargets && personaItems.length === 0
   const shouldShowPersonaEmpty = hasNoPersonas || Boolean(personaLoadError)
   const activePersonaName = activePersona?.name ?? '페르소나'
-  const activePersonaSummary = activePersona?.summary
+  const activePersonaSummary =
+    getKoreanSafeText(activePersona?.summary) ??
+    '소중한 가족의 추억과 사랑을 담아 다정하게 대화를 이어가요.'
 
   useEffect(() => {
     let ignore = false
@@ -544,9 +546,7 @@ function HomePage() {
                   <HomePageIcon name="sparkle" />
                   {activePersonaName}와 대화
                 </h3>
-                {activePersonaSummary && (
-                  <p className="home-page__persona-summary">{activePersonaSummary}</p>
-                )}
+                <p className="home-page__persona-summary">{activePersonaSummary}</p>
                 <div className="home-page__preview-body">
                   <div className="home-page__chat-preview">
                     {chatLines.map((line, index) => (

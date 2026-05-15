@@ -1,3 +1,4 @@
+import { CheckCircle2 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { groupService } from '../../services/groupService'
 import { storybookService } from '../../services/storybookService'
@@ -11,6 +12,51 @@ type SelectorState<T> = {
   items: T[]
   isLoading: boolean
   errorMessage: string | null
+}
+
+type SelectorCardProps = {
+  isSelected: boolean
+  title: string
+  badge?: string | null
+  description?: string | null
+  updatedAt: string
+  onClick: () => void
+}
+
+function SelectorCard({
+  isSelected,
+  title,
+  badge,
+  description,
+  updatedAt,
+  onClick,
+}: SelectorCardProps) {
+  return (
+    <button
+      className={`target-card target-card--stacked target-selector-card${isSelected ? ' target-selector-card--selected' : ''}`}
+      onClick={onClick}
+      type="button"
+    >
+      <span className="target-card__body">
+        <span className="target-card__header">
+          <span className="target-card__title-row">
+            <strong>{title}</strong>
+            {badge && <span>{badge}</span>}
+          </span>
+          {isSelected && (
+            <span className="target-selector-card__selected-badge">
+              <CheckCircle2 aria-hidden="true" size={15} />
+              선택됨
+            </span>
+          )}
+        </span>
+        {description && <span className="target-card__description">{description}</span>}
+        <span className="target-card__actions">
+          <small>{new Date(updatedAt).toLocaleDateString('ko-KR')}</small>
+        </span>
+      </span>
+    </button>
+  )
 }
 
 type TargetSelectorProps = {
@@ -42,7 +88,11 @@ export function TargetSelector({
       })
       .catch((error: unknown) => {
         if (isMounted) {
-          setState({ items: [], isLoading: false, errorMessage: error instanceof Error ? error.message : '대상 목록을 불러오지 못했어요.' })
+          setState({
+            items: [],
+            isLoading: false,
+            errorMessage: error instanceof Error ? error.message : '대상 목록을 불러오지 못했어요.',
+          })
         }
       })
 
@@ -63,8 +113,8 @@ export function TargetSelector({
     return (
       <TargetSelectorState
         action={{ href: emptyActionHref, label: emptyActionLabel }}
-        title="먼저 대상을 추가해 주세요."
-        message="사진, 동의, 페르소나를 연결하려면 대상을 먼저 등록해야 해요."
+        title="먼저 대상을 등록해 주세요."
+        message="대상이 있어야 사진과 음성을 올리고 페르소나 준비를 진행할 수 있어요."
       />
     )
   }
@@ -74,21 +124,15 @@ export function TargetSelector({
       <h2>{title}</h2>
       <div className="target-card-grid" aria-label={title}>
         {state.items.map((target) => (
-          <button
-            className={`target-card target-selector-card${selectedId === target.id ? ' target-selector-card--selected' : ''}`}
+          <SelectorCard
+            badge={getDisplayLabel(target.target_type)}
+            description={target.description}
+            isSelected={selectedId === target.id}
             key={target.id}
             onClick={() => onSelect(target)}
-            type="button"
-          >
-            <span className="target-card__body">
-              <span className="target-card__title-row">
-                <strong>{target.name}</strong>
-                <span>{getDisplayLabel(target.target_type)}</span>
-              </span>
-              {target.description && <span>{target.description}</span>}
-              <small>{new Date(target.updated_at).toLocaleDateString('ko-KR')}</small>
-            </span>
-          </button>
+            title={target.name}
+            updatedAt={target.updated_at}
+          />
         ))}
       </div>
     </section>
@@ -116,7 +160,11 @@ export function StorybookSelector({ selectedId, title = '스토리북을 선택�
       })
       .catch((error: unknown) => {
         if (isMounted) {
-          setState({ items: [], isLoading: false, errorMessage: error instanceof Error ? error.message : '스토리북 목록을 불러오지 못했어요.' })
+          setState({
+            items: [],
+            isLoading: false,
+            errorMessage: error instanceof Error ? error.message : '스토리북 목록을 불러오지 못했어요.',
+          })
         }
       })
 
@@ -134,7 +182,13 @@ export function StorybookSelector({ selectedId, title = '스토리북을 선택�
   }
 
   if (state.items.length === 0) {
-    return <TargetSelectorState action={{ href: '/storybooks/create', label: '스토리북 만들기' }} title="먼저 스토리북을 만들어 주세요." message="공유하거나 확인할 스토리북이 아직 없어요." />
+    return (
+      <TargetSelectorState
+        action={{ href: '/storybooks/create', label: '스토리북 만들기' }}
+        title="스토리북이 아직 없어요."
+        message="먼저 스토리북을 만들고 공유 또는 연결 작업을 진행해 주세요."
+      />
+    )
   }
 
   return (
@@ -142,21 +196,15 @@ export function StorybookSelector({ selectedId, title = '스토리북을 선택�
       <h2>{title}</h2>
       <div className="target-card-grid" aria-label={title}>
         {state.items.map((storybook) => (
-          <button
-            className={`target-card target-selector-card${selectedId === storybook.id ? ' target-selector-card--selected' : ''}`}
+          <SelectorCard
+            badge={getDisplayLabel(storybook.status)}
+            description={storybook.summary}
+            isSelected={selectedId === storybook.id}
             key={storybook.id}
             onClick={() => onSelect(storybook)}
-            type="button"
-          >
-            <span className="target-card__body">
-              <span className="target-card__title-row">
-                <strong>{storybook.title}</strong>
-                <span>{getDisplayLabel(storybook.status)}</span>
-              </span>
-              {storybook.summary && <span>{storybook.summary}</span>}
-              <small>{new Date(storybook.updated_at).toLocaleDateString('ko-KR')}</small>
-            </span>
-          </button>
+            title={storybook.title}
+            updatedAt={storybook.updated_at}
+          />
         ))}
       </div>
     </section>
@@ -184,7 +232,11 @@ export function MemoryGroupSelector({ selectedId, title = '그룹을 선택해 �
       })
       .catch((error: unknown) => {
         if (isMounted) {
-          setState({ items: [], isLoading: false, errorMessage: error instanceof Error ? error.message : '그룹 목록을 불러오지 못했어요.' })
+          setState({
+            items: [],
+            isLoading: false,
+            errorMessage: error instanceof Error ? error.message : '그룹 목록을 불러오지 못했어요.',
+          })
         }
       })
 
@@ -202,7 +254,13 @@ export function MemoryGroupSelector({ selectedId, title = '그룹을 선택해 �
   }
 
   if (state.items.length === 0) {
-    return <TargetSelectorState action={{ href: '/groups', label: '그룹 만들기' }} title="먼저 그룹을 만들어 주세요." message="스토리북을 공유할 그룹이 아직 없어요." />
+    return (
+      <TargetSelectorState
+        action={{ href: '/groups', label: '그룹 만들기' }}
+        title="그룹이 아직 없어요."
+        message="그룹을 만들어야 공유 대상을 지정할 수 있어요."
+      />
+    )
   }
 
   return (
@@ -210,20 +268,14 @@ export function MemoryGroupSelector({ selectedId, title = '그룹을 선택해 �
       <h2>{title}</h2>
       <div className="target-card-grid" aria-label={title}>
         {state.items.map((group) => (
-          <button
-            className={`target-card target-selector-card${selectedId === group.id ? ' target-selector-card--selected' : ''}`}
+          <SelectorCard
+            description={group.description}
+            isSelected={selectedId === group.id}
             key={group.id}
             onClick={() => onSelect(group)}
-            type="button"
-          >
-            <span className="target-card__body">
-              <span className="target-card__title-row">
-                <strong>{group.name}</strong>
-              </span>
-              {group.description && <span>{group.description}</span>}
-              <small>{new Date(group.updated_at).toLocaleDateString('ko-KR')}</small>
-            </span>
-          </button>
+            title={group.name}
+            updatedAt={group.updated_at}
+          />
         ))}
       </div>
     </section>

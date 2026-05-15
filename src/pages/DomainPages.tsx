@@ -849,6 +849,10 @@ function TargetDetailApiPage() {
                 {gateErrorMessage && <p role="alert">{gateErrorMessage}</p>}
                 <dl>
                   <div>
+                    <dt>사진·음성</dt>
+                    <dd>{target.media_count && target.media_count > 0 ? '준비됨' : '준비 필요'}</dd>
+                  </div>
+                  <div>
                     <dt>입증</dt>
                     <dd>{getLatestApprovedVerification(verificationRequests) ? '승인됨' : '승인 필요'}</dd>
                   </div>
@@ -858,10 +862,13 @@ function TargetDetailApiPage() {
                   </div>
                 </dl>
                 <p>
-                  페르소나를 만들려면 관계 입증 승인이 필요해요. 승인 후 다시 진행해 주세요.</p>
+                  이 사람의 페르소나를 만들기 전에 필요한 자료를 준비해 주세요.
+                </p>
                 <div className="target-form__actions">
-          <a href={`/compliance/verification?target_id=${target.id}`}>관계 입증 요청 보기</a>
-          <a href={`/compliance/consent?target_id=${target.id}`}>동의 기록 보기</a>
+                  <a href={`/targets/media?target_id=${target.id}`}>사진·음성 올리기</a>
+                  <a href={`/compliance/consent?target_id=${target.id}`}>동의 확인하기</a>
+                  <a href={`/compliance/verification?target_id=${target.id}`}>관계 입증 요청하기</a>
+                  <a href={`/personas?target_id=${target.id}`}>페르소나 만들기 시작</a>
                 </div>
               </section>
 
@@ -1228,6 +1235,14 @@ function TargetMediaApiPage() {
                 </div>
               </article>
             ))}
+          </section>
+        )}
+
+        {activeTargetId && (
+          <section className="target-form__actions target-flow-actions">
+            <a href={`/compliance/consent?target_id=${activeTargetId}`}>동의 확인하기</a>
+            <a href={`/compliance/verification?target_id=${activeTargetId}`}>관계 입증 요청하기</a>
+            <a href={`/personas?target_id=${activeTargetId}`}>페르소나 만들기 시작</a>
           </section>
         )}
       </main>
@@ -1830,78 +1845,706 @@ function TargetVerificationApiPage() {
 }
 
 function PersonaListApiPage() {
-  const [targetIdInput, setTargetIdInput] = useState(() => {
-    const targetId = getTargetIdFromLocation()
-    return targetId ? String(targetId) : ''
-  })
-  const [persona, setPersona] = useState<PersonaDetailResponse | null>(null)
-  const [isCreating, setIsCreating] = useState(false)
+  const [initialTargetId] = useState(() => getTargetIdFromLocation())
+  const [activeTargetId, setActiveTargetId] = useState<number | null>(initialTargetId)
+  const [selectedTarget, setSelectedTarget] = useState<TargetDetailResponse | null>(null)
+  const [mediaItems, setMediaItems] = useState<TargetMediaResponse[]>([])
+  const [consents, setConsents] = useState<ConsentResponse[]>([])
+  const [verificationRequests, setVerificationRequests] = useState<VerificationRequestResponse[]>([])
+  const [createdPersona, setCreatedPersona] = useState<PersonaDetailResponse | null>(null)
+  const [isLoadingSetup, setIsLoadingSetup] = useState(false)
+  const [isCreatingPersona, setIsCreatingPersona] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const [notice, setNotice] = useState<string | null>(null)
   const [isPermissionError, setIsPermissionError] = useState(false)
 
-  async function handleCreatePersona(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-    const targetId = Number(targetIdInput)
+  const requiredConsentOptions: ConsentType[] = [
+    'ai_persona_creation_consent',
+    'ai_response_notice_consent',
+    'voice_cloning_consent',
+    'data_retention_consent',
+    'third_party_ai_processing_consent',
+  ]
+  const optionalConsentOptions: ConsentType[] = [
+    'target_profile_consent',
+    'photo_upload_consent',
+    'voice_upload_consent',
+    'storybook_share_consent',
+    'group_share_consent',
+  ]
+  const consentOptionLabels: Record<ConsentType, { label: string; description: string }> = {
+    ai_persona_creation_consent: { label: '페르소나 생성 동의', description: '대상 정보를 기반으로 페르소나를 만드는 데 동의합니다.' },
+    ai_response_notice_consent: { label: 'AI 응답 안내 동의', description: '응답이 AI 기반으로 생성된다는 안내에 동의합니다.' },
+    voice_cloning_consent: { label: '음성 합성 동의', description: '업로드한 음성으로 페르소나 음성을 만드는 데 동의합니다.' },
+    data_retention_consent: { label: '데이터 보관 동의', description: '서비스 운영을 위한 데이터 보관 정책에 동의합니다.' },
+    third_party_ai_processing_consent: { label: '외부 AI 처리 동의', description: '필요 시 외부 AI 처리 시스템을 사용할 수 있음에 동의합니다.' },
+    target_profile_consent: { label: '대상 프로필 동의', description: '대상의 기본 프로필 정보를 활용하는 데 동의합니다.' },
+    photo_upload_consent: { label: '사진 업로드 동의', description: '사진 자료를 업로드하고 학습 자료로 사용하는 데 동의합니다.' },
+    voice_upload_consent: { label: '음성 업로드 동의', description: '음성 자료를 업로드하고 활용하는 데 동의합니다.' },
+    storybook_share_consent: { label: '스토리북 공유 동의', description: '생성된 스토리북을 공유하는 데 동의합니다.' },
+    group_share_consent: { label: '그룹 공유 동의', description: '그룹 구성원과 일부 자료를 공유하는 데 동의합니다.' },
+    voice_collection: { label: '음성 수집 동의', description: '음성 데이터를 수집하는 데 동의합니다.' },
+    photo_collection: { label: '사진 수집 동의', description: '사진 데이터를 수집하는 데 동의합니다.' },
+    persona_creation: { label: '페르소나 생성 동의', description: '페르소나 생성에 필요한 데이터 처리에 동의합니다.' },
+    data_usage: { label: '데이터 사용 동의', description: '서비스 개선과 품질 관리를 위한 데이터 사용에 동의합니다.' },
+    ai_processing: { label: 'AI 처리 동의', description: 'AI 모델 처리 과정에 필요한 데이터 사용에 동의합니다.' },
+    ai_response_notice: { label: 'AI 응답 안내 동의', description: 'AI 응답 특성과 한계에 대한 안내를 확인했습니다.' },
+    storybook_share: { label: '스토리북 공유 동의', description: '스토리북 공유 기능 사용에 동의합니다.' },
+  }
+  const verificationTypeLabels: Record<VerificationType, string> = {
+    FAMILY_RELATION_CERTIFICATE: '가족관계증명서',
+    ID_CARD: '신분증',
+    SELF_DECLARATION: '직접 작성한 확인서',
+    OTHER: '기타 자료',
+  }
+  const verificationStatusLabels: Record<VerificationStatus, string> = {
+    PENDING: '승인 대기 중',
+    APPROVED: '승인 완료',
+    REJECTED: '반려됨',
+    NEED_MORE_INFO: '추가 정보 필요',
+    EXPIRED: '만료됨',
+    REVOKED: '승인 철회됨',
+  }
 
-    if (!Number.isInteger(targetId) || targetId <= 0) {
-      setErrorMessage('대상을 먼저 선택해 주세요.')
-      return
-    }
+  const [selectedConsentTypes, setSelectedConsentTypes] = useState<ConsentType[]>(requiredConsentOptions)
+  const [consentNote, setConsentNote] = useState('')
+  const [selectedVerificationType, setSelectedVerificationType] = useState<VerificationType>('SELF_DECLARATION')
+  const [applicantNote, setApplicantNote] = useState('')
+  const [verificationFile, setVerificationFile] = useState<File | null>(null)
+  const [imageFile, setImageFile] = useState<File | null>(null)
+  const [voiceFile, setVoiceFile] = useState<File | null>(null)
+  const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null)
+  const [voicePreviewUrl, setVoicePreviewUrl] = useState<string | null>(null)
+  const [uploadingMediaType, setUploadingMediaType] = useState<MediaType | null>(null)
+  const [isSavingConsents, setIsSavingConsents] = useState(false)
+  const [isSubmittingVerification, setIsSubmittingVerification] = useState(false)
 
-    setIsCreating(true)
+  const loadPreparation = useCallback(async (targetId: number) => {
+    setIsLoadingSetup(true)
     setErrorMessage(null)
+    setNotice(null)
     setIsPermissionError(false)
 
     try {
-      const response = await personaService.createPersona(targetId)
-      setPersona(response)
+      const [targetDetail, mediaResponse, consentResponse, verificationResponse] = await Promise.all([
+        targetService.getTarget(targetId),
+        mediaService.listTargetMedia(targetId),
+        consentService.listTargetConsents(targetId),
+        verificationService.listTargetVerificationRequests(targetId, { skip: 0, limit: 20 }),
+      ])
+      setActiveTargetId(targetId)
+      setSelectedTarget(targetDetail)
+      setMediaItems(mediaResponse)
+      setConsents(consentResponse)
+      setVerificationRequests(verificationResponse.items)
     } catch (error) {
       setIsPermissionError(isOwnerOnlyError(error))
-      setErrorMessage(getApiErrorMessage(error))
+      setErrorMessage(toFriendlyErrorMessage(error))
     } finally {
-      setIsCreating(false)
+      setIsLoadingSetup(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!initialTargetId) {
+      return
+    }
+
+    const timerId = window.setTimeout(() => {
+      void loadPreparation(initialTargetId)
+    }, 0)
+
+    return () => window.clearTimeout(timerId)
+  }, [initialTargetId, loadPreparation])
+
+  useEffect(() => {
+    return () => {
+      if (imagePreviewUrl) {
+        URL.revokeObjectURL(imagePreviewUrl)
+      }
+    }
+  }, [imagePreviewUrl])
+
+  useEffect(() => {
+    return () => {
+      if (voicePreviewUrl) {
+        URL.revokeObjectURL(voicePreviewUrl)
+      }
+    }
+  }, [voicePreviewUrl])
+
+  function setPreviewFile(file: File | null, mediaType: MediaType) {
+    const setPreview = mediaType === 'image' ? setImagePreviewUrl : setVoicePreviewUrl
+    setPreview((previous) => {
+      if (previous) {
+        URL.revokeObjectURL(previous)
+      }
+
+      return file ? URL.createObjectURL(file) : null
+    })
+  }
+
+  function toggleConsent(type: ConsentType) {
+    setSelectedConsentTypes((previous) => {
+      if (previous.includes(type)) {
+        return previous.filter((value) => value !== type)
+      }
+
+      return [...previous, type]
+    })
+  }
+
+  function hasActiveConsent(type: ConsentType) {
+    return consents.some((consent) => consent.consent_type === type && consent.is_consented && consent.is_agreed && !consent.revoked_at)
+  }
+
+  async function handleUpload(mediaType: MediaType) {
+    if (!activeTargetId) {
+      setErrorMessage('먼저 대상을 선택해 주세요.')
+      return
+    }
+
+    const file = mediaType === 'image' ? imageFile : voiceFile
+
+    if (!file) {
+      setErrorMessage(mediaType === 'image' ? '사진 파일을 먼저 선택해 주세요.' : '음성 파일을 먼저 선택해 주세요.')
+      return
+    }
+
+    setUploadingMediaType(mediaType)
+    setErrorMessage(null)
+    setNotice(null)
+
+    try {
+      const response = await mediaService.uploadTargetMedia(activeTargetId, mediaType, file)
+      setNotice(response.message ?? (mediaType === 'image' ? '사진을 올렸어요.' : '음성을 올렸어요.'))
+      if (mediaType === 'image') {
+        setImageFile(null)
+        setPreviewFile(null, 'image')
+      } else {
+        setVoiceFile(null)
+        setPreviewFile(null, 'voice')
+      }
+      await loadPreparation(activeTargetId)
+    } catch (error) {
+      setErrorMessage(toFriendlyErrorMessage(error))
+    } finally {
+      setUploadingMediaType(null)
     }
   }
 
+  async function handleSaveConsents() {
+    if (!activeTargetId) {
+      setErrorMessage('먼저 대상을 선택해 주세요.')
+      return
+    }
+
+    if (selectedConsentTypes.length === 0) {
+      setErrorMessage('최소 한 개 이상의 동의 항목을 선택해 주세요.')
+      return
+    }
+
+    setIsSavingConsents(true)
+    setErrorMessage(null)
+    setNotice(null)
+
+    try {
+      await Promise.all(
+        selectedConsentTypes.map((consentType) =>
+          consentService.createConsent({
+            target_id: activeTargetId,
+            consent_type: consentType,
+            consent_version: 'v1',
+            details: consentNote || null,
+            is_agreed: true,
+            is_consented: true,
+          })),
+      )
+      setNotice('선택한 동의를 저장했어요.')
+      await loadPreparation(activeTargetId)
+    } catch (error) {
+      setErrorMessage(toFriendlyErrorMessage(error))
+    } finally {
+      setIsSavingConsents(false)
+    }
+  }
+
+  async function handleSubmitVerification() {
+    if (!activeTargetId) {
+      setErrorMessage('먼저 대상을 선택해 주세요.')
+      return
+    }
+
+    if (!verificationFile) {
+      setErrorMessage('관계를 확인할 증빙 파일을 올려 주세요.')
+      return
+    }
+
+    setIsSubmittingVerification(true)
+    setErrorMessage(null)
+    setNotice(null)
+
+    try {
+      await verificationService.createVerificationRequest(activeTargetId, {
+        verification_type_param: selectedVerificationType,
+        applicant_note: applicantNote || null,
+        file: verificationFile,
+      })
+      setVerificationFile(null)
+      setNotice('승인 요청을 보냈어요. 관리자가 확인할 때까지 기다려 주세요.')
+      await loadPreparation(activeTargetId)
+    } catch (error) {
+      setErrorMessage(toFriendlyErrorMessage(error))
+    } finally {
+      setIsSubmittingVerification(false)
+    }
+  }
+
+  async function handleCreatePersona() {
+    if (!activeTargetId) {
+      setErrorMessage('먼저 대상을 선택해 주세요.')
+      return
+    }
+
+    const missingSteps = getMissingSteps()
+
+    if (missingSteps.length > 0) {
+      setErrorMessage(`아직 준비가 끝나지 않았어요. ${missingSteps.join(' ')}`)
+      return
+    }
+
+    setIsCreatingPersona(true)
+    setErrorMessage(null)
+    setNotice(null)
+
+    try {
+      const persona = await personaService.createPersona(activeTargetId)
+      setCreatedPersona(persona)
+      setNotice('모든 준비가 끝났어요. 페르소나를 만들었어요.')
+      await loadPreparation(activeTargetId)
+    } catch (error) {
+      setErrorMessage(toFriendlyErrorMessage(error))
+    } finally {
+      setIsCreatingPersona(false)
+    }
+  }
+
+  const activeMedia = mediaItems.filter((media) => !media.is_deleted)
+  const imageItems = activeMedia.filter((media) => media.media_type === 'image')
+  const voiceItems = activeMedia.filter((media) => media.media_type === 'voice')
+  const hasMedia = activeMedia.length > 0
+  const requiredConsentsDone = requiredConsentOptions.every((type) => hasActiveConsent(type))
+  const latestVerification = verificationRequests
+    .slice()
+    .sort((first, second) => new Date(second.created_at).getTime() - new Date(first.created_at).getTime())
+    .at(0) ?? null
+  const approvedVerification = getLatestApprovedVerification(verificationRequests)
+  const canCreatePersona = Boolean(activeTargetId && hasMedia && requiredConsentsDone && approvedVerification)
+
+  function getMissingSteps() {
+    const steps: string[] = []
+
+    if (!hasMedia) {
+      steps.push('사진 또는 음성을 먼저 올려 주세요.')
+    }
+
+    if (!requiredConsentsDone) {
+      steps.push('필수 동의를 완료해 주세요.')
+    }
+
+    if (!latestVerification) {
+      steps.push('관계 입증 요청을 먼저 제출해 주세요.')
+    } else if (!approvedVerification) {
+      steps.push(`관계 입증 상태를 확인해 주세요. 현재 상태: ${verificationStatusLabels[latestVerification.status]}.`)
+    }
+
+    return steps
+  }
+
+  const checklist = [
+    {
+      key: 'target',
+      title: '대상 정보 등록',
+      status: activeTargetId ? '완료' : '필요',
+      ctaHref: '/targets/new',
+      ctaLabel: '대상 추가하기',
+    },
+    {
+      key: 'media',
+      title: '사진 또는 음성 올리기',
+      status: hasMedia ? '완료' : uploadingMediaType ? '진행 중' : '필요',
+      ctaHref: activeTargetId ? `/targets/media?target_id=${activeTargetId}` : '/targets/media',
+      ctaLabel: '사진·음성 올리기',
+    },
+    {
+      key: 'consent',
+      title: '필수 동의 완료',
+      status: requiredConsentsDone ? '완료' : isSavingConsents ? '진행 중' : '필요',
+      ctaHref: activeTargetId ? `/compliance/consent?target_id=${activeTargetId}` : '/compliance/consent',
+      ctaLabel: '동의 확인하기',
+    },
+    {
+      key: 'verification-request',
+      title: '관계 입증 요청',
+      status: latestVerification
+        ? latestVerification.status === 'REJECTED'
+          ? '반려됨'
+          : latestVerification.status === 'PENDING'
+            ? '승인 대기'
+            : latestVerification.status === 'NEED_MORE_INFO'
+              ? '진행 중'
+              : '완료'
+        : isSubmittingVerification
+          ? '진행 중'
+          : '필요',
+      ctaHref: activeTargetId ? `/compliance/verification?target_id=${activeTargetId}` : '/compliance/verification',
+      ctaLabel: '관계 입증 요청하기',
+    },
+    {
+      key: 'verification-approved',
+      title: '관리자 승인 완료',
+      status: approvedVerification ? '완료' : latestVerification ? '승인 대기' : '필요',
+      ctaHref: activeTargetId ? `/compliance/verification?target_id=${activeTargetId}` : '/compliance/verification',
+      ctaLabel: '승인 상태 확인하기',
+    },
+    {
+      key: 'persona-ready',
+      title: '페르소나 만들기 가능',
+      status: canCreatePersona ? '완료' : isCreatingPersona ? '진행 중' : '필요',
+      ctaHref: '/personas',
+      ctaLabel: '페르소나 만들기',
+    },
+  ] as const
+
   return (
-    <AppShell title="페르소나 만들기" subtitle="대상을 선택해 새로운 페르소나를 만들 수 있어요.">
-      <main className="domain-page target-api-page">
+    <AppShell title="페르소나 만들기" subtitle="대상 선택부터 승인 확인까지 한 화면에서 순서대로 진행할 수 있어요.">
+      <main className="domain-page target-api-page persona-create-page">
         <header className="domain-page__hero">
           <div>
-            <span className="domain-page__eyebrow">페르소나 만들기</span>
+            <span className="domain-page__eyebrow">단계별 준비</span>
             <h1>페르소나 만들기</h1>
-            <p>대상별로 페르소나를 만들고 바로 대화를 시작할 수 있어요.</p>
+            <p>이 사람의 페르소나를 만들기 전에 필요한 자료를 순서대로 준비해 주세요.</p>
           </div>
-          <span className="domain-page__badge domain-page__badge--connected">대상</span>
+          <span className="domain-page__badge domain-page__badge--connected">6단계</span>
         </header>
 
-        <TargetSelector
-          selectedId={Number(targetIdInput) || null}
-          title="페르소나를 만들 대상을 선택해 주세요"
-          onSelect={(target) => setTargetIdInput(String(target.id))}
-        />
-
-        <div className="target-form__actions">
-          <a href="/targets">대상 목록 보기</a>
-          <button disabled={isCreating || !targetIdInput} onClick={(event) => void handleCreatePersona(event as unknown as FormEvent<HTMLFormElement>)} type="button">
-            {isCreating ? '만드는 중...' : '페르소나 만들기'}
-          </button>
-        </div>
-
+        {notice && <p className="target-form__notice">{notice}</p>}
         {errorMessage && (
           <p className="target-form__error" role="alert">
-            {isPermissionError ? '이 기억 대상의 페르소나를 만들 권한이 없습니다.' : errorMessage}
+            {isPermissionError ? '이 대상을 진행할 권한이 없어요.' : errorMessage}
           </p>
         )}
 
-        {!persona && !errorMessage && (
-          <TargetStateMessage
-            title="목록 서비스 없음"
-            message="먼저 대상을 선택하면 페르소나를 만들 수 있어요."
-          />
-        )}
+        <section className="persona-checklist" aria-label="페르소나 준비 상태">
+          <h2>페르소나 준비 상태</h2>
+          <p>완료되지 않은 항목부터 진행해 주세요.</p>
+          <div className="persona-checklist__grid">
+            {checklist.map((item) => (
+              <article className="persona-checklist__item" key={item.key}>
+                <div className="persona-checklist__header">
+                  <strong>{item.title}</strong>
+                  <span className={`persona-checklist__status persona-checklist__status--${item.status.replace(/\s+/g, '-').toLowerCase()}`}>
+                    {item.status}
+                  </span>
+                </div>
+                {item.status !== '완료' && <a href={item.ctaHref}>{item.ctaLabel}</a>}
+              </article>
+            ))}
+          </div>
+        </section>
 
-        {persona && <PersonaDetailCard persona={persona} />}
+        <section className="persona-step-card" id="step-target">
+          <div className="persona-step-card__header">
+            <h2>1. 대상 선택</h2>
+            {selectedTarget && <span className="persona-step-card__badge">선택됨</span>}
+          </div>
+          <p>먼저 페르소나를 만들 대상을 선택해 주세요.</p>
+          <TargetSelector
+            selectedId={activeTargetId}
+            title="페르소나를 만들 대상을 선택해 주세요."
+            onSelect={(target) => {
+              void loadPreparation(target.id)
+            }}
+          />
+        </section>
+
+        <section className="persona-step-card" id="step-media">
+          <div className="persona-step-card__header">
+            <h2>2. 사진·음성 올리기</h2>
+            <span className={`persona-step-card__badge${hasMedia ? ' persona-step-card__badge--done' : ''}`}>
+              {hasMedia ? '준비 완료' : '필요'}
+            </span>
+          </div>
+          <p>사진이나 음성을 올리면 더 자연스러운 페르소나를 만들 수 있어요.</p>
+          {!activeTargetId && <p className="target-form__helper">대상을 선택하면 업로드를 진행할 수 있어요.</p>}
+          {activeTargetId && (
+            <>
+              <div className="target-media-upload-grid" aria-label="사진과 음성 업로드">
+                <article className="target-media-upload-card">
+                  <h3>사진 올리기</h3>
+                  <div className="target-form__field">
+                    <label htmlFor="persona-image-upload">사진 파일</label>
+                    <input
+                      accept="image/*"
+                      id="persona-image-upload"
+                      onChange={(event) => {
+                        const file = event.target.files?.[0] ?? null
+                        setImageFile(file)
+                        setPreviewFile(file, 'image')
+                      }}
+                      type="file"
+                    />
+                  </div>
+                  {imagePreviewUrl && (
+                    <div className="target-media-local-preview">
+                      <img alt={imageFile?.name ?? '사진 미리보기'} src={imagePreviewUrl} />
+                    </div>
+                  )}
+                  <button disabled={uploadingMediaType === 'image'} onClick={() => void handleUpload('image')} type="button">
+                    {uploadingMediaType === 'image' ? '사진 올리는 중...' : '사진 올리기'}
+                  </button>
+                </article>
+                <article className="target-media-upload-card">
+                  <h3>음성 올리기</h3>
+                  <div className="target-form__field">
+                    <label htmlFor="persona-voice-upload">음성 파일</label>
+                    <input
+                      accept="audio/*"
+                      id="persona-voice-upload"
+                      onChange={(event) => {
+                        const file = event.target.files?.[0] ?? null
+                        setVoiceFile(file)
+                        setPreviewFile(file, 'voice')
+                      }}
+                      type="file"
+                    />
+                  </div>
+                  {voicePreviewUrl && (
+                    <div className="target-media-local-audio">
+                      <audio controls preload="metadata" src={voicePreviewUrl} />
+                    </div>
+                  )}
+                  <button disabled={uploadingMediaType === 'voice'} onClick={() => void handleUpload('voice')} type="button">
+                    {uploadingMediaType === 'voice' ? '음성 올리는 중...' : '음성 올리기'}
+                  </button>
+                </article>
+              </div>
+
+              {!isLoadingSetup && !hasMedia && (
+                <section className="target-api-state">
+                  <h2>아직 사진이나 음성이 없어요.</h2>
+                  <p>사진이나 음성을 먼저 올려 주세요.</p>
+                  <a href={`/targets/media?target_id=${activeTargetId}`}>사진·음성 올리기 화면으로 이동</a>
+                </section>
+              )}
+
+              {imageItems.length > 0 && (
+                <section className="persona-media-list" aria-label="업로드된 사진">
+                  <h3>업로드된 사진</h3>
+                  <div className="persona-media-list__images">
+                    {imageItems.map((media) => (
+                      <figure key={media.id}>
+                        <img alt={media.original_filename} src={toPlayableFileUrl(media.file_api_url ?? media.file_path)} />
+                        <figcaption>{media.original_filename}</figcaption>
+                      </figure>
+                    ))}
+                  </div>
+                </section>
+              )}
+
+              {voiceItems.length > 0 && (
+                <section className="persona-media-list" aria-label="업로드된 음성">
+                  <h3>업로드된 음성</h3>
+                  <div className="persona-media-list__voices">
+                    {voiceItems.map((media) => (
+                      <article key={media.id}>
+                        <strong>{media.original_filename}</strong>
+                        <audio controls preload="metadata" src={toPlayableFileUrl(media.file_api_url ?? media.file_path)} />
+                      </article>
+                    ))}
+                  </div>
+                </section>
+              )}
+            </>
+          )}
+        </section>
+
+        <section className="persona-step-card" id="step-consent">
+          <div className="persona-step-card__header">
+            <h2>3. 동의 확인</h2>
+            <span className={`persona-step-card__badge${requiredConsentsDone ? ' persona-step-card__badge--done' : ''}`}>
+              {requiredConsentsDone ? '준비 완료' : '필요'}
+            </span>
+          </div>
+          <p>필수 동의와 선택 동의를 구분해 여러 항목을 한 번에 저장할 수 있어요.</p>
+          {!activeTargetId && <p className="target-form__helper">대상을 선택하면 동의 저장을 진행할 수 있어요.</p>}
+          {activeTargetId && (
+            <div className="persona-consent-grid">
+              <article className="persona-consent-panel">
+                <h3>필수 동의</h3>
+                <div className="persona-choice-grid">
+                  {requiredConsentOptions.map((option) => {
+                    const isSelected = selectedConsentTypes.includes(option)
+                    const isSaved = hasActiveConsent(option)
+                    return (
+                      <button
+                        className={`persona-choice-card${isSelected ? ' persona-choice-card--selected' : ''}`}
+                        key={option}
+                        onClick={() => toggleConsent(option)}
+                        type="button"
+                      >
+                        <span className="persona-choice-card__header">
+                          <strong>{consentOptionLabels[option].label}</strong>
+                          <span>{isSaved ? '저장됨' : isSelected ? '선택됨' : '선택 필요'}</span>
+                        </span>
+                        <p>{consentOptionLabels[option].description}</p>
+                      </button>
+                    )
+                  })}
+                </div>
+              </article>
+              <article className="persona-consent-panel">
+                <h3>선택 동의</h3>
+                <div className="persona-choice-grid">
+                  {optionalConsentOptions.map((option) => {
+                    const isSelected = selectedConsentTypes.includes(option)
+                    const isSaved = hasActiveConsent(option)
+                    return (
+                      <button
+                        className={`persona-choice-card${isSelected ? ' persona-choice-card--selected' : ''}`}
+                        key={option}
+                        onClick={() => toggleConsent(option)}
+                        type="button"
+                      >
+                        <span className="persona-choice-card__header">
+                          <strong>{consentOptionLabels[option].label}</strong>
+                          <span>{isSaved ? '저장됨' : isSelected ? '선택됨' : '선택 안 함'}</span>
+                        </span>
+                        <p>{consentOptionLabels[option].description}</p>
+                      </button>
+                    )
+                  })}
+                </div>
+              </article>
+              <div className="target-form__field persona-consent-panel__note">
+                <label htmlFor="persona-consent-note">관리자에게 남길 메모, 선택 사항</label>
+                <textarea id="persona-consent-note" onChange={(event) => setConsentNote(event.target.value)} rows={3} value={consentNote} />
+              </div>
+              <div className="target-form__actions persona-consent-panel__actions">
+                <a href={`/compliance/consent?target_id=${activeTargetId}`}>동의 화면에서 확인하기</a>
+                <button disabled={isSavingConsents} onClick={() => void handleSaveConsents()} type="button">
+                  {isSavingConsents ? '동의 저장 중...' : '동의 저장하기'}
+                </button>
+              </div>
+            </div>
+          )}
+        </section>
+
+        <section className="persona-step-card" id="step-verification">
+          <div className="persona-step-card__header">
+            <h2>4. 관계 입증 요청</h2>
+            <span className={`persona-step-card__badge${latestVerification ? ' persona-step-card__badge--done' : ''}`}>
+              {latestVerification ? '요청 완료' : '필요'}
+            </span>
+          </div>
+          <p>페르소나를 만들려면 관계 입증 승인이 필요해요.</p>
+          {!activeTargetId && <p className="target-form__helper">대상을 선택하면 요청을 제출할 수 있어요.</p>}
+          {activeTargetId && (
+            <div className="persona-verification-panel">
+              <div className="persona-choice-grid persona-choice-grid--verification">
+                {Object.entries(verificationTypeLabels).map(([type, label]) => {
+                  const value = type as VerificationType
+                  const isSelected = selectedVerificationType === value
+                  return (
+                    <button
+                      className={`persona-choice-card${isSelected ? ' persona-choice-card--selected' : ''}`}
+                      key={value}
+                      onClick={() => setSelectedVerificationType(value)}
+                      type="button"
+                    >
+                      <span className="persona-choice-card__header">
+                        <strong>{label}</strong>
+                        <span>{isSelected ? '선택됨' : '선택'}</span>
+                      </span>
+                    </button>
+                  )
+                })}
+              </div>
+              <div className="target-form__field">
+                <label htmlFor="persona-verification-file">증빙 파일 올리기</label>
+                <input
+                  id="persona-verification-file"
+                  onChange={(event) => setVerificationFile(event.target.files?.[0] ?? null)}
+                  type="file"
+                />
+                <p className="target-form__helper">
+                  가족관계증명서, 신분증 일부 가림본, 직접 작성한 확인서 등 관계를 설명할 수 있는 파일을 올려 주세요.
+                </p>
+                {verificationFile && <span className="persona-file-chip">선택됨: {verificationFile.name}</span>}
+              </div>
+              <div className="target-form__field">
+                <label htmlFor="persona-applicant-note">관리자에게 남길 메모, 선택 사항</label>
+                <textarea id="persona-applicant-note" onChange={(event) => setApplicantNote(event.target.value)} rows={3} value={applicantNote} />
+              </div>
+              <div className="target-form__actions">
+                <a href={`/compliance/verification?target_id=${activeTargetId}`}>관계 입증 화면에서 확인하기</a>
+                <button disabled={isSubmittingVerification} onClick={() => void handleSubmitVerification()} type="button">
+                  {isSubmittingVerification ? '요청 제출 중...' : '관계 입증 요청하기'}
+                </button>
+              </div>
+              {latestVerification?.status === 'PENDING' && <p className="target-form__notice">요청 제출 후 현재 상태: 승인 대기 중</p>}
+            </div>
+          )}
+        </section>
+
+        <section className="persona-step-card" id="step-approval">
+          <div className="persona-step-card__header">
+            <h2>5. 승인 상태 확인</h2>
+            <span className={`persona-step-card__badge${approvedVerification ? ' persona-step-card__badge--done' : ''}`}>
+              {approvedVerification ? '승인 완료' : '확인 필요'}
+            </span>
+          </div>
+          <p>승인이 완료되면 마지막 단계에서 페르소나 만들기 버튼이 활성화됩니다.</p>
+          <div className="persona-status-card">
+            <strong>
+              현재 상태:{' '}
+              {latestVerification ? verificationStatusLabels[latestVerification.status] : '요청 기록 없음'}
+            </strong>
+            {latestVerification && <p>{latestVerification.verification_type ? verificationTypeLabels[latestVerification.verification_type] : ''}</p>}
+            {!approvedVerification && <p>승인이 완료되지 않아 아직 페르소나를 만들 수 없어요.</p>}
+          </div>
+        </section>
+
+        <section className="persona-step-card" id="step-create">
+          <div className="persona-step-card__header">
+            <h2>6. 페르소나 만들기</h2>
+            <span className={`persona-step-card__badge${canCreatePersona ? ' persona-step-card__badge--done' : ''}`}>
+              {canCreatePersona ? '생성 가능' : '준비 필요'}
+            </span>
+          </div>
+          {!canCreatePersona && (
+            <ul className="persona-missing-list">
+              {getMissingSteps().map((item) => (
+                <li key={item}>{item}</li>
+              ))}
+            </ul>
+          )}
+          {canCreatePersona && <p>모든 준비가 끝났어요. 이제 페르소나를 만들 수 있어요.</p>}
+          <div className="target-form__actions">
+            <button disabled={!canCreatePersona || isCreatingPersona} onClick={() => void handleCreatePersona()} type="button">
+              {isCreatingPersona ? '페르소나 만드는 중...' : '페르소나 만들기'}
+            </button>
+          </div>
+          {createdPersona && (
+            <div className="target-form__actions persona-created-actions">
+              <a href={`/personas/detail?persona_id=${createdPersona.id}`}>페르소나 상세 보기</a>
+              <a href={`/conversations/chat?persona_id=${createdPersona.id}`}>대화 시작하기</a>
+              <a href={`/voice-call?persona_id=${createdPersona.id}`}>음성 대화 시작하기</a>
+            </div>
+          )}
+        </section>
+
+        {isLoadingSetup && <TargetStateMessage title="준비 상태를 확인하는 중" message="대상의 최신 준비 상태를 불러오고 있어요." />}
       </main>
     </AppShell>
   )
@@ -6099,6 +6742,14 @@ function ConsentApiPageV2() {
         {activeTargetId && consents.length === 0 && !isLoading && (
           <TargetStateMessage title="동의 기록이 없어요" message="아직 저장된 동의가 없어요. 위에서 필요한 항목을 선택해 저장해 주세요." />
         )}
+
+        {activeTargetId && (
+          <section className="target-form__actions target-flow-actions">
+            <a href={`/targets/media?target_id=${activeTargetId}`}>사진·음성 올리기</a>
+            <a href={`/compliance/verification?target_id=${activeTargetId}`}>관계 입증 요청하기</a>
+            <a href={`/personas?target_id=${activeTargetId}`}>페르소나 만들기 시작</a>
+          </section>
+        )}
       </main>
     </AppShell>
   )
@@ -6325,6 +6976,14 @@ function TargetVerificationApiPageV2() {
                 <dd>{selectedRequest.expires_at ? formatDateTime(selectedRequest.expires_at) : '없음'}</dd>
               </div>
             </dl>
+          </section>
+        )}
+
+        {activeTargetId && (
+          <section className="target-form__actions target-flow-actions">
+            <a href={`/targets/media?target_id=${activeTargetId}`}>사진·음성 올리기</a>
+            <a href={`/compliance/consent?target_id=${activeTargetId}`}>동의 확인하기</a>
+            <a href={`/personas?target_id=${activeTargetId}`}>페르소나 만들기 시작</a>
           </section>
         )}
       </main>

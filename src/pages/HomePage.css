@@ -764,16 +764,12 @@
   }
 
   .home-page__bottom-nav {
-    position: static;
-    grid-column: 1 / -1;
-    justify-self: center;
+    left: 0;
     grid-template-columns: repeat(4, 112px);
     justify-content: center;
     column-gap: 36px;
-    width: min(100%, 760px);
-    max-width: 760px;
-    height: 78px;
-    margin-top: 4px;
+    max-width: none;
+    height: 82px;
     transform: none;
   }
 }

@@ -3,7 +3,12 @@ import { ApiError } from '../lib/apiClient'
 import { normalizeAssetUrl } from '../lib/mediaUrl'
 import { consentApi, CONSENT_TYPES } from '../services/consentApi'
 import { personaApi } from '../services/personaApi'
-import { REMORY_CHAT_ID_KEY, REMORY_PERSONA_ID_KEY, REMORY_TARGET_ID_KEY } from '../services/personaSession'
+import {
+  clearActivePersonaSession,
+  getActiveTargetId,
+  storeActivePersonaSession,
+  storeActiveTargetId,
+} from '../services/personaSession'
 import { targetApi } from '../services/targetApi'
 import { verificationApi } from '../services/verificationApi'
 import type { ApiId, ConsentType, Persona, VerificationRequest, VerificationStatus, VerificationType } from '../types/api'
@@ -398,11 +403,11 @@ function SetupPage() {
     verificationStatus === null || resubmittableVerificationStatuses.has(verificationStatus)
 
   const clearStaleSetupStorage = useCallback(() => {
-    window.localStorage.removeItem(REMORY_TARGET_ID_KEY)
-    window.localStorage.removeItem(REMORY_PERSONA_ID_KEY)
-    window.localStorage.removeItem(REMORY_CHAT_ID_KEY)
+    clearActivePersonaSession()
     window.localStorage.removeItem(SETUP_COMPLETED_KEY)
     window.localStorage.removeItem(SETUP_MEMORY_NOTES_KEY)
+    window.sessionStorage.removeItem(SETUP_COMPLETED_KEY)
+    window.sessionStorage.removeItem(SETUP_MEMORY_NOTES_KEY)
     setTargetId(null)
     setVerificationRequest(null)
     setCompletedPersona(null)
@@ -428,7 +433,7 @@ function SetupPage() {
     let ignore = false
 
     async function validateStoredTarget() {
-      const storedTargetId = window.localStorage.getItem(REMORY_TARGET_ID_KEY)
+      const storedTargetId = getActiveTargetId()
 
       setIsTargetValidated(false)
 
@@ -627,7 +632,7 @@ function SetupPage() {
     })
 
     setTargetId(target.id)
-    window.localStorage.setItem(REMORY_TARGET_ID_KEY, String(target.id))
+    storeActiveTargetId(target.id)
 
     return target.id
   }
@@ -770,9 +775,9 @@ function SetupPage() {
       const personaDetail = await personaApi.getPersona(persona.id).catch(() => persona)
 
       setCompletedPersona(personaDetail)
-      window.localStorage.setItem(REMORY_PERSONA_ID_KEY, String(personaDetail.id))
-      window.localStorage.setItem(SETUP_MEMORY_NOTES_KEY, JSON.stringify(memoryNotes))
-      window.localStorage.setItem(SETUP_COMPLETED_KEY, 'true')
+      storeActivePersonaSession(String(personaDetail.id), nextTargetId)
+      window.sessionStorage.setItem(SETUP_MEMORY_NOTES_KEY, JSON.stringify(memoryNotes))
+      window.sessionStorage.setItem(SETUP_COMPLETED_KEY, 'true')
       setStep(5)
     } catch (error) {
       const message = getApiErrorMessage(error, '검증 승인 후 페르소나를 만들 수 있어요.')

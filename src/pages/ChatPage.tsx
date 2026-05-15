@@ -4,7 +4,15 @@ import { normalizeAssetUrl } from '../lib/mediaUrl'
 import { fetchProtectedFileObjectUrl, revokeObjectUrl } from '../lib/protectedFile'
 import { chatApi } from '../services/chatApi'
 import { personaApi } from '../services/personaApi'
-import { ensureMomPersonaId, REMORY_CHAT_ID_KEY, REMORY_PERSONA_ID_KEY } from '../services/personaSession'
+import {
+  clearActiveChatId,
+  clearActivePersonaSession,
+  ensureMomPersonaId,
+  getActiveChatId,
+  getActivePersonaId,
+  storeActiveChatId,
+  storeActivePersonaSession,
+} from '../services/personaSession'
 import { buildRealtimeVoiceUrl, type RealtimeVoiceMessage } from '../services/realtimeVoiceApi'
 import { targetApi } from '../services/targetApi'
 import type { ApiId, ChatMessage as ApiChatMessage, Persona, Target } from '../types/api'
@@ -90,8 +98,7 @@ async function getReadyPersonaStatus(personaId: ApiId) {
   } catch (error) {
     if (error instanceof ApiError) {
       if (error.status === 404) {
-        window.localStorage.removeItem(REMORY_PERSONA_ID_KEY)
-        window.localStorage.removeItem(REMORY_CHAT_ID_KEY)
+        clearActivePersonaSession()
         throw new Error('이전 페르소나 정보를 초기화했어요. 다시 설정해주세요.', { cause: error })
       }
 
@@ -101,7 +108,6 @@ async function getReadyPersonaStatus(personaId: ApiId) {
     throw error
   }
 }
-const MOCK_CHAT_MESSAGES_KEY = 'remory_mock_chat_messages'
 const STORYBOOK_NOTICE_KEY = 'remory_storybook_notice'
 const REALTIME_VOICE_URL_MISSING_MESSAGE = '실시간 음성 연결 주소가 설정되지 않았습니다. 오디오 메시지를 대신 사용해주세요.'
 
@@ -398,18 +404,17 @@ function ChatPage() {
     async function loadChat() {
       setIsPreparingChat(true)
       setErrorMessage('')
-      window.localStorage.removeItem(MOCK_CHAT_MESSAGES_KEY)
 
       try {
         const requestedPersonaId = getRequestedPersonaId()
-        const storedPersonaId = window.localStorage.getItem(REMORY_PERSONA_ID_KEY)
+        const storedPersonaId = getActivePersonaId()
 
         if (requestedPersonaId) {
           if (storedPersonaId !== requestedPersonaId) {
-            window.localStorage.removeItem(REMORY_CHAT_ID_KEY)
+            clearActiveChatId()
           }
 
-          window.localStorage.setItem(REMORY_PERSONA_ID_KEY, requestedPersonaId)
+          storeActivePersonaSession(requestedPersonaId)
         }
 
         const personaId = await ensureMomPersonaId()
@@ -434,7 +439,7 @@ function ChatPage() {
 
         try {
           const chats = await chatApi.listChats(personaId)
-          const storedChatId = window.localStorage.getItem(REMORY_CHAT_ID_KEY)
+          const storedChatId = getActiveChatId()
           const storedChat = isStoredApiId(storedChatId)
             ? chats.find((item) => String(item.id) === storedChatId)
             : undefined
@@ -451,7 +456,7 @@ function ChatPage() {
         }
 
         setChatId(chat.id)
-        window.localStorage.setItem(REMORY_CHAT_ID_KEY, String(chat.id))
+        storeActiveChatId(chat.id)
 
         const apiMessages = await chatApi.listMessages(chat.id)
 
@@ -672,7 +677,7 @@ function ChatPage() {
   }
 
   const handleStorybookNavigation = () => {
-    window.localStorage.setItem(STORYBOOK_NOTICE_KEY, '사진 기억을 선택하면 스토리북을 만들 수 있어요.')
+    window.sessionStorage.setItem(STORYBOOK_NOTICE_KEY, '사진 기억을 선택하면 스토리북을 만들 수 있어요.')
     window.location.href = '/storybook'
   }
 

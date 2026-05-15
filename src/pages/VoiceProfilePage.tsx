@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { ArrowLeft, CheckCircle2, Mic, RefreshCw, Sparkles, Upload } from 'lucide-react'
 import { ApiError } from '../lib/apiClient'
-import { getPersonaIdFromTarget, REMORY_PERSONA_ID_KEY } from '../services/personaSession'
+import { clearActivePersonaSession, getActivePersonaId, getPersonaIdFromTarget, storeActivePersonaSession } from '../services/personaSession'
 import { personaApi } from '../services/personaApi'
 import { targetApi } from '../services/targetApi'
 import type { ApiId, Persona, Target, TargetMedia, VoiceProfile } from '../types/api'
@@ -52,7 +52,7 @@ function targetMayHavePersona(target: Target) {
 }
 
 function getStoredPersonaId() {
-  return window.localStorage.getItem(REMORY_PERSONA_ID_KEY)?.trim() || null
+  return getActivePersonaId()
 }
 
 function getApiErrorMessage(error: unknown, fallback: string) {
@@ -295,7 +295,7 @@ function VoiceProfilePage() {
           storedPersonaOption = await createPersonaOptionFromDetail(storedPersonaId)
         } catch (error) {
           hasForbiddenPersona = error instanceof ApiError && error.status === 403
-          window.localStorage.removeItem(REMORY_PERSONA_ID_KEY)
+          clearActivePersonaSession()
         }
       }
 
@@ -326,7 +326,7 @@ function VoiceProfilePage() {
         setPersonaLoadFailed(nextPersonaLoadFailed)
 
         if (selectedOption) {
-          window.localStorage.setItem(REMORY_PERSONA_ID_KEY, selectedOption.personaId)
+          storeActivePersonaSession(selectedOption.personaId, selectedOption.targetId)
         }
 
         if (nextHasForbiddenPersona) {
@@ -416,7 +416,8 @@ function VoiceProfilePage() {
     clearSelectedVoiceSample()
 
     if (personaId) {
-      window.localStorage.setItem(REMORY_PERSONA_ID_KEY, personaId)
+      const selectedOption = personaOptions.find((option) => option.personaId === personaId)
+      storeActivePersonaSession(personaId, selectedOption?.targetId)
     }
   }
 

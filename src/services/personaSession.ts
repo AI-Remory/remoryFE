@@ -5,6 +5,30 @@ export const REMORY_TARGET_ID_KEY = 'remory_target_id'
 export const REMORY_PERSONA_ID_KEY = 'remory_persona_id'
 export const REMORY_CHAT_ID_KEY = 'remory_chat_id'
 
+const activePersonaSessionKeys = [REMORY_TARGET_ID_KEY, REMORY_PERSONA_ID_KEY, REMORY_CHAT_ID_KEY] as const
+
+function getSessionStorage() {
+  return window.sessionStorage
+}
+
+function getLegacyStorage() {
+  return window.localStorage
+}
+
+function clearLegacyActivePersonaSession() {
+  const storage = getLegacyStorage()
+
+  activePersonaSessionKeys.forEach((key) => {
+    storage.removeItem(key)
+  })
+}
+
+function readActiveSessionValue(key: (typeof activePersonaSessionKeys)[number]) {
+  clearLegacyActivePersonaSession()
+
+  return getSessionStorage().getItem(key)
+}
+
 function isStoredId(value: string | null): value is string {
   return value !== null && value.trim().length > 0
 }
@@ -92,35 +116,79 @@ export async function resolveTargetPersonas(targets: Target[], limit = Number.PO
 
 export function storeActivePersonaSession(personaId: string, targetId?: ApiId | null) {
   const nextPersonaId = personaId.trim()
-  const previousPersonaId = window.localStorage.getItem(REMORY_PERSONA_ID_KEY)
+  const storage = getSessionStorage()
+  const previousPersonaId = storage.getItem(REMORY_PERSONA_ID_KEY)
+
+  clearLegacyActivePersonaSession()
 
   if (!nextPersonaId) {
     return
   }
 
   if (previousPersonaId && previousPersonaId !== nextPersonaId) {
-    window.localStorage.removeItem(REMORY_CHAT_ID_KEY)
+    storage.removeItem(REMORY_CHAT_ID_KEY)
   }
 
   if (targetId !== undefined && targetId !== null) {
-    window.localStorage.setItem(REMORY_TARGET_ID_KEY, String(targetId))
+    storage.setItem(REMORY_TARGET_ID_KEY, String(targetId))
   }
 
-  window.localStorage.setItem(REMORY_PERSONA_ID_KEY, nextPersonaId)
+  storage.setItem(REMORY_PERSONA_ID_KEY, nextPersonaId)
 }
 
 export function clearActivePersonaSession() {
-  window.localStorage.removeItem(REMORY_TARGET_ID_KEY)
-  window.localStorage.removeItem(REMORY_PERSONA_ID_KEY)
-  window.localStorage.removeItem(REMORY_CHAT_ID_KEY)
+  const storage = getSessionStorage()
+
+  activePersonaSessionKeys.forEach((key) => {
+    storage.removeItem(key)
+  })
+
+  clearLegacyActivePersonaSession()
+}
+
+export function getActivePersonaId() {
+  return readActiveSessionValue(REMORY_PERSONA_ID_KEY)?.trim() || null
+}
+
+export function getActiveTargetId() {
+  return readActiveSessionValue(REMORY_TARGET_ID_KEY)?.trim() || null
+}
+
+export function storeActiveTargetId(targetId: ApiId) {
+  const storage = getSessionStorage()
+  const nextTargetId = String(targetId)
+  const previousTargetId = storage.getItem(REMORY_TARGET_ID_KEY)
+
+  clearLegacyActivePersonaSession()
+
+  if (previousTargetId && previousTargetId !== nextTargetId) {
+    storage.removeItem(REMORY_PERSONA_ID_KEY)
+    storage.removeItem(REMORY_CHAT_ID_KEY)
+  }
+
+  storage.setItem(REMORY_TARGET_ID_KEY, nextTargetId)
+}
+
+export function getActiveChatId() {
+  return readActiveSessionValue(REMORY_CHAT_ID_KEY)?.trim() || null
+}
+
+export function storeActiveChatId(chatId: ApiId) {
+  clearLegacyActivePersonaSession()
+  getSessionStorage().setItem(REMORY_CHAT_ID_KEY, String(chatId))
+}
+
+export function clearActiveChatId() {
+  getSessionStorage().removeItem(REMORY_CHAT_ID_KEY)
+  getLegacyStorage().removeItem(REMORY_CHAT_ID_KEY)
 }
 
 export async function ensureMomPersonaId(): Promise<string> {
-  const storedPersonaId = window.localStorage.getItem(REMORY_PERSONA_ID_KEY)
+  const storedPersonaId = getActivePersonaId()
   const normalizedStoredPersonaId = isStoredId(storedPersonaId) ? storedPersonaId.trim() : null
 
   if (storedPersonaId && !normalizedStoredPersonaId) {
-    window.localStorage.removeItem(REMORY_PERSONA_ID_KEY)
+    clearActivePersonaSession()
   }
 
   const response = await targetApi.listTargets()

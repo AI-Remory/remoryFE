@@ -6,8 +6,8 @@ import { personaApi } from '../services/personaApi'
 import {
   clearActivePersonaSession,
   ensureMomPersonaId,
+  getActivePersonaId,
   getPersonaIdFromTarget,
-  REMORY_PERSONA_ID_KEY,
   resolveTargetPersonas,
   storeActivePersonaSession,
   targetMayHavePersona,
@@ -295,7 +295,7 @@ function HomePage() {
             setPersonaLoadError('')
           }
         } else {
-          const storedPersonaId = window.localStorage.getItem(REMORY_PERSONA_ID_KEY)?.trim() || null
+          const storedPersonaId = getActivePersonaId()
           const resolvedTargetPersonas = await resolveTargetPersonas(targets)
           const resolvedTargets = resolvedTargetPersonas.map(({ target }) => target)
           const targetPersonas = mapResolvedTargetsToPersonas(resolvedTargetPersonas)
@@ -315,7 +315,7 @@ function HomePage() {
 
               if (!ignore) {
                 setPersonaItems(mergePersonaDetailIntoItems(targetPersonas, personaDetail, resolvedTargets))
-                window.localStorage.setItem(REMORY_PERSONA_ID_KEY, String(personaDetail.id))
+                storeActivePersonaSession(String(personaDetail.id), findTargetForPersona(resolvedTargets, personaDetail, String(personaDetail.id))?.id)
                 setPersonaLoadError('')
               }
             } catch (error) {

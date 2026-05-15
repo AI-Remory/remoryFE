@@ -1,13 +1,29 @@
 import { useEffect, useMemo, useState } from 'react'
 import { ApiError } from '../lib/apiClient'
 import { interviewApi } from '../services/interviewApi'
-import { REMORY_TARGET_ID_KEY } from '../services/personaSession'
+import { getActiveTargetId, storeActiveTargetId } from '../services/personaSession'
 import { storybookApi } from '../services/storybookApi'
 import { targetApi } from '../services/targetApi'
 import type { AIInterviewAnswer, AIInterviewQuestion, AIInterviewSessionDetail, ApiId, Target } from '../types/api'
 import './InterviewPage.css'
 
 const REMORY_INTERVIEW_SESSION_ID_KEY = 'remory_interview_session_id'
+
+function getStoredInterviewSessionId() {
+  window.localStorage.removeItem(REMORY_INTERVIEW_SESSION_ID_KEY)
+
+  return window.sessionStorage.getItem(REMORY_INTERVIEW_SESSION_ID_KEY)
+}
+
+function storeInterviewSessionId(sessionId: ApiId) {
+  window.localStorage.removeItem(REMORY_INTERVIEW_SESSION_ID_KEY)
+  window.sessionStorage.setItem(REMORY_INTERVIEW_SESSION_ID_KEY, String(sessionId))
+}
+
+function clearInterviewSessionId() {
+  window.localStorage.removeItem(REMORY_INTERVIEW_SESSION_ID_KEY)
+  window.sessionStorage.removeItem(REMORY_INTERVIEW_SESSION_ID_KEY)
+}
 
 function getApiErrorMessage(error: unknown, fallbackMessage: string) {
   if (error instanceof ApiError) {
@@ -69,13 +85,13 @@ function InterviewPage() {
     async function loadInitialState() {
       try {
         const response = await targetApi.listTargets()
-        const storedTargetId = window.localStorage.getItem(REMORY_TARGET_ID_KEY)
+        const storedTargetId = getActiveTargetId()
         const storedTarget = response.items.find((item) => isSameApiId(item.id, storedTargetId))
         const nextTarget = storedTarget ?? response.items[0] ?? null
 
         if (!ignore && nextTarget) {
           setTarget(nextTarget)
-          window.localStorage.setItem(REMORY_TARGET_ID_KEY, String(nextTarget.id))
+          storeActiveTargetId(nextTarget.id)
         }
       } catch (error) {
         if (!ignore) {
@@ -83,7 +99,7 @@ function InterviewPage() {
         }
       }
 
-      const storedSessionId = window.localStorage.getItem(REMORY_INTERVIEW_SESSION_ID_KEY)
+      const storedSessionId = getStoredInterviewSessionId()
 
       if (storedSessionId) {
         try {
@@ -97,7 +113,7 @@ function InterviewPage() {
         } catch (error) {
           if (!ignore) {
             if (error instanceof ApiError && (error.status === 403 || error.status === 404)) {
-              window.localStorage.removeItem(REMORY_INTERVIEW_SESSION_ID_KEY)
+              clearInterviewSessionId()
               setStatusMessage('이전 인터뷰 세션을 찾을 수 없어 새로 시작할 수 있어요.')
             } else {
               setErrorMessage(getApiErrorMessage(error, '인터뷰 세션을 불러오지 못했습니다.'))
@@ -143,7 +159,7 @@ function InterviewPage() {
         questions: [nextQuestion],
       }
 
-      window.localStorage.setItem(REMORY_INTERVIEW_SESSION_ID_KEY, String(nextSession.id))
+      storeInterviewSessionId(nextSession.id)
       setSession(nextDetail)
       setQuestions([nextQuestion])
       setAnswerText('')

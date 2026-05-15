@@ -1,4 +1,5 @@
 import { apiClient, clearTokens, getRefreshToken, setTokens } from '../lib/apiClient'
+import { clearActivePersonaSession } from './personaSession'
 import type { AuthResponse, TokenResponse, User } from '../types/api'
 
 type RegisterPayload = {
@@ -12,7 +13,11 @@ type LoginPayload = {
   password: string
 }
 
-function persistTokenPair<T extends TokenResponse>(response: T) {
+function persistTokenPair<T extends TokenResponse>(response: T, options: { clearPersonaSession?: boolean } = {}) {
+  if (options.clearPersonaSession) {
+    clearActivePersonaSession()
+  }
+
   setTokens(response.access_token, response.refresh_token)
   return response
 }
@@ -20,12 +25,12 @@ function persistTokenPair<T extends TokenResponse>(response: T) {
 export const authApi = {
   async register(payload: RegisterPayload) {
     const response = await apiClient.post<AuthResponse>('/auth/register', payload, { auth: false })
-    return persistTokenPair(response)
+    return persistTokenPair(response, { clearPersonaSession: true })
   },
 
   async login(payload: LoginPayload) {
     const response = await apiClient.post<AuthResponse>('/auth/login', payload, { auth: false })
-    return persistTokenPair(response)
+    return persistTokenPair(response, { clearPersonaSession: true })
   },
 
   me() {
@@ -59,6 +64,7 @@ export const authApi = {
       // Logout must clear local auth state even if the server-side revoke fails.
     } finally {
       clearTokens()
+      clearActivePersonaSession()
       window.location.href = '/auth'
     }
   },

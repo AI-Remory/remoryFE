@@ -349,7 +349,12 @@ function StorybookPage() {
   const [isCreatingShareLink, setIsCreatingShareLink] = useState(false)
   const [isDisablingShareLink, setIsDisablingShareLink] = useState(false)
   const [isShareConsentPromptOpen, setIsShareConsentPromptOpen] = useState(false)
-  const [statusMessage, setStatusMessage] = useState(() => window.localStorage.getItem(STORYBOOK_NOTICE_KEY) ?? '')
+  const [statusMessage, setStatusMessage] = useState(() => {
+    const notice = window.sessionStorage.getItem(STORYBOOK_NOTICE_KEY) ?? window.localStorage.getItem(STORYBOOK_NOTICE_KEY) ?? ''
+    window.localStorage.removeItem(STORYBOOK_NOTICE_KEY)
+
+    return notice
+  })
   const [errorMessage, setErrorMessage] = useState('')
 
   const selectStorybook = useCallback(async (storybookId: ApiId) => {
@@ -424,6 +429,7 @@ function StorybookPage() {
   }, [])
 
   useEffect(() => {
+    window.sessionStorage.removeItem(STORYBOOK_NOTICE_KEY)
     window.localStorage.removeItem(STORYBOOK_NOTICE_KEY)
 
     const timeoutId = window.setTimeout(() => {

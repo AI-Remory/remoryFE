@@ -2,11 +2,10 @@ import { useEffect, useState } from 'react'
 import { normalizeAssetUrl } from '../lib/mediaUrl'
 import { authApi } from '../services/authApi'
 import {
+  clearActivePersonaSession,
   ensureMomPersonaId,
-  REMORY_CHAT_ID_KEY,
-  REMORY_PERSONA_ID_KEY,
-  REMORY_TARGET_ID_KEY,
   resolveTargetPersonas,
+  storeActivePersonaSession,
   targetMayHavePersona,
   type ResolvedTargetPersona,
 } from '../services/personaSession'
@@ -106,9 +105,7 @@ function mapResolvedTargetsToPersonas(resolvedTargetPersonas: ResolvedTargetPers
 }
 
 function clearStoredPersonaSession() {
-  window.localStorage.removeItem(REMORY_TARGET_ID_KEY)
-  window.localStorage.removeItem(REMORY_PERSONA_ID_KEY)
-  window.localStorage.removeItem(REMORY_CHAT_ID_KEY)
+  clearActivePersonaSession()
 }
 
 function AppIcon({ name }: { name: IconName }) {
@@ -265,10 +262,7 @@ function MyPage() {
           )
 
           if (nextPersonas[0].personaId) {
-            window.localStorage.setItem(REMORY_PERSONA_ID_KEY, nextPersonas[0].personaId)
-            if (nextPersonas[0].targetId) {
-              window.localStorage.setItem(REMORY_TARGET_ID_KEY, nextPersonas[0].targetId)
-            }
+            storeActivePersonaSession(nextPersonas[0].personaId, nextPersonas[0].targetId)
           } else {
             clearStoredPersonaSession()
           }
@@ -412,10 +406,7 @@ function MyPage() {
                   key={persona.id}
                   onClick={() => {
                     if (persona.personaId) {
-                      window.localStorage.setItem(REMORY_PERSONA_ID_KEY, persona.personaId)
-                    }
-                    if (persona.targetId) {
-                      window.localStorage.setItem(REMORY_TARGET_ID_KEY, persona.targetId)
+                      storeActivePersonaSession(persona.personaId, persona.targetId)
                     }
                   }}
                 >

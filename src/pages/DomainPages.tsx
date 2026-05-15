@@ -61,7 +61,7 @@ import type {
 import type { TargetDetailResponse, TargetResponse, TargetType } from '../types/target'
 import type { VerificationRequestResponse, VerificationStatus, VerificationType } from '../types/verification'
 import type { VoiceCallMessage, VoiceCallStatus } from '../types/voice'
-import type { PersonaVoiceProfileResponse, VoiceProfileStatus } from '../types/voiceProfile'
+import type { PersonaVoiceProfileResponse, VoiceProfileReviewStatus, VoiceProfileStatus } from '../types/voiceProfile'
 import { getDisplayLabel } from '../utils/displayLabels'
 import { toPlayableFileUrl } from '../utils/fileUrl'
 import './DomainPages.css'
@@ -316,6 +316,52 @@ function isVoiceProfileReadyForCall(profile: PersonaVoiceProfileResponse | null 
   )
 }
 
+function getVoiceProfileStatusLabel(status: VoiceProfileStatus | null | undefined) {
+  switch (status) {
+    case 'PENDING':
+      return '평가가 필요해요'
+    case 'PROCESSING':
+      return '음성을 평가하고 있어요'
+    case 'NEEDS_MORE_SAMPLES':
+      return '음성 샘플이 더 필요해요'
+    case 'READY':
+      return '음성 프로필 준비 완료'
+    case 'FAILED':
+      return '음성 프로필을 만들지 못했어요'
+    default:
+      return '상태를 확인해 주세요'
+  }
+}
+
+function getVoiceProfileReviewStatusLabel(status: VoiceProfileReviewStatus | null | undefined) {
+  switch (status) {
+    case 'NOT_REVIEWED':
+      return '확인이 필요해요'
+    case 'USER_CONFIRMED':
+      return '사용자가 확인했어요'
+    case 'ADMIN_APPROVED':
+      return '관리자가 승인했어요'
+    case 'REJECTED':
+      return '사용할 수 없는 음성이에요'
+    default:
+      return '확인 전'
+  }
+}
+
+function getFriendlyVoiceProfileErrorMessage(message: string | null | undefined) {
+  if (!message) {
+    return '음성 품질을 확인하지 못했어요. 잠시 후 다시 시도해 주세요.'
+  }
+
+  const normalized = message.toLowerCase()
+
+  if (normalized.includes('sample') || normalized.includes('reference') || normalized.includes('duration')) {
+    return '음성 샘플이 부족하거나 길이가 짧아요. 음성을 더 올린 뒤 다시 시도해 주세요.'
+  }
+
+  return message
+}
+
 function getVoiceProfileStatusMessage(profile: PersonaVoiceProfileResponse | null) {
   if (!profile) {
     return '이 페르소나의 음성 프로필이 아직 없습니다.'
@@ -327,13 +373,13 @@ function getVoiceProfileStatusMessage(profile: PersonaVoiceProfileResponse | nul
         ? '음성 프로필이 준비되고 확인되었습니다. 음성 통화를 사용할 수 있습니다.'
         : '음성 프로필은 준비되었지만 사용자 또는 관리자 확인이 필요합니다.'
     case 'NEEDS_MORE_SAMPLES':
-      return '사용하려면 음성 샘플이 더 필요합니다.'
+      return '음성 샘플이 더 필요해요. 사진·음성 올리기 화면에서 음성 파일을 추가해 주세요.'
     case 'FAILED':
-      return profile.error_message ?? '음성 프로필 생성에 실패했습니다.'
+      return getFriendlyVoiceProfileErrorMessage(profile.error_message)
     case 'PROCESSING':
-      return '음성 프로필을 처리 중입니다.'
+      return '음성을 평가하고 있어요.'
     case 'PENDING':
-      return '음성 프로필이 대기 중입니다.'
+      return '평가가 필요해요.'
     case 'REVOKED':
       return '음성 프로필이 철회되었습니다.'
     default:
@@ -1340,11 +1386,11 @@ function PersonaDetailCard({
             </div>
             <div>
               <dt>음성 프로필 상태</dt>
-              <dd>{getDisplayLabel(persona.voice_profile.status)}</dd>
+              <dd>{getVoiceProfileStatusLabel(persona.voice_profile.status)}</dd>
             </div>
             <div>
               <dt>확인 상태</dt>
-              <dd>{getDisplayLabel(persona.voice_profile.review_status)}</dd>
+              <dd>{getVoiceProfileReviewStatusLabel(persona.voice_profile.review_status)}</dd>
             </div>
             <div>
               <dt>품질 점수</dt>
@@ -2982,7 +3028,7 @@ function VoiceProfileDetailCard({ profile }: { profile: PersonaVoiceProfileRespo
         </div>
         <div>
           <dt>확인 상태</dt>
-          <dd>{getDisplayLabel(profile.review_status)}</dd>
+          <dd>{getVoiceProfileReviewStatusLabel(profile.review_status)}</dd>
         </div>
         <div>
           <dt>참고 음성 수</dt>
@@ -3026,7 +3072,7 @@ function VoiceProfileDetailCard({ profile }: { profile: PersonaVoiceProfileRespo
         </div>
         <div>
           <dt>안내</dt>
-          <dd>{profile.error_message ?? '없음'}</dd>
+          <dd>{getFriendlyVoiceProfileErrorMessage(profile.error_message)}</dd>
         </div>
         <div>
           <dt>생성일</dt>
@@ -3057,15 +3103,15 @@ function VoiceProfileDetailCard({ profile }: { profile: PersonaVoiceProfileRespo
 
 function PersonaVoiceProfileApiPage() {
   const [initialPersonaId] = useState(() => getPersonaIdFromLocation())
-  const [personaIdInput, setPersonaIdInput] = useState(() => (initialPersonaId ? String(initialPersonaId) : ''))
   const [activePersonaId, setActivePersonaId] = useState<number | null>(null)
+  const [personaTargetId, setPersonaTargetId] = useState<number | null>(null)
   const [profile, setProfile] = useState<PersonaVoiceProfileResponse | null>(null)
   const [reviewNote, setReviewNote] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [isCreating, setIsCreating] = useState(false)
   const [isEvaluating, setIsEvaluating] = useState(false)
   const [isConfirming, setIsConfirming] = useState(false)
-  const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const [errorMessage, setErrorMessage] = useState<string | null>(() => (initialPersonaId ? null : '페르소나를 먼저 선택해 주세요.'))
   const [notice, setNotice] = useState<string | null>(null)
   const [isPermissionError, setIsPermissionError] = useState(false)
 
@@ -3074,28 +3120,42 @@ function PersonaVoiceProfileApiPage() {
     setErrorMessage(null)
     setNotice(null)
     setIsPermissionError(false)
+    setActivePersonaId(personaId)
+
+    try {
+      const persona = await personaService.getPersona(personaId)
+      setPersonaTargetId(persona.target_id)
+    } catch (error) {
+      if (isOwnerOnlyError(error)) {
+        setIsPermissionError(true)
+      }
+    }
 
     try {
       const response = await voiceProfileService.getVoiceProfile(personaId)
       setProfile(response)
-      setActivePersonaId(personaId)
     } catch (error) {
+      if (error instanceof ApiError && error.status === 404) {
+        setProfile(null)
+        return
+      }
+
       setIsPermissionError(isOwnerOnlyError(error))
       setErrorMessage(getApiErrorMessage(error))
       setProfile(null)
-      setActivePersonaId(personaId)
     } finally {
       setIsLoading(false)
     }
   }, [])
 
   useEffect(() => {
-    if (!initialPersonaId) {
+    const personaId = initialPersonaId
+    if (!personaId) {
       return
     }
 
     const timerId = window.setTimeout(() => {
-      void loadProfile(initialPersonaId)
+      void loadProfile(personaId)
     }, 0)
 
     return () => {
@@ -3103,25 +3163,8 @@ function PersonaVoiceProfileApiPage() {
     }
   }, [initialPersonaId, loadProfile])
 
-  function getPersonaIdFromInput() {
-    const personaId = Number(personaIdInput)
-    return Number.isInteger(personaId) && personaId > 0 ? personaId : null
-  }
-
-  function handleLoad(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-    const personaId = getPersonaIdFromInput()
-
-    if (!personaId) {
-      setErrorMessage('페르소나를 먼저 선택해 주세요.')
-      return
-    }
-
-    void loadProfile(personaId)
-  }
-
   async function handleCreate() {
-    const personaId = getPersonaIdFromInput()
+    const personaId = activePersonaId ?? initialPersonaId
 
     if (!personaId) {
       setErrorMessage('페르소나를 먼저 선택해 주세요.')
@@ -3137,7 +3180,7 @@ function PersonaVoiceProfileApiPage() {
       const response = await voiceProfileService.createVoiceProfile(personaId)
       setProfile(response)
       setActivePersonaId(personaId)
-      setNotice('음성 프로필 생성이 요청되었습니다.')
+      setNotice('음성 프로필을 만들었어요. 이제 음성 품질 평가를 진행해 주세요.')
     } catch (error) {
       setIsPermissionError(isOwnerOnlyError(error))
       setErrorMessage(getApiErrorMessage(error))
@@ -3147,7 +3190,7 @@ function PersonaVoiceProfileApiPage() {
   }
 
   async function handleEvaluate() {
-    const personaId = activePersonaId ?? getPersonaIdFromInput()
+    const personaId = activePersonaId ?? initialPersonaId
 
     if (!personaId) {
       setErrorMessage('페르소나를 먼저 선택해 주세요.')
@@ -3163,7 +3206,11 @@ function PersonaVoiceProfileApiPage() {
       const response = await voiceProfileService.evaluateVoiceProfile(personaId)
       setProfile(response)
       setActivePersonaId(personaId)
-      setNotice('음성 프로필 평가가 완료되었습니다.')
+      if (response.status === 'PROCESSING') {
+        setNotice('음성을 평가하고 있어요. 잠시 뒤 상태를 새로고침해 주세요.')
+      } else {
+        setNotice(`평가 결과를 반영했어요. 현재 상태: ${getVoiceProfileStatusLabel(response.status)}.`)
+      }
     } catch (error) {
       setIsPermissionError(isOwnerOnlyError(error))
       setErrorMessage(getApiErrorMessage(error))
@@ -3172,9 +3219,8 @@ function PersonaVoiceProfileApiPage() {
     }
   }
 
-  async function handleConfirm(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-    const personaId = activePersonaId ?? getPersonaIdFromInput()
+  async function handleConfirm() {
+    const personaId = activePersonaId ?? initialPersonaId
 
     if (!personaId) {
       setErrorMessage('페르소나를 먼저 선택해 주세요.')
@@ -3192,7 +3238,7 @@ function PersonaVoiceProfileApiPage() {
       })
       setProfile(response)
       setActivePersonaId(personaId)
-      setNotice('음성 프로필 확인이 완료되었습니다.')
+      setNotice('샘플 확인이 완료되었어요. 이제 음성 대화를 사용할 수 있어요.')
     } catch (error) {
       setIsPermissionError(isOwnerOnlyError(error))
       setErrorMessage(getApiErrorMessage(error))
@@ -3201,14 +3247,22 @@ function PersonaVoiceProfileApiPage() {
     }
   }
 
-  const canEnterVoiceCall = isVoiceProfileReadyForCall(profile)
+  async function handleRefresh() {
+    const personaId = activePersonaId ?? initialPersonaId
 
-  void setPersonaIdInput
-  void isCreating
-  void isEvaluating
-  void handleLoad
-  void handleCreate
-  void handleEvaluate
+    if (!personaId) {
+      setErrorMessage('페르소나를 먼저 선택해 주세요.')
+      return
+    }
+
+    await loadProfile(personaId)
+  }
+
+  const canEnterVoiceCall = isVoiceProfileReadyForCall(profile)
+  const needsMoreSamples = profile?.status === 'NEEDS_MORE_SAMPLES'
+  const canConfirmSample = profile?.status === 'READY' && profile.review_status === 'NOT_REVIEWED'
+  const canEvaluate = profile?.status === 'PENDING' || profile?.status === 'FAILED'
+  const mediaTargetId = profile?.target_id ?? personaTargetId ?? null
 
   return (
     <AppShell title="음성 프로필" subtitle="음성 프로필 상태를 확인하고 사용자 확인을 진행할 수 있어요.">
@@ -3222,40 +3276,98 @@ function PersonaVoiceProfileApiPage() {
           <span className="domain-page__badge domain-page__badge--connected"></span>
         </header>
 
-        <form className="target-form" onSubmit={handleConfirm}>
-          <div className="target-form__field">
-            <label htmlFor="voice-profile-review-note">확인 메모</label>
-            <textarea
-              id="voice-profile-review-note"
-              onChange={(event) => setReviewNote(event.target.value)}
-              rows={3}
-              value={reviewNote}
-            />
-            <p className="target-form__helper">필요하면 간단한 메모를 남겨 주세요.</p>
-          </div>
-          <div className="target-form__actions">
-            <button disabled={isConfirming} type="submit">
-              {isConfirming ? '확인 중...' : '사용자 확인'}
-            </button>
-            <a aria-disabled={!canEnterVoiceCall} href={canEnterVoiceCall && activePersonaId ? `/persona-voice-call?persona_id=${activePersonaId}` : undefined}>
-              음성 대화</a>
-          </div>
-        </form>
-
         {notice && <p className="target-form__notice">{notice}</p>}
         {errorMessage && (
           <p className="target-form__error" role="alert">
-            {isPermissionError ? errorMessage : errorMessage}
+            {isPermissionError ? '이 음성 프로필을 확인할 권한이 없어요.' : errorMessage}
           </p>
         )}
 
         {isLoading && <TargetStateMessage title="음성 프로필을 불러오는 중" message="잠시만 기다려 주세요." />}
 
         {!isLoading && activePersonaId && !profile && !errorMessage && (
-          <TargetStateMessage title="음성 프로필이 없습니다" message="대상 음성 미디어를 업로드한 뒤 음성 프로필을 만들어 주세요." />
+          <section className="target-form">
+            <section className="target-api-state">
+              <h2>음성 프로필이 아직 없어요.</h2>
+              <p>먼저 음성 프로필을 만들고, 다음 단계에서 품질 평가를 진행해 주세요.</p>
+            </section>
+            <div className="target-form__actions">
+              <button disabled={isCreating} onClick={() => void handleCreate()} type="button">
+                {isCreating ? '음성 프로필 만드는 중...' : '음성 프로필 만들기'}
+              </button>
+              <button disabled={isLoading} onClick={() => void handleRefresh()} type="button">
+                상태 새로고침
+              </button>
+            </div>
+          </section>
         )}
 
-        {profile && <VoiceProfileDetailCard profile={profile} />}
+        {profile && (
+          <>
+            <section className="target-form">
+              <section className="target-api-state">
+                <h2>현재 상태: {getVoiceProfileStatusLabel(profile.status)}</h2>
+                <p>{getVoiceProfileStatusMessage(profile)}</p>
+                <p>확인 상태: {getVoiceProfileReviewStatusLabel(profile.review_status)}</p>
+              </section>
+
+              {profile.status === 'PROCESSING' && (
+                <p className="target-form__notice">음성을 평가하고 있어요. 잠시 후 상태 새로고침을 눌러 확인해 주세요.</p>
+              )}
+
+              {needsMoreSamples && (
+                <section className="target-api-state">
+                  <h2>음성 샘플이 더 필요해요.</h2>
+                  <p>추가 음성 파일을 올린 뒤 다시 평가를 진행해 주세요.</p>
+                  <a href={mediaTargetId ? `/targets/media?target_id=${mediaTargetId}` : '/targets/media'}>음성 파일 더 올리기</a>
+                </section>
+              )}
+
+              {(canConfirmSample || profile.status === 'READY') && (
+                <div className="target-form__field">
+                  <label htmlFor="voice-profile-review-note">확인 메모</label>
+                  <textarea
+                    id="voice-profile-review-note"
+                    onChange={(event) => setReviewNote(event.target.value)}
+                    rows={3}
+                    value={reviewNote}
+                  />
+                  <p className="target-form__helper">샘플을 확인한 뒤 필요하면 메모를 남겨 주세요.</p>
+                </div>
+              )}
+
+              <div className="target-form__actions">
+                {canEvaluate && (
+                  <button disabled={isEvaluating} onClick={() => void handleEvaluate()} type="button">
+                    {isEvaluating ? '음성 평가 중...' : profile.status === 'FAILED' ? '다시 평가하기' : '음성 품질 평가하기'}
+                  </button>
+                )}
+
+                {canConfirmSample && (
+                  <button disabled={isConfirming} onClick={() => void handleConfirm()} type="button">
+                    {isConfirming ? '확인 저장 중...' : '샘플 확인 후 사용하기'}
+                  </button>
+                )}
+
+                <a aria-disabled={!canEnterVoiceCall} href={canEnterVoiceCall && activePersonaId ? `/persona-voice-call?persona_id=${activePersonaId}` : undefined}>
+                  음성 대화 시작하기
+                </a>
+
+                <button disabled={isLoading} onClick={() => void handleRefresh()} type="button">
+                  상태 새로고침
+                </button>
+              </div>
+
+              {profile.status === 'FAILED' && (
+                <p className="target-form__error" role="alert">
+                  {getFriendlyVoiceProfileErrorMessage(profile.error_message)}
+                </p>
+              )}
+            </section>
+
+            <VoiceProfileDetailCard profile={profile} />
+          </>
+        )}
       </main>
     </AppShell>
   )

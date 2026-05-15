@@ -2653,6 +2653,21 @@
   justify-content: flex-start;
 }
 
+.persona-status-badge--processing {
+  background: #eef2ff;
+  color: #3f4ea8;
+}
+
+.persona-status-badge--needs_more_samples {
+  background: #fff7e8;
+  color: #a46516;
+}
+
+.persona-status-badge--revoked {
+  background: #f4f4f5;
+  color: #4b5563;
+}
+
 @media (max-width: 980px) {
   .persona-checklist__grid,
   .persona-choice-grid,

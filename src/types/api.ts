@@ -11,6 +11,7 @@ export type User = {
   id: ApiId
   email: string
   nickname: string
+  role?: 'USER' | 'ADMIN' | string
   profile_image_url?: string | null
   profile_image_path?: string | null
   created_at?: string

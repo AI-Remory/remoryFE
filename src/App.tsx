@@ -8,6 +8,7 @@ import HomePage from './pages/HomePage'
 import InterviewPage from './pages/InterviewPage'
 import LandingPage from './pages/LandingPage'
 import MyPage from './pages/MyPage'
+import PrivacySecurityPage from './pages/PrivacySecurityPage'
 import ProfilePage from './pages/ProfilePage'
 import PublicSharePage from './pages/PublicSharePage'
 import ReportPage from './pages/ReportPage'
@@ -42,6 +43,10 @@ function App() {
 
   if (pathname.startsWith('/voice-profile')) {
     return <VoiceProfilePage />
+  }
+
+  if (pathname.startsWith('/privacy-security')) {
+    return <PrivacySecurityPage />
   }
 
   if (pathname.startsWith('/profile')) {

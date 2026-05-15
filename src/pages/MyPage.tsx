@@ -342,7 +342,7 @@ function MyPage() {
       'storybook-archive': '/storybook',
       deletion: '/deletion',
       report: '/report',
-      'privacy-security': '/deletion',
+      'privacy-security': '/privacy-security',
       admin: '/admin',
     }
 

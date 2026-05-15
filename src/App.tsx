@@ -15,6 +15,7 @@ import ReportPage from './pages/ReportPage'
 import SetupPage from './pages/SetupPage'
 import StorybookDetailPage from './pages/StorybookDetailPage'
 import StorybookPage from './pages/StorybookPage'
+import TargetPhotoPage from './pages/TargetPhotoPage'
 import VoiceProfilePage from './pages/VoiceProfilePage'
 import './App.css'
 
@@ -51,6 +52,10 @@ function App() {
 
   if (pathname.startsWith('/profile')) {
     return <ProfilePage />
+  }
+
+  if (pathname.startsWith('/target-photo')) {
+    return <TargetPhotoPage />
   }
 
   if (pathname.startsWith('/auth')) {

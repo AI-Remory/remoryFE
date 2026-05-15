@@ -225,6 +225,41 @@
   line-height: 1.55;
 }
 
+.ops-page__thumbnail-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(116px, 1fr));
+  gap: 10px;
+}
+
+.ops-page__thumbnail {
+  display: grid;
+  min-width: 0;
+  gap: 8px;
+}
+
+.ops-page__thumbnail img,
+.ops-page__thumbnail > svg {
+  width: 100%;
+  aspect-ratio: 1;
+  border: 1px solid #ead5c3;
+  border-radius: 14px;
+  background: #fff8f1;
+  color: #c47d55;
+  object-fit: cover;
+}
+
+.ops-page__thumbnail > svg {
+  padding: 36px;
+}
+
+.ops-page__thumbnail small {
+  color: #76675c;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
 .ops-page__state-note {
   padding: 9px 10px;
   border: 1px solid #ead5c3;

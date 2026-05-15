@@ -445,7 +445,14 @@ function HomePage() {
       return
     }
 
-    window.location.assign('/setup')
+    const activeTargetId = activePersona?.targetId
+
+    if (!activeTargetId) {
+      setErrorMessage('사진을 추가할 페르소나 정보를 찾지 못했습니다. 다시 선택해주세요.')
+      return
+    }
+
+    window.location.assign(`/target-photo?targetId=${encodeURIComponent(activeTargetId)}`)
   }
 
   return (

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { normalizeAssetUrl } from '../lib/mediaUrl'
 import { authApi } from '../services/authApi'
+import { getStoredInterviewSessionId } from '../services/interviewApi'
 import {
   clearActivePersonaSession,
   ensureMomPersonaId,
@@ -11,6 +12,7 @@ import {
 } from '../services/personaSession'
 import { storybookApi } from '../services/storybookApi'
 import { targetApi } from '../services/targetApi'
+import type { StoryBook } from '../types/api'
 import './MyPage.css'
 
 type IconName =
@@ -106,6 +108,23 @@ function mapResolvedTargetsToPersonas(resolvedTargetPersonas: ResolvedTargetPers
 
 function clearStoredPersonaSession() {
   clearActivePersonaSession()
+}
+
+function countKnownInterviewSessions(storybooks: StoryBook[]) {
+  const interviewSessionIds = new Set<string>()
+  const activeInterviewSessionId = getStoredInterviewSessionId()
+
+  if (activeInterviewSessionId) {
+    interviewSessionIds.add(activeInterviewSessionId)
+  }
+
+  storybooks.forEach((storybook) => {
+    if (storybook.interview_session_id !== null && storybook.interview_session_id !== undefined) {
+      interviewSessionIds.add(String(storybook.interview_session_id))
+    }
+  })
+
+  return interviewSessionIds.size
 }
 
 function AppIcon({ name }: { name: IconName }) {
@@ -218,7 +237,8 @@ function MyPage() {
   const [isLoadingPersonas, setIsLoadingPersonas] = useState(true)
   const [hasLoadedRealTargets, setHasLoadedRealTargets] = useState(false)
   const [personaLoadError, setPersonaLoadError] = useState('')
-  const [storybookCount, setStorybookCount] = useState(12)
+  const [storybookCount, setStorybookCount] = useState(0)
+  const [interviewCount, setInterviewCount] = useState(() => countKnownInterviewSessions([]))
   const hasNoPersonas = hasLoadedRealTargets && personaItems.length === 0
   const shouldShowPersonaEmpty = hasNoPersonas || Boolean(personaLoadError)
 
@@ -282,11 +302,14 @@ function MyPage() {
       try {
         const storybooks = await storybookApi.listStorybooks()
 
-        if (!ignore && storybooks.length > 0) {
+        if (!ignore) {
           setStorybookCount(storybooks.length)
+          setInterviewCount(countKnownInterviewSessions(storybooks))
         }
       } catch {
-        // Keep mock storybook count when storybooks cannot be loaded.
+        if (!ignore) {
+          setInterviewCount(countKnownInterviewSessions([]))
+        }
       }
     }
 
@@ -377,7 +400,7 @@ function MyPage() {
             <div>
               <AppIcon name="mic" />
               <span>인터뷰</span>
-              <strong>28건</strong>
+              <strong>{interviewCount}건</strong>
             </div>
           </div>
         </section>

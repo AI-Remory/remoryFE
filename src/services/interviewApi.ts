@@ -25,6 +25,24 @@ type CreateInterviewAnswerPayload = {
   answer_audio_path?: string | null
 }
 
+export const REMORY_INTERVIEW_SESSION_ID_KEY = 'remory_interview_session_id'
+
+export function getStoredInterviewSessionId() {
+  window.localStorage.removeItem(REMORY_INTERVIEW_SESSION_ID_KEY)
+
+  return window.sessionStorage.getItem(REMORY_INTERVIEW_SESSION_ID_KEY)
+}
+
+export function storeInterviewSessionId(sessionId: ApiId) {
+  window.localStorage.removeItem(REMORY_INTERVIEW_SESSION_ID_KEY)
+  window.sessionStorage.setItem(REMORY_INTERVIEW_SESSION_ID_KEY, String(sessionId))
+}
+
+export function clearInterviewSessionId() {
+  window.localStorage.removeItem(REMORY_INTERVIEW_SESSION_ID_KEY)
+  window.sessionStorage.removeItem(REMORY_INTERVIEW_SESSION_ID_KEY)
+}
+
 export const interviewApi = {
   createInterviewSession(payload: CreateInterviewSessionPayload) {
     return apiClient.post<AIInterviewSession>('/interviews', payload)

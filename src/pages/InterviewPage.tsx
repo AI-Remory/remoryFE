@@ -1,29 +1,11 @@
 import { useEffect, useMemo, useState } from 'react'
 import { ApiError } from '../lib/apiClient'
-import { interviewApi } from '../services/interviewApi'
+import { clearInterviewSessionId, getStoredInterviewSessionId, interviewApi, storeInterviewSessionId } from '../services/interviewApi'
 import { getActiveTargetId, storeActiveTargetId } from '../services/personaSession'
 import { storybookApi } from '../services/storybookApi'
 import { targetApi } from '../services/targetApi'
 import type { AIInterviewAnswer, AIInterviewQuestion, AIInterviewSessionDetail, ApiId, Target } from '../types/api'
 import './InterviewPage.css'
-
-const REMORY_INTERVIEW_SESSION_ID_KEY = 'remory_interview_session_id'
-
-function getStoredInterviewSessionId() {
-  window.localStorage.removeItem(REMORY_INTERVIEW_SESSION_ID_KEY)
-
-  return window.sessionStorage.getItem(REMORY_INTERVIEW_SESSION_ID_KEY)
-}
-
-function storeInterviewSessionId(sessionId: ApiId) {
-  window.localStorage.removeItem(REMORY_INTERVIEW_SESSION_ID_KEY)
-  window.sessionStorage.setItem(REMORY_INTERVIEW_SESSION_ID_KEY, String(sessionId))
-}
-
-function clearInterviewSessionId() {
-  window.localStorage.removeItem(REMORY_INTERVIEW_SESSION_ID_KEY)
-  window.sessionStorage.removeItem(REMORY_INTERVIEW_SESSION_ID_KEY)
-}
 
 function getApiErrorMessage(error: unknown, fallbackMessage: string) {
   if (error instanceof ApiError) {

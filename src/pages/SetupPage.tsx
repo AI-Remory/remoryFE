@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState, type ChangeEvent, type FormEvent } from 'react'
 import { ApiError } from '../lib/apiClient'
 import { normalizeAssetUrl } from '../lib/mediaUrl'
+import { getKoreanSafeText, getPersonaDisplayNameText } from '../lib/personaDisplayText'
 import { consentApi, CONSENT_TYPES } from '../services/consentApi'
 import { personaApi } from '../services/personaApi'
 import {
@@ -381,11 +382,11 @@ function SetupPage() {
   const personaRelationship = personaDraft.relationship.trim() || 'parent'
   const savedPersonaDescription = personaDraft.description.trim() || '따뜻한 조언을 해주는 분'
   const completePersonaName =
-    completedPersona?.persona_name ?? completedPersona?.nickname ?? completedPersona?.name ?? savedPersonaName
+    getPersonaDisplayNameText(completedPersona, undefined, savedPersonaName)
   const completePersonaSummary =
-    completedPersona?.personality_summary ??
-    completedPersona?.memory_summary ??
-    completedPersona?.description ??
+    getKoreanSafeText(completedPersona?.personality_summary) ??
+    getKoreanSafeText(completedPersona?.memory_summary) ??
+    getKoreanSafeText(completedPersona?.description) ??
     savedPersonaDescription
   const memoryNoteCount = memoryNotes.length
   const completePhotoCount = selectedPhotoFiles.length + (profileImageFile ? 1 : 0)

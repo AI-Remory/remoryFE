@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type ChangeEvent } from 'react'
 import { ApiError } from '../lib/apiClient'
 import { normalizeAssetUrl } from '../lib/mediaUrl'
+import { getKoreanSafeText, getPersonaDisplayNameText, getTargetTypeLabel } from '../lib/personaDisplayText'
 import { fetchProtectedFileObjectUrl, revokeObjectUrl } from '../lib/protectedFile'
 import { chatApi } from '../services/chatApi'
 import { personaApi } from '../services/personaApi'
@@ -51,24 +52,26 @@ const defaultPersona: ChatPersona = {
 }
 
 function getPersonaDisplayName(persona: Persona | null, target: Target | undefined) {
-  return persona?.persona_name ?? persona?.nickname ?? persona?.name ?? target?.nickname ?? target?.name ?? defaultPersona.name
+  return getPersonaDisplayNameText(persona, target, defaultPersona.name)
 }
 
 function mapPersonaToChatPersona(persona: Persona | null, target: Target | undefined): ChatPersona {
+  const name = getPersonaDisplayName(persona, target)
+  const relationshipLabel = getKoreanSafeText(target?.relationship) ?? getTargetTypeLabel(target)
+
   return {
-    name: getPersonaDisplayName(persona, target),
+    name,
     subtitle:
-      persona?.speaking_style ??
-      target?.description ??
-      target?.relationship ??
-      target?.target_type ??
-      defaultPersona.subtitle,
+      getKoreanSafeText(persona?.speaking_style) ??
+      relationshipLabel ??
+      `${name}의 기억을 바탕으로 대화해요.`,
     description:
-      persona?.personality_summary ??
-      persona?.memory_summary ??
-      persona?.description ??
-      target?.persona?.description ??
-      '소중한 기억과 대화를 이어가고 있어요.',
+      getKoreanSafeText(persona?.personality_summary) ??
+      getKoreanSafeText(persona?.memory_summary) ??
+      getKoreanSafeText(persona?.description) ??
+      getKoreanSafeText(target?.persona?.description) ??
+      getKoreanSafeText(target?.description) ??
+      `${name}의 기억과 이야기를 한국어로 이어가고 있어요.`,
     image: normalizeAssetUrl(
       persona?.image_url ??
         persona?.image_path ??

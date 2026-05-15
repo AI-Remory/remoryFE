@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { ApiError } from '../lib/apiClient'
 import { normalizeAssetUrl } from '../lib/mediaUrl'
+import { getKoreanSafeText, getPersonaDisplayNameText } from '../lib/personaDisplayText'
 import { authApi } from '../services/authApi'
 import { personaApi } from '../services/personaApi'
 import {
@@ -68,8 +69,12 @@ function mapResolvedTargetsToPersonas(resolvedTargetPersonas: ResolvedTargetPers
       id: String(target.id),
       targetId: String(target.id),
       personaId,
-      name: target.nickname ?? target.name ?? target.persona?.nickname ?? target.persona?.name ?? `페르소나 ${index + 1}`,
-      summary: target.persona?.personality_summary ?? target.persona?.memory_summary ?? target.description ?? undefined,
+      name: getPersonaDisplayNameText(target.persona, target, `페르소나 ${index + 1}`),
+      summary:
+        getKoreanSafeText(target.persona?.personality_summary) ??
+        getKoreanSafeText(target.persona?.memory_summary) ??
+        getKoreanSafeText(target.description) ??
+        undefined,
       image: normalizeAssetUrl(
         target.image_url ?? target.profile_image_path ?? target.persona?.image_url ?? mockPersonas[index]?.image,
       ) || '/images/my-page/persona-mom.png',
@@ -82,10 +87,6 @@ function mapResolvedTargetsToPersonas(resolvedTargetPersonas: ResolvedTargetPers
   }
 
   return personas
-}
-
-function getPersonaDisplayName(persona: Persona, fallbackName = '페르소나') {
-  return persona.persona_name ?? persona.nickname ?? persona.name ?? fallbackName
 }
 
 function getPersonaImage(persona: Persona, target?: Target, fallbackImage = '/images/my-page/persona-mom.png') {
@@ -119,8 +120,13 @@ function mapPersonaDetailToHomePersona(persona: Persona, targets: Target[], fall
     id: target ? String(target.id) : personaId,
     targetId: target ? String(target.id) : undefined,
     personaId,
-    name: getPersonaDisplayName(persona, target?.nickname ?? target?.name ?? `페르소나 ${fallbackIndex + 1}`),
-    summary: persona.personality_summary ?? persona.memory_summary ?? persona.description ?? target?.description ?? undefined,
+    name: getPersonaDisplayNameText(persona, target, `페르소나 ${fallbackIndex + 1}`),
+    summary:
+      getKoreanSafeText(persona.personality_summary) ??
+      getKoreanSafeText(persona.memory_summary) ??
+      getKoreanSafeText(persona.description) ??
+      getKoreanSafeText(target?.description) ??
+      undefined,
     image: getPersonaImage(persona, target, mockPersonas[fallbackIndex]?.image),
     active: true,
   }

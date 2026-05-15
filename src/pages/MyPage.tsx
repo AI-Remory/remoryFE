@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { normalizeAssetUrl } from '../lib/mediaUrl'
+import { getKoreanSafeText, getPersonaDisplayNameText, getTargetTypeLabel } from '../lib/personaDisplayText'
 import { authApi } from '../services/authApi'
 import { getStoredInterviewSessionId } from '../services/interviewApi'
 import {
@@ -91,8 +92,13 @@ function mapResolvedTargetsToPersonas(resolvedTargetPersonas: ResolvedTargetPers
       id: String(target.id),
       targetId: String(target.id),
       personaId,
-      name: target.nickname ?? target.name ?? target.persona?.nickname ?? target.persona?.name ?? `페르소나 ${index + 1}`,
-      description: target.description ?? target.target_type ?? target.relationship ?? target.persona?.description ?? '소중한 기억을 담고 있는 분',
+      name: getPersonaDisplayNameText(target.persona, target, `페르소나 ${index + 1}`),
+      description:
+        getKoreanSafeText(target.description) ??
+        getKoreanSafeText(target.relationship) ??
+        getKoreanSafeText(target.persona?.description) ??
+        getTargetTypeLabel(target) ??
+        '소중한 기억을 담고 있는 분',
       image: normalizeAssetUrl(
         target.image_url ?? target.profile_image_path ?? target.persona?.image_url ?? mockPersonas[index]?.image,
       ) || '/images/my-page/persona-mom.png',

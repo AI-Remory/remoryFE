@@ -42,7 +42,27 @@ export async function resolveTargetPersona(target: Target): Promise<ResolvedTarg
     const mergedTarget = { ...target, ...detailedTarget }
     const detailedPersonaId = getPersonaIdFromTarget(mergedTarget)
 
-    return detailedPersonaId ? { target: mergedTarget, personaId: detailedPersonaId } : null
+    if (detailedPersonaId) {
+      return { target: mergedTarget, personaId: detailedPersonaId }
+    }
+
+    if (mergedTarget.has_persona) {
+      const persona = await targetApi.createPersona(mergedTarget.id)
+      const personaId = toStorageId(persona.id)
+
+      return personaId
+        ? {
+            target: {
+              ...mergedTarget,
+              persona,
+              persona_id: persona.id,
+            },
+            personaId,
+          }
+        : null
+    }
+
+    return null
   } catch {
     return null
   }

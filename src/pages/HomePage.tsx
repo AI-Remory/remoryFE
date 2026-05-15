@@ -4,11 +4,10 @@ import { normalizeAssetUrl } from '../lib/mediaUrl'
 import { authApi } from '../services/authApi'
 import { personaApi } from '../services/personaApi'
 import {
+  clearActivePersonaSession,
   ensureMomPersonaId,
   getPersonaIdFromTarget,
-  REMORY_CHAT_ID_KEY,
   REMORY_PERSONA_ID_KEY,
-  REMORY_TARGET_ID_KEY,
   resolveTargetPersonas,
   storeActivePersonaSession,
   targetMayHavePersona,
@@ -161,9 +160,7 @@ async function resolveHomePersonaId(persona: HomePersona | undefined) {
 }
 
 function clearStoredPersonaSession() {
-  window.localStorage.removeItem(REMORY_TARGET_ID_KEY)
-  window.localStorage.removeItem(REMORY_PERSONA_ID_KEY)
-  window.localStorage.removeItem(REMORY_CHAT_ID_KEY)
+  clearActivePersonaSession()
 }
 
 function getChatPath(personaId: string) {
@@ -298,7 +295,7 @@ function HomePage() {
             setPersonaLoadError('')
           }
         } else {
-          const storedPersonaId = window.localStorage.getItem(REMORY_PERSONA_ID_KEY)
+          const storedPersonaId = window.localStorage.getItem(REMORY_PERSONA_ID_KEY)?.trim() || null
           const resolvedTargetPersonas = await resolveTargetPersonas(targets)
           const resolvedTargets = resolvedTargetPersonas.map(({ target }) => target)
           const targetPersonas = mapResolvedTargetsToPersonas(resolvedTargetPersonas)
@@ -306,7 +303,12 @@ function HomePage() {
           let loadedPersonaDetail = false
           let stalePersonaId: string | null = null
 
-          if (storedPersonaId) {
+          if (storedPersonaId && !targetPersonas.some((persona) => persona.personaId === storedPersonaId)) {
+            clearActivePersonaSession()
+            stalePersonaId = storedPersonaId
+          }
+
+          if (storedPersonaId && !stalePersonaId) {
             try {
               const personaDetail = await personaApi.getPersona(storedPersonaId)
               loadedPersonaDetail = true
@@ -317,11 +319,9 @@ function HomePage() {
                 setPersonaLoadError('')
               }
             } catch (error) {
-              if (!ignore && error instanceof ApiError && error.status === 404) {
-                window.localStorage.removeItem(REMORY_PERSONA_ID_KEY)
-                window.localStorage.removeItem(REMORY_CHAT_ID_KEY)
+              if (!ignore && error instanceof ApiError && (error.status === 403 || error.status === 404)) {
+                clearActivePersonaSession()
                 stalePersonaId = storedPersonaId
-                setErrorMessage('이전 페르소나 정보를 초기화했어요. 다시 설정해주세요.')
               }
               // Fall back to target-provided persona summaries when persona detail is unavailable.
             }

@@ -109,19 +109,38 @@ export function storeActivePersonaSession(personaId: string, targetId?: ApiId | 
   window.localStorage.setItem(REMORY_PERSONA_ID_KEY, nextPersonaId)
 }
 
+export function clearActivePersonaSession() {
+  window.localStorage.removeItem(REMORY_TARGET_ID_KEY)
+  window.localStorage.removeItem(REMORY_PERSONA_ID_KEY)
+  window.localStorage.removeItem(REMORY_CHAT_ID_KEY)
+}
+
 export async function ensureMomPersonaId(): Promise<string> {
   const storedPersonaId = window.localStorage.getItem(REMORY_PERSONA_ID_KEY)
+  const normalizedStoredPersonaId = isStoredId(storedPersonaId) ? storedPersonaId.trim() : null
 
-  if (isStoredId(storedPersonaId)) {
-    return storedPersonaId.trim()
-  }
-
-  if (storedPersonaId) {
+  if (storedPersonaId && !normalizedStoredPersonaId) {
     window.localStorage.removeItem(REMORY_PERSONA_ID_KEY)
   }
 
   const response = await targetApi.listTargets()
-  const resolvedTargetPersonas = await resolveTargetPersonas(response.items, 1)
+  const resolvedTargetPersonas = await resolveTargetPersonas(
+    response.items,
+    normalizedStoredPersonaId ? Number.POSITIVE_INFINITY : 1,
+  )
+  const storedPersona = normalizedStoredPersonaId
+    ? resolvedTargetPersonas.find((resolvedPersona) => resolvedPersona.personaId === normalizedStoredPersonaId)
+    : undefined
+
+  if (storedPersona) {
+    storeActivePersonaSession(storedPersona.personaId, storedPersona.target.id)
+    return storedPersona.personaId
+  }
+
+  if (normalizedStoredPersonaId) {
+    clearActivePersonaSession()
+  }
+
   const resolvedPersona = resolvedTargetPersonas[0]
 
   if (!resolvedPersona) {
